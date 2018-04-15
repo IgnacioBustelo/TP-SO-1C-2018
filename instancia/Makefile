@@ -14,7 +14,7 @@ all: $(TARGET)
 	$(CC) -c $< -o $@
 
 $(TARGET): $(OBJ)
-	$(CC) $(LIB) $(OBJ) -o $@
+	$(CC) $(OBJ) -o $@ $(LIB)
 
 debug: CC += -DDEBUG -g
 debug: all
