@@ -3,6 +3,9 @@
 #include <commons/string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
+
+#include "../libs/conector.h"
 
 // Data Structures
 
@@ -59,7 +62,7 @@ void check_config(char* key) {
 }
 
 void init_config() {
-	config = config_create("coordinador.cfg");
+	config = config_create("./coordinador.cfg");
 
 	check_config("PUERTO");
 	port = config_get_int_value(config, "PUERTO");
@@ -84,6 +87,64 @@ void init_config() {
 	log_info(logger, "Asignado el tiempo de retardo a %d.", delay);
 
 	log_info(logger, "Se configur{o el Coordinador correctamente.");
+}
+
+void init_server(int port) {
+	int listener_fd = init_listener(port, 10);
+	if (listener_fd < 0) {
+		switch (listener_fd) {
+		case NO_FD_ERROR:
+			log_error(logger, "No hay file descriptor disponible para el listener.");
+			break;
+		case BIND_ERROR:
+			log_error(logger, "Error al intentar bindear.");
+			break;
+		case LISTEN_ERROR:
+			log_error(logger, "Error al intentar crear cola de escucha.");
+			break;
+		}
+		exit_gracefully(EXIT_FAILURE);
+	} else {
+		struct sockaddr_in client_info;
+		socklen_t addrlen = sizeof client_info;
+
+		pthread_attr_t attrs;
+		pthread_attr_init(&attrs);
+		pthread_attr_setdetachstate(&attrs, PTHREAD_CREATE_DETACHED);
+
+		for (;;) {
+			int *accepted_fd = malloc(sizeof(accepted_fd));
+			*accepted_fd = accept(listener_fd, (struct sockaddr *) &client_info, &addrlen);
+
+			pthread_t tid;
+			pthread_create(&tid, &attrs, handle_connection, accepted_fd);
+		}
+
+		pthread_attr_destroy(&attrs);
+	}
+}
+
+void *handle_connection(void *arg) {
+	int fd = *((int *)arg);
+	free(arg);
+
+	int type = receive_handshake(fd);
+	switch (type) {
+	case SCHEDULER:
+		// handle_scheduler_connection();
+		break;
+	case ESI:
+		// handle_esi_connection();
+		break;
+	case INSTANCE:
+		// handle_instance_connection();
+		break;
+	default:
+		// fruta();
+		return NULL;
+	}
+
+	return NULL;
 }
 
 int main(void) {

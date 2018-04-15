@@ -6,7 +6,7 @@ SRC = $(wildcard *.c)
 OBJ = $(SRC:.c=.o)
 HEADER = $(SRC:.c=.h)
 
-LIB = -lcommons
+LIB = -lcommons -lpthread
 
 all: $(TARGET)
 
