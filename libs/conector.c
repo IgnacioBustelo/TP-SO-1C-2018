@@ -1,5 +1,7 @@
 #include "conector.h"
-#include "errno.h"
+
+#include <errno.h>
+#include <stdbool.h>
 
 int connect_to_server(char *host, int port)
 {
@@ -77,5 +79,21 @@ int receive_handshake(int fd)
 		return type;
 	} else {
 		return -1;
+	}
+}
+
+int send_confirmation(int fd, bool confirm) {
+	if (send(fd, &confirm, sizeof(confirm), 0) == sizeof(confirm)) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+int receive_confirmation(int fd, bool *confirm) {
+	if (recv(fd, confirm, sizeof(*confirm), MSG_WAITALL) == sizeof(*confirm)) {
+		return 1;
+	} else {
+		return 0;
 	}
 }
