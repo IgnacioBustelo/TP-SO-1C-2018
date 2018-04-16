@@ -15,9 +15,19 @@ int main(void) {
 	int server_port;
 
 	int coordinator_fd = connect_to_server(host, port_coordinator);
-	send_handshake(coordinator_fd, SCHEDULER);
+	if(send_handshake(coordinator_fd, SCHEDULER) != 1) {
 
-	/*TODO Falta comprobar que el handshake haya sido exitoso*/
+		log_error(logger, "Failure in send_handshake");
+		close(coordinator_fd);
+	};
+
+	bool confirmation;
+	receive_confirmation(coordinator_fd, &confirmation);
+	if(!confirmation) {
+
+		log_error(logger, "Failure in confirmation reception");
+		close(coordinator_fd);
+	}
 
 	int listener = init_listener(server_port, 10);
 
@@ -69,11 +79,17 @@ int main(void) {
 
 							log_info(logger, "Socket %d connected", new_client_fd);
 
+							bool client_confirmation = false;
 							if (receive_handshake(new_client_fd) == -1) {
 
+								send_confirmation(new_client_fd, confirmation);
 								remove_fd(new_client_fd, &connected_fds);
 								log_error(logger, "Handshake fail with socket %d", new_client_fd);
 								close(new_client_fd);
+							} else {
+
+								client_confirmation = true;
+								send_confirmation(new_client_fd, confirmation);
 							}
 
 						}
