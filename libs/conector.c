@@ -54,7 +54,7 @@ int init_listener(int listen_port, int max_conn)
 int send_handshake(int fd, enum process_type type)
 {
 	int verification = VERIFICATION_NUMBER;
-	if (send(fd, &verification, sizeof(verification), MSG_WAITALL) != sizeof(verification)) {
+	if (send(fd, &verification, sizeof(verification), 0) != sizeof(verification)) {
 		return 0;
 	}
 
