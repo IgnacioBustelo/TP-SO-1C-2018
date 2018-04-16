@@ -7,7 +7,7 @@
 
 int main(void) {
 
-	logger = log_new("servidor.log");
+	logger = log_new("planificador.log");
 
 	/* TODO Obtengo la ip y el puerto del coordinador del archivo de configuracion*/
 	char* host;
@@ -73,6 +73,7 @@ int main(void) {
 
 								remove_fd(new_client_fd, &connected_fds);
 								log_error(logger, "Handshake fail with socket %d", new_client_fd);
+								close(new_client_fd);
 							}
 
 						}
