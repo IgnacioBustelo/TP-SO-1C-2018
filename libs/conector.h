@@ -2,6 +2,7 @@
 #define CONECTOR_H_
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -26,5 +27,9 @@ int connect_to_server(char *host, int port);
  * Si hubo error, devuelve un valor negativo.
  */
 int init_listener(int listen_port, int max_conn);
+
+int send_confirmation(int fd, bool confirm);
+
+int receive_confirmation(int fd, bool *confirm);
 
 #endif /* CONECTOR_H_ */
