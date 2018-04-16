@@ -15,16 +15,14 @@ int main(void) {
 	int server_port;
 
 	int coordinator_fd = connect_to_server(host, port_coordinator);
-	if(send_handshake(coordinator_fd, SCHEDULER) != 1) {
-
+	if (send_handshake(coordinator_fd, SCHEDULER) != 1) {
 		log_error(logger, "Failure in send_handshake");
 		close(coordinator_fd);
-	};
+	}
 
 	bool confirmation;
-	receive_confirmation(coordinator_fd, &confirmation);
-	if(!confirmation) {
-
+	int received = receive_confirmation(coordinator_fd, &confirmation);
+	if (!received || !confirmation) {
 		log_error(logger, "Failure in confirmation reception");
 		close(coordinator_fd);
 	}
