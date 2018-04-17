@@ -9,18 +9,42 @@
 
 #define MAXCONN 20
 
+// Data Structures
+
+typedef enum { SFJCD, SFJSD, HRRN } t_scheduling_algorithm;
+
+typedef struct {
+	int port;
+	int coordinator_port;
+	t_scheduling_algorithm scheduling_algorithm;
+	int initial_estimation;
+	char* coordinator_ip;
+	int coordinator_port;
+	//char** blocked_keys;
+} t_planificador_config;
+
+// Global variables
+
+t_config* config;
+
+t_planificador_config setup;
+
 t_log* logger;
+
 t_list* locked_keys;
+
+
 t_list* esi_bursts;
 
 int main(void) {
 
-	logger = log_create("planificador.log", "planificador", 1 , LOG_LEVEL_INFO);
+	init_log();
 
-	/* TODO Obtengo la ip y el puerto del coordinador del archivo de configuracion*/
-	char* host;
-	int port_coordinator;
-	int server_port;
+	init_config();
+
+	char* host = setup.coordinator_ip;
+	int port_coordinator = setup.coordinator_port;
+	int server_port = setup.port;
 
 	int coordinator_fd = connect_to_server(host, port_coordinator);
 	if (send_handshake(coordinator_fd, SCHEDULER) != 1) {
@@ -160,3 +184,50 @@ void destroy_administrative_structures()
 	list_destroy_and_destroy_elements(esi_bursts, destroy_esi_information);
 	free(esi_bursts);
 }
+void init_config() {
+	config = config_create("planificador.cfg");
+	log_info(logger, "Se abrio el archivo de configuracion.");
+
+	check_config("PUERTO");
+	setup.port=config_get_int_value(config, "PUERTO");
+	log_info(logger, "Asignando puerto %d.", setup.port);
+
+	check_config("ALGORITMO_PLANIFICACION");
+	char* algorithm_name = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
+	set_distribution(algorithm_name);
+	log_info(logger, "Asignado algoritmo de reemplazo de planificacion %s.", algorithm_name);
+
+	check_config("ESTIMACION_INICIAL");
+	setup.initial_estimation=config_get_int_value(config, "ESTIMACION_INICIAL");
+	log_info(logger, "Asignando punto de montaje %s.", setup.initial_estimation);
+
+	check_config("IP_COORDINADOR");
+	setup.coordinator_ip=config_get_string_value(config, "IP_COORDINADOR");
+	log_info(logger, "Asignando direccion coordinador %s.", setup.coordinator_ip);
+
+	check_config("PUERTO_COORDINADOR");
+	setup.coordinator_port = config_get_int_value(config, "PUERTO_COORDINADOR");
+	log_info(logger, "Asignando puerto coordinador %d.", setup.coordinator_port);
+
+	log_info(logger, "Se configuro el planificador correctamente.");
+}
+void set_distribution(char* algorithm_name) {
+	if(string_equals_ignore_case(algorithm_name, "SJFCD")) {
+		setup.distribution = SJFCD;
+	}
+	else if(string_equals_ignore_case(algorithm_name, "SJFSD")) {
+		setup.distribution = SJFSD;
+	}
+	else if(string_equals_ignore_case(algorithm_name, "HRRN")){
+		setup.distribution = HRRN;
+	}
+	else {
+		log_error(logger, "Se intento asignar un algoritmo inexistente llamado %s.", algorithm_name);
+		exit_gracefully(EXIT_FAILURE);
+	}
+}
+void init_log() {
+	logger = log_create("planificador.log", "planificador", 1 , LOG_LEVEL_INFO);
+	log_info(logger, "Se inicio el logger.");
+}
+
