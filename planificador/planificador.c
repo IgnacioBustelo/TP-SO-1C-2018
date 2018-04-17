@@ -121,7 +121,7 @@ void remove_fd(int fd, fd_set *fdset)
 
 key_blocker* create_key_blocker(char* key, int esi_id)
 {
-    key_blocker* key_blocker = malloc(strlen(key) + sizeof(esi_id));
+    key_blocker* key_blocker = malloc(sizeof(key_blocker));
     key_blocker->key = key;
     key_blocker->esi_id = esi_id;
     return key_blocker;
@@ -156,5 +156,7 @@ void create_administrative_structures()
 void destroy_administrative_structures()
 {
 	list_destroy_and_destroy_elements(locked_keys, destroy_key_blocker);
+	free(locked_keys);
 	list_destroy_and_destroy_elements(esi_bursts, destroy_esi_information);
+	free(esi_bursts);
 }
