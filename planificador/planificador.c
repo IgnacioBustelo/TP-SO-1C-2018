@@ -4,10 +4,13 @@
 #include <commons/log.h>
 
 #include "../libs/conector.h"
+#include "planificador.h"
+
+t_log * logger;
 
 int main(void) {
 
-	logger = log_new("planificador.log");
+	logger = log_create("planificador.log", "planificador", 1 , LOG_LEVEL_INFO);
 
 	/* TODO Obtengo la ip y el puerto del coordinador del archivo de configuracion*/
 	char* host;
@@ -102,4 +105,11 @@ int main(void) {
 	}
 
 	return EXIT_SUCCESS;
+}
+
+void remove_fd(int fd, fd_set *fdset)
+{
+	FD_CLR(fd, fdset);
+	log_info(logger, "Socket %d kicked out", fd);
+	close(fd);
 }
