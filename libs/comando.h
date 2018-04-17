@@ -1,10 +1,16 @@
-#ifndef PLANIFICADOR_CONSOLA_H_
-#define PLANIFICADOR_CONSOLA_H_
+#ifndef PLANIFICADOR_COMANDO_H_
+#define PLANIFICADOR_COMANDO_H_
 
 #include <stdbool.h>
 
 typedef void (*command_func)(void);
 typedef void (*command_func_with_args)(char **);
+
+#define DEF_COMMAND(NAME, FUNC_NAME)	\
+	{ NAME, false, (command_func)FUNC_NAME }
+#define DEF_COMMAND_WITH_ARGS(NAME, FUNC_NAME)		\
+	{ NAME, true, (command_func)FUNC_NAME }
+
 
 struct command_t {
 	char *name;
@@ -20,6 +26,6 @@ struct command_t {
  */
 bool execute_command_line(struct command_t *commands,
 							 int commands_size,
-							 const char *command_line);
+							 char *command_line);
 
-#endif /* PLANIFICADOR_CONSOLA_H_ */
+#endif /* PLANIFICADOR_COMANDO_H_ */
