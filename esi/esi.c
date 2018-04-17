@@ -76,7 +76,7 @@ int main(void) {
 
 //Creasignacion de las variables presentes en el archivo de configuracion
 
-	char* ip_coordinador = setup.port_coordinador;
+	char* ip_coordinador = setup.ip_coordinador;
 	char* ip_planificador=setup.ip_planificador;
 	int port_coordinator=setup.port_coordinador;
 	int port_scheduler=setup.port_planificador;
