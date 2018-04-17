@@ -8,6 +8,7 @@
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 enum process_type {
 	SCHEDULER, ESI, INSTANCE
@@ -27,6 +28,10 @@ int connect_to_server(char *host, int port);
  * Si hubo error, devuelve un valor negativo.
  */
 int init_listener(int listen_port, int max_conn);
+
+int send_handshake(int fd, enum process_type type);
+
+int receive_handshake(int fd);
 
 int send_confirmation(int fd, bool confirm);
 
