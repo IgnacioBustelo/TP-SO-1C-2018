@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../libs/conector.h"
+
 // Data Structures
 
 typedef struct {
@@ -65,12 +67,51 @@ void init_config() {
 	log_info(logger, "Asignado valor %d al puerto del Planificador.", setup.port_planificador);
 
 	log_info(logger, "Se configuro el ESI correctamente.");
-}
+}int port_scheduler;
 
 int main(void) {
 	init_log();
 
 	init_config();
+
+//Creasignacion de las variables presentes en el archivo de configuracion
+
+	char* ip_coordinador = setup.port_coordinador;
+	char* ip_planificador=setup.ip_planificador;
+	int port_coordinator=setup.port_coordinador;
+	int port_scheduler=setup.port_planificador;
+
+	bool confirmation;
+
+//Primera conexion, al coordinador:
+
+	int coordinator_fd = connect_to_server(ip_coordinador, port_coordinator);
+		if (send_handshake(coordinator_fd, ESI) != 1) {
+			log_error(logger, "Failure in send_handshake");
+			close(coordinator_fd);
+		}
+
+	int received = receive_confirmation(coordinator_fd, &confirmation);
+		if (!received || !confirmation) {
+			log_error(logger, "Failure in confirmation reception");
+			close(coordinator_fd);
+		}
+
+//Segunda conexion, al planificador:
+
+		int coordinator_fd = connect_to_server(ip_planificador, port_scheduler);
+			if (send_handshake(coordinator_fd, ESI) != 1) {
+				log_error(logger, "Failure in send_handshake");
+				close(coordinator_fd);
+			}
+
+
+		int received = receive_confirmation(coordinator_fd, &confirmation);
+			if (!received || !confirmation) {
+				log_error(logger, "Failure in confirmation reception");
+				close(coordinator_fd);
+			}
+
 
 	exit_gracefully(EXIT_SUCCESS);
 }
