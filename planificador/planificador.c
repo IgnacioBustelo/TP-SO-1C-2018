@@ -2,11 +2,16 @@
 #include <stdlib.h>
 #include <commons/config.h>
 #include <commons/log.h>
+#include <commons/collections/list.h>
 
 #include "../libs/conector.h"
 #include "planificador.h"
 
-t_log * logger;
+#define MAXCONN 20
+
+t_log* logger;
+t_list* locked_keys;
+t_list* esi_bursts;
 
 int main(void) {
 
@@ -30,7 +35,7 @@ int main(void) {
 		close(coordinator_fd);
 	}
 
-	int listener = init_listener(server_port, 10);
+	int listener = init_listener(server_port, MAXCONN);
 
 	fd_set connected_fds;
 	fd_set read_fds;
@@ -112,4 +117,44 @@ void remove_fd(int fd, fd_set *fdset)
 	FD_CLR(fd, fdset);
 	log_info(logger, "Socket %d kicked out", fd);
 	close(fd);
+}
+
+key_blocker* create_key_blocker(char* key, int esi_id)
+{
+    key_blocker* key_blocker = malloc(strlen(key) + sizeof(esi_id));
+    key_blocker->key = key;
+    key_blocker->esi_id = esi_id;
+    return key_blocker;
+}
+
+void destroy_key_blocker(key_blocker* key_blocker)
+{
+	free(key_blocker->key);
+	free(key_blocker);
+}
+
+esi_information* create_esi_information(int esi_id)
+{
+	esi_information* esi_inf = malloc(sizeof(esi_information));
+	esi_inf->esi_id = esi_id;
+	/*TODO esi_inf->next_burst = ESTIMACION_INICIAL; Se saca del archivo de config */
+	esi_inf->last_burst = 0;
+	return esi_inf;
+}
+
+void destroy_esi_information(esi_information* esi_inf)
+{
+    free(esi_inf);
+}
+
+void create_administrative_structures()
+{
+	locked_keys = list_create();
+	esi_bursts = list_create();
+}
+
+void destroy_administrative_structures()
+{
+	list_destroy_and_destroy_elements(locked_keys, destroy_key_blocker);
+	list_destroy_and_destroy_elements(esi_bursts, destroy_esi_information);
 }

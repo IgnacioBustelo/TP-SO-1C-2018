@@ -5,14 +5,38 @@ typedef struct key_blocker {
 
 	char* key;
 	int esi_id;
-};
+} key_blocker;
 
 typedef struct esi_information {
 
 	int esi_id;
 	float next_burst;
 	float last_burst;
-};
+} esi_information;
+
+/*
+ * Crea un puntero a un key_blocker
+ */
+
+key_blocker* create_key_blocker(char* key, int esi_id);
+
+/*
+ * Destruye un key_blocker
+ */
+
+void destroy_key_blocker(key_blocker* key_blocker);
+
+/*
+ * Crea un esi_information
+ */
+
+esi_information* create_esi_information(int esi_id);
+
+/*
+ * Destruye un esi_information
+ */
+
+void destroy_esi_information(esi_information* esi_inf);
 
 /*
  * Inicializa la lista de esi's y la de claves bloqueadas
