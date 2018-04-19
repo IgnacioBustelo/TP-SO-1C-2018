@@ -14,6 +14,16 @@ typedef struct esi_information {
 	float last_burst;
 } esi_information;
 
+void init_log();
+
+void init_config();
+
+void check_config(char* key);
+
+void set_distribution(char* algorithm_name);
+
+void exit_gracefully(int status);
+
 /*
  * Crea un puntero a un key_blocker
  */

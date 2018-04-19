@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 #include "../libs/conector.h"
+#include "esi.h"
 
 // Data Structures
 
@@ -99,14 +100,14 @@ int main(void) {
 
 //Segunda conexion, al planificador:
 
-		int coordinator_fd = connect_to_server(ip_planificador, port_scheduler);
+		coordinator_fd = connect_to_server(ip_planificador, port_scheduler);
 			if (send_handshake(coordinator_fd, ESI) != 1) {
 				log_error(logger, "Failure in send_handshake");
 				close(coordinator_fd);
 			}
 
 
-		int received = receive_confirmation(coordinator_fd, &confirmation);
+		received = receive_confirmation(coordinator_fd, &confirmation);
 			if (!received || !confirmation) {
 				log_error(logger, "Failure in confirmation reception");
 				close(coordinator_fd);

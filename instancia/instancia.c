@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 #include "../libs/conector.h"
+#include "instancia.h"
 
 // Data Structures
 
@@ -87,13 +88,13 @@ void init_config() {
 }
 void set_distribution(char* algorithm_name) {
 	if(string_equals_ignore_case(algorithm_name, "CIRC")) {
-		setup.distribution = CIRC;
+		setup.page_replacement_algorithm = CIRC;
 	}
 	else if(string_equals_ignore_case(algorithm_name, "LRU")) {
-		setup.distribution = LRU;
+		setup.page_replacement_algorithm = LRU;
 	}
 	else if(string_equals_ignore_case(algorithm_name, "BSU")){
-		setup.distribution = BSU;
+		setup.page_replacement_algorithm = BSU;
 	}
 	else {
 		log_error(logger, "Se intento asignar un algoritmo inexistente llamado %s.", algorithm_name);

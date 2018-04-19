@@ -9,6 +9,8 @@ void init_config();
 
 void check_config(char* key);
 
+void *handle_connection(void *arg);
+
 void exit_gracefully(int status);
 
 #endif

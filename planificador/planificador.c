@@ -3,6 +3,7 @@
 #include <commons/config.h>
 #include <commons/log.h>
 #include <commons/collections/list.h>
+#include <commons/string.h>
 
 #include "../libs/conector.h"
 #include "planificador.h"
@@ -11,7 +12,7 @@
 
 // Data Structures
 
-typedef enum { SFJCD, SFJSD, HRRN } t_scheduling_algorithm;
+typedef enum { SJFCD, SJFSD, HRRN } t_scheduling_algorithm;
 
 typedef struct {
 	int port;
@@ -19,7 +20,6 @@ typedef struct {
 	t_scheduling_algorithm scheduling_algorithm;
 	int initial_estimation;
 	char* coordinator_ip;
-	int coordinator_port;
 	//char** blocked_keys;
 } t_planificador_config;
 
@@ -179,9 +179,9 @@ void create_administrative_structures()
 
 void destroy_administrative_structures()
 {
-	list_destroy_and_destroy_elements(locked_keys, destroy_key_blocker);
+	list_destroy_and_destroy_elements(locked_keys, (void*) destroy_key_blocker);
 	free(locked_keys);
-	list_destroy_and_destroy_elements(esi_bursts, destroy_esi_information);
+	list_destroy_and_destroy_elements(esi_bursts, (void*) destroy_esi_information);
 	free(esi_bursts);
 }
 void init_config() {
@@ -213,13 +213,13 @@ void init_config() {
 }
 void set_distribution(char* algorithm_name) {
 	if(string_equals_ignore_case(algorithm_name, "SJFCD")) {
-		setup.distribution = SJFCD;
+		setup.scheduling_algorithm = SJFCD;
 	}
 	else if(string_equals_ignore_case(algorithm_name, "SJFSD")) {
-		setup.distribution = SJFSD;
+		setup.scheduling_algorithm = SJFSD;
 	}
 	else if(string_equals_ignore_case(algorithm_name, "HRRN")){
-		setup.distribution = HRRN;
+		setup.scheduling_algorithm = HRRN;
 	}
 	else {
 		log_error(logger, "Se intento asignar un algoritmo inexistente llamado %s.", algorithm_name);
@@ -229,5 +229,13 @@ void set_distribution(char* algorithm_name) {
 void init_log() {
 	logger = log_create("planificador.log", "planificador", 1 , LOG_LEVEL_INFO);
 	log_info(logger, "Se inicio el logger.");
+}
+
+void check_config(char* key) {
+	if(!config_has_property(config, key)) {
+		log_error(logger, "No existe la clave '%s' en el archivo de configuracion.", key);
+
+		exit_gracefully(EXIT_FAILURE);
+	}
 }
 

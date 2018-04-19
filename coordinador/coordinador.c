@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+#include "coordinador.h"
 #include "../libs/conector.h"
 
 // Data Structures
