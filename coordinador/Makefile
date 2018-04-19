@@ -3,6 +3,7 @@ RM = rm -f
 
 TARGET = coordinador
 SRC = $(wildcard *.c)
+SRC += ../libs/conector.c
 OBJ = $(SRC:.c=.o)
 HEADER = $(SRC:.c=.h)
 
