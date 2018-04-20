@@ -31,10 +31,10 @@ t_planificador_config setup;
 
 t_log* logger;
 
-t_list* locked_keys;
+t_list* g_locked_keys;
 
 
-t_list* esi_bursts;
+t_list* g_esi_bursts;
 
 int main(void) {
 
@@ -151,45 +151,48 @@ key_blocker* create_key_blocker(char* key, int esi_id)
     return key_blocker;
 }
 
-void destroy_key_blocker(key_blocker* key_blocker)
+void destroy_key_blocker(void* key_blocker_)
 {
-	free(key_blocker->key);
-	free(key_blocker);
+	key_blocker* kb = malloc(sizeof(struct key_blocker));
+	kb = (key_blocker*)key_blocker_;
+	free(kb->key);
+	free(kb);
+	free(key_blocker_);
 }
 
 esi_information* create_esi_information(int esi_id)
 {
 	esi_information* esi_inf = malloc(sizeof(esi_information));
 	esi_inf->esi_id = esi_id;
-	/*TODO esi_inf->next_burst = ESTIMACION_INICIAL; Se saca del archivo de config */
+	esi_inf->next_burst = (float) setup.initial_estimation;
 	esi_inf->last_burst = 0;
 	return esi_inf;
 }
 
-void destroy_esi_information(esi_information* esi_inf)
+void destroy_esi_information(void* esi_inf)
 {
     free(esi_inf);
 }
 
 void create_administrative_structures()
 {
-	locked_keys = list_create();
-	esi_bursts = list_create();
+	g_locked_keys = list_create();
+	g_esi_bursts = list_create();
 }
 
 void destroy_administrative_structures()
 {
-	list_destroy_and_destroy_elements(locked_keys, (void*) destroy_key_blocker);
-	free(locked_keys);
-	list_destroy_and_destroy_elements(esi_bursts, (void*) destroy_esi_information);
-	free(esi_bursts);
+	list_destroy_and_destroy_elements(g_locked_keys, destroy_key_blocker);
+	list_destroy_and_destroy_elements(g_esi_bursts, destroy_esi_information);
 }
+
 void init_config() {
+
 	config = config_create("planificador.cfg");
 	log_info(logger, "Se abrio el archivo de configuracion.");
 
 	check_config("PUERTO");
-	setup.port=config_get_int_value(config, "PUERTO");
+	setup.port = config_get_int_value(config, "PUERTO");
 	log_info(logger, "Asignando puerto %d.", setup.port);
 
 	check_config("ALGORITMO_PLANIFICACION");
@@ -198,7 +201,7 @@ void init_config() {
 	log_info(logger, "Asignado algoritmo de reemplazo de planificacion %s.", algorithm_name);
 
 	check_config("ESTIMACION_INICIAL");
-	setup.initial_estimation=config_get_int_value(config, "ESTIMACION_INICIAL");
+	setup.initial_estimation = config_get_int_value(config, "ESTIMACION_INICIAL");
 	log_info(logger, "Asignando punto de montaje %s.", setup.initial_estimation);
 
 	check_config("IP_COORDINADOR");
@@ -212,6 +215,7 @@ void init_config() {
 	log_info(logger, "Se configuro el planificador correctamente.");
 }
 void set_distribution(char* algorithm_name) {
+
 	if(string_equals_ignore_case(algorithm_name, "SJFCD")) {
 		setup.scheduling_algorithm = SJFCD;
 	}
@@ -227,8 +231,9 @@ void set_distribution(char* algorithm_name) {
 	}
 }
 void init_log() {
+
 	logger = log_create("planificador.log", "planificador", 1 , LOG_LEVEL_INFO);
-	log_info(logger, "Se inicio el logger.");
+	log_info(logger, "Logger created");
 }
 
 void check_config(char* key) {
@@ -237,5 +242,18 @@ void check_config(char* key) {
 
 		exit_gracefully(EXIT_FAILURE);
 	}
+}
+
+void exit_gracefully(int status) {
+
+	log_info(logger, "Scheduler execution ended");
+
+	config_destroy(config);
+
+	log_destroy(logger);
+
+	destroy_administrative_structures();
+
+	exit(status);
 }
 
