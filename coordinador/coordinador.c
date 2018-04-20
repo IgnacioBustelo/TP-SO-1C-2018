@@ -98,7 +98,9 @@ void init_config() {
 }
 
 void init_server(int port) {
+
 	int listener_fd = init_listener(port, 10);
+
 	if (listener_fd < 0) {
 		switch (listener_fd) {
 		case NO_FD_ERROR:
@@ -111,8 +113,13 @@ void init_server(int port) {
 			log_error(logger, "Error al intentar crear cola de escucha.");
 			break;
 		}
+
 		exit_gracefully(EXIT_FAILURE);
+
 	} else {
+
+		log_info(logger, "Escuchando en el socket %d", listener_fd);
+
 		struct sockaddr_in client_info;
 		socklen_t addrlen = sizeof client_info;
 
@@ -121,8 +128,10 @@ void init_server(int port) {
 		pthread_attr_setdetachstate(&attrs, PTHREAD_CREATE_DETACHED);
 
 		for (;;) {
-			int *accepted_fd = malloc(sizeof(accepted_fd));
+			int *accepted_fd = malloc(sizeof(int));
 			*accepted_fd = accept(listener_fd, (struct sockaddr *) &client_info, &addrlen);
+
+			log_info(logger, "Creando un hilo para atender una conexión en el socket %d", *accepted_fd);
 
 			pthread_t tid;
 			pthread_create(&tid, &attrs, handle_connection, accepted_fd);
@@ -159,6 +168,8 @@ int main(void) {
 	init_log();
 
 	init_config();
+
+	init_server(setup.port);
 
 	exit_gracefully(EXIT_SUCCESS);
 }
