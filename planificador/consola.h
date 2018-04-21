@@ -1,12 +1,13 @@
 #ifndef PLANIFICADOR_CONSOLA_H_
 #define PLANIFICADOR_CONSOLA_H_
 
-#include <stdbool.h>
-
 /**
  * Recibe una linea de comando y lo ejecuta.
- * El valor de retorno indica si es un comando valido.
+ * El valor de retorno indica si fue ejecutado exitosamente u ocurrio un error:
+ *   -  (1) Exito.
+ *   - (-1) Comando no existente.
+ *   - (-2) Cantidad incorrecta de argumentos.
  */
-bool execute_console_command(char *command_line);
+int execute_console_command(char *command_line);
 
 #endif /* PLANIFICADOR_CONSOLA_H_ */
