@@ -79,7 +79,7 @@ int main(void) {
 	FD_SET(coordinator_fd, &connected_fds);
 	FD_SET(listener, &connected_fds);
 
-	int max_fd = listener;
+	int max_fd = (listener > coordinator_fd) ? listener : coordinator_fd;
 
 	while(1)
 	{

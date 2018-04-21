@@ -84,35 +84,36 @@ int main(void) {
 
 	bool confirmation;
 
-//Primera conexion, al coordinador:
+    //Primera conexion, al coordinador:
 
 	int coordinator_fd = connect_to_server(ip_coordinador, port_coordinator);
 		if (send_handshake(coordinator_fd, ESI) != 1) {
-			log_error(logger, "Failure in send_handshake");
+			log_error(logger, "Failure in send_handshake with coordinator");
 			close(coordinator_fd);
 		}
 
 	int received = receive_confirmation(coordinator_fd, &confirmation);
 		if (!received || !confirmation) {
-			log_error(logger, "Failure in confirmation reception");
+			log_error(logger, "Failure in confirmation reception from coordinator");
 			close(coordinator_fd);
 		}
 
-//Segunda conexion, al planificador:
+    //Segunda conexion, al planificador:
 
-		coordinator_fd = connect_to_server(ip_planificador, port_scheduler);
-			if (send_handshake(coordinator_fd, ESI) != 1) {
-				log_error(logger, "Failure in send_handshake");
-				close(coordinator_fd);
-			}
+	coordinator_fd = connect_to_server(ip_planificador, port_scheduler);
+		if (send_handshake(coordinator_fd, ESI) != 1) {
+			log_error(logger, "Failure in send_handshake with scheduler");
+			close(coordinator_fd);
+		}
 
 
-		received = receive_confirmation(coordinator_fd, &confirmation);
-			if (!received || !confirmation) {
-				log_error(logger, "Failure in confirmation reception");
-				close(coordinator_fd);
-			}
+	received = receive_confirmation(coordinator_fd, &confirmation);
+		if (!received || !confirmation) {
+			log_error(logger, "Failure in confirmation reception from scheduler");
+			close(coordinator_fd);
+		}
 
+	while(1);
 
 	exit_gracefully(EXIT_SUCCESS);
 }

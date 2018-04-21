@@ -29,14 +29,13 @@ t_instancia_config setup;
 t_log* logger;
 
 int main(void) {
+
 	init_log();
 
 	init_config();
 
-	//TODO obtener la ip y el puerto del coordinador del archivo de configuracion
-
-	char* ip_coordinador; // TODO Falta asignar valor
-	int port_coordinator; // TODO Falta asignar valor
+	char* ip_coordinador = setup.coordinator_ip;
+	int port_coordinator = setup.coordinator_port;
 
 //Conexion al coordinador
 
@@ -53,9 +52,20 @@ int main(void) {
 			close(coordinator_fd);
 		}
 
+	log_info(logger, "Conectado al coordinador");
+
+	while(1);
+
 	return EXIT_SUCCESS;
 }
+
+void init_log() {
+	logger = log_create("instancia.log", "Instancia", true, LOG_LEVEL_INFO);
+	log_info(logger, "Se inicio el logger");
+}
+
 void init_config() {
+
 	config = config_create("instancia.cfg");
 	log_info(logger, "Se abrio el archivo de configuracion.");
 
@@ -86,7 +96,9 @@ void init_config() {
 
 	log_info(logger, "Se configuro la %s correctamente.",setup.instance_name);
 }
+
 void set_distribution(char* algorithm_name) {
+
 	if(string_equals_ignore_case(algorithm_name, "CIRC")) {
 		setup.page_replacement_algorithm = CIRC;
 	}
@@ -100,4 +112,22 @@ void set_distribution(char* algorithm_name) {
 		log_error(logger, "Se intento asignar un algoritmo inexistente llamado %s.", algorithm_name);
 		exit_gracefully(EXIT_FAILURE);
 	}
+}
+
+void check_config(char* key) {
+	if(!config_has_property(config, key)) {
+		log_error(logger, "No existe la clave '%s' en el archivo de configuracion.", key);
+
+		exit_gracefully(EXIT_FAILURE);
+	}
+}
+
+void exit_gracefully(int status) {
+	log_info(logger, "Finalizo la ejecucion de la instancia");
+
+	config_destroy(config);
+
+	log_destroy(logger);
+
+	exit(status);
 }
