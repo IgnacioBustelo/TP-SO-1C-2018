@@ -50,9 +50,12 @@ int main(void) {
 	int server_port = setup.port;
 
 	int coordinator_fd = connect_to_server(host, port_coordinator);
+	log_info(logger, "Connecting to the coordinator...");
+
 	if (send_handshake(coordinator_fd, SCHEDULER) != 1) {
 		log_error(logger, "Failure in send_handshake");
 		close(coordinator_fd);
+		exit_gracefully(EXIT_FAILURE);
 	}
 
 	bool confirmation;
@@ -60,9 +63,13 @@ int main(void) {
 	if (!received || !confirmation) {
 		log_error(logger, "Failure in confirmation reception");
 		close(coordinator_fd);
+		exit_gracefully(EXIT_FAILURE);
 	}
 
+	log_info(logger, "Succesfully connected to the coordinator");
+
 	int listener = init_listener(server_port, MAXCONN);
+	log_info(logger, "Listening on port %i...", server_port);
 
 	fd_set connected_fds;
 	fd_set read_fds;

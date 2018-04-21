@@ -11,6 +11,8 @@ void check_config(char* key);
 
 void *handle_connection(void *arg);
 
+bool is_valid_process(int type);
+
 void exit_gracefully(int status);
 
 #endif

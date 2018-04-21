@@ -146,6 +146,10 @@ void *handle_connection(void *arg) {
 	free(arg);
 
 	int type = receive_handshake(fd);
+	bool confirmation = is_valid_process(type);
+
+	send_confirmation(fd, confirmation);
+
 	switch (type) {
 	case SCHEDULER:
 		// handle_scheduler_connection();
@@ -162,6 +166,11 @@ void *handle_connection(void *arg) {
 	}
 
 	return NULL;
+}
+
+bool is_valid_process(int type) {
+
+	return (type == SCHEDULER || type == ESI || type == INSTANCE);
 }
 
 int main(void) {
