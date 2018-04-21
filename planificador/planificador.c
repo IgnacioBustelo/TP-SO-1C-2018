@@ -18,7 +18,7 @@ typedef struct {
 	int port;
 	int coordinator_port;
 	t_scheduling_algorithm scheduling_algorithm;
-	int initial_estimation;
+	double initial_estimation;
 	char* coordinator_ip;
 	//char** blocked_keys;
 } t_planificador_config;
@@ -164,7 +164,7 @@ esi_information* create_esi_information(int esi_id)
 {
 	esi_information* esi_inf = malloc(sizeof(esi_information));
 	esi_inf->esi_id = esi_id;
-	esi_inf->next_burst = (float) setup.initial_estimation;
+	esi_inf->next_burst = (double)setup.initial_estimation;
 	esi_inf->last_burst = 0;
 	return esi_inf;
 }
@@ -187,7 +187,6 @@ void destroy_administrative_structures()
 }
 
 void init_config() {
-
 	config = config_create("planificador.cfg");
 	log_info(logger, "Se abrio el archivo de configuracion.");
 
@@ -199,13 +198,14 @@ void init_config() {
 	char* algorithm_name = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
 	set_distribution(algorithm_name);
 	log_info(logger, "Asignado algoritmo de reemplazo de planificacion %s.", algorithm_name);
+	free(algorithm_name);
 
 	check_config("ESTIMACION_INICIAL");
-	setup.initial_estimation = config_get_int_value(config, "ESTIMACION_INICIAL");
-	log_info(logger, "Asignando punto de montaje %s.", setup.initial_estimation);
+	setup.initial_estimation = config_get_double_value(config, "ESTIMACION_INICIAL");
+	log_info(logger, "Asignando estimacion inicial %f.", setup.initial_estimation);
 
 	check_config("IP_COORDINADOR");
-	setup.coordinator_ip=config_get_string_value(config, "IP_COORDINADOR");
+	setup.coordinator_ip = config_get_string_value(config, "IP_COORDINADOR");
 	log_info(logger, "Asignando direccion coordinador %s.", setup.coordinator_ip);
 
 	check_config("PUERTO_COORDINADOR");
@@ -214,6 +214,7 @@ void init_config() {
 
 	log_info(logger, "Se configuro el planificador correctamente.");
 }
+
 void set_distribution(char* algorithm_name) {
 
 	if(string_equals_ignore_case(algorithm_name, "SJFCD")) {
