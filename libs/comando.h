@@ -1,20 +1,20 @@
-#ifndef PLANIFICADOR_COMANDO_H_
-#define PLANIFICADOR_COMANDO_H_
+#ifndef COMANDO_H_
+#define COMANDO_H_
 
 #include <stdbool.h>
+#include <stddef.h>
 
-typedef void (*command_func)(void);
-typedef void (*command_func_with_args)(char **);
+typedef void (*command_func)(char **);
 
-#define DEF_COMMAND(NAME, FUNC_NAME)	\
-	{ NAME, false, (command_func)FUNC_NAME }
-#define DEF_COMMAND_WITH_ARGS(NAME, FUNC_NAME)		\
-	{ NAME, true, (command_func)FUNC_NAME }
+#define DEF_COMMAND(NAME, N_ARGS, FUNC_NAME)		\
+	{ NAME, N_ARGS, FUNC_NAME }
 
+#define NO_COMMAND_ERROR		-1
+#define ARGUMENT_COUNT_ERROR	-2
 
 struct command_t {
 	char *name;
-	bool has_args;
+	size_t n_args;				// Cantidad de argumentos.
 	command_func function;		// Si tiene argumentos, recibe un char**, si no es void.
 };
 
@@ -24,8 +24,8 @@ struct command_t {
  *   - commands_size: Tamanio de set de commandos
  *   - command_line:  Linea de commando a procesar
  */
-bool execute_command_line(struct command_t *commands,
-							 int commands_size,
-							 char *command_line);
+int execute_command_line(struct command_t *commands,
+							int commands_size,
+							char *command_line);
 
-#endif /* PLANIFICADOR_COMANDO_H_ */
+#endif /* COMANDO_H_ */
