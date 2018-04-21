@@ -20,8 +20,11 @@ typedef struct {
 	t_scheduling_algorithm scheduling_algorithm;
 	double initial_estimation;
 	char* coordinator_ip;
-	//char** blocked_keys;
+	char** blocked_keys;
 } t_planificador_config;
+
+// Local function prototypes
+static char *_string_join(char **string_array, char *separator);
 
 // Global variables
 
@@ -212,7 +215,31 @@ void init_config() {
 	setup.coordinator_port = config_get_int_value(config, "PUERTO_COORDINADOR");
 	log_info(logger, "Asignando puerto coordinador %d.", setup.coordinator_port);
 
+	check_config("CLAVES_BLOQUEADAS");
+	setup.blocked_keys = config_get_array_value(config, "CLAVES_BLOQUEADAS");
+
+	char *key_names_str = _string_join(setup.blocked_keys, ", ");
+	log_info(logger, "Asignando claves inicialmente bloqueadas [%s].", key_names_str);
+	free(key_names_str);
+
 	log_info(logger, "Se configuro el planificador correctamente.");
+}
+
+static char *_string_join(char **string_array, char *separator)
+{
+	char *str = string_new();
+	int i;
+	for (i = 0; string_array[i] != NULL; i++) {
+		string_append(&str, string_array[i]);
+
+		if (string_array[i + 1] != NULL) {
+			string_append(&str, separator);
+		} else {
+			return str;
+		}
+	}
+
+	return str;
 }
 
 void set_distribution(char* algorithm_name) {
