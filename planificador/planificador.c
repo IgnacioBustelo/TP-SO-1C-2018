@@ -36,7 +36,6 @@ t_log* logger;
 
 t_list* g_locked_keys;
 
-
 t_list* g_esi_bursts;
 
 int main(void) {

@@ -68,19 +68,19 @@ void init_config() {
 	log_info(logger, "Asignado valor %d al puerto del Planificador.", setup.port_planificador);
 
 	log_info(logger, "Se configuro el ESI correctamente.");
-}int port_scheduler;
+}
 
 int main(void) {
 	init_log();
 
 	init_config();
 
-//Creasignacion de las variables presentes en el archivo de configuracion
+    //Creasignacion de las variables presentes en el archivo de configuracion
 
 	char* ip_coordinador = setup.ip_coordinador;
-	char* ip_planificador=setup.ip_planificador;
-	int port_coordinator=setup.port_coordinador;
-	int port_scheduler=setup.port_planificador;
+	char* ip_planificador = setup.ip_planificador;
+	int port_coordinator = setup.port_coordinador;
+	int port_scheduler = setup.port_planificador;
 
 	bool confirmation;
 
@@ -90,28 +90,34 @@ int main(void) {
 		if (send_handshake(coordinator_fd, ESI) != 1) {
 			log_error(logger, "Failure in send_handshake with coordinator");
 			close(coordinator_fd);
+			exit_gracefully(EXIT_FAILURE);
 		}
 
 	int received = receive_confirmation(coordinator_fd, &confirmation);
 		if (!received || !confirmation) {
 			log_error(logger, "Failure in confirmation reception from coordinator");
 			close(coordinator_fd);
+			exit_gracefully(EXIT_FAILURE);
 		}
+
+	log_info(logger, "Succesfully connected to coordinator");
 
     //Segunda conexion, al planificador:
 
-	coordinator_fd = connect_to_server(ip_planificador, port_scheduler);
-		if (send_handshake(coordinator_fd, ESI) != 1) {
+	int scheduler_fd = connect_to_server(ip_planificador, port_scheduler);
+		if (send_handshake(scheduler_fd, ESI) != 1) {
 			log_error(logger, "Failure in send_handshake with scheduler");
-			close(coordinator_fd);
+			close(scheduler_fd);
 		}
 
 
-	received = receive_confirmation(coordinator_fd, &confirmation);
+	received = receive_confirmation(scheduler_fd, &confirmation);
 		if (!received || !confirmation) {
 			log_error(logger, "Failure in confirmation reception from scheduler");
-			close(coordinator_fd);
+			close(scheduler_fd);
 		}
+
+    log_info(logger, "Succesfully connected to scheduler");
 
 	while(1);
 
