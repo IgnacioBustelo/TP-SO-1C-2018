@@ -396,7 +396,7 @@ esi_information* Obetener_esi_inf_segun_fd(t_list* lista, int fd){
 	t_list* pr=lista;
 	esi_information* pd=lista->head->data;
  bool respuesta= obtener_t_nodo_con_fd(pd,fd);
- while (respuesta){
+ while (!respuesta){
 	 pr=pr->head->next;
 	 pd=pr->head->data;
 	 respuesta= obtener_t_nodo_con_fd(pd,fd);
