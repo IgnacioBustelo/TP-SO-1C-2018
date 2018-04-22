@@ -12,6 +12,7 @@ static void instance_status(char **args);
 static void check_deadlock(char **_);
 
 #define COMMANDS_SIZE (sizeof(commands) / sizeof(*commands))
+#define eprintf(args...) fprintf (stderr, args)
 
 static struct command_t commands[] = {
 	DEF_COMMAND("pausar",      0, pause_scheduler),
@@ -26,6 +27,28 @@ static struct command_t commands[] = {
 int execute_console_command(char *command_line)
 {
 	return execute_command_line(commands, COMMANDS_SIZE, command_line);
+}
+
+void *init_console(void *_)
+{
+	for (;;) {
+		char *line = readline("> ");
+		int execute_result = execute_console_command(line);
+		switch (execute_result) {
+		case NO_COMMAND_ERROR:
+			eprintf("Comando invalido!\n");
+			break;
+		case ARGUMENT_COUNT_ERROR:
+			eprintf("Numero de argumentos incorrecto\n");
+			break;
+		default:
+			printf("Comando ejecutado correctamente\n");
+			break;
+		}
+		free(line);
+	}
+
+	return NULL;
 }
 
 static void pause_scheduler(char **_)
