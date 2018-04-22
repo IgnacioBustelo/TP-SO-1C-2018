@@ -147,21 +147,24 @@ int main(void) {
 					} else if(fd == coordinator_fd){
 
 						/* TODO -- El coordinador se comunica con el planificador*/
+						        //Si hicieron un GET el coordinador le debería decir qué clave fue bloqueada y debería agregar al esi en ejecución junto con esta clave a la lista key_blocker
 								//si se pregunta por clave bloqueada, se contesta y nunca se replanifica
 								//si se avisa el desbloqueo, se desbloquea y si es con desalojo flag de replanificar en 1
-					} else if (fd == g_execution_queue->head->data) {
+					} else if (fd == *(int*)g_execution_queue->head->data) {
 
-						int confirmation = receive_confirmation(fd);
-						if(confirmation) {
+						int confirmation = receive_execution_result(fd);
+						if(confirmation /*==TODOLINDO */) {
 
-							list_iterate(g_esi_bursts, update_waited_bursts);
-							//sumarle 1 al burst del esi en ejecucion
-							//restarle 1 a la estimacion actual
-							//revisar flag de replanificacion y replanificar si es el caso
-						} else {
+							t_list* esis_in_ready_queue = list_filter(g_esi_bursts, esi_information_in_ready);
+							list_iterate(esis_in_ready_queue, update_waited_bursts);
+							esi_information* executing_esi = search_esi_information_by_id(fd);
+                            update_executing_esi(executing_esi);
 
-                            //replanificar siempre porque el esi está bloqueado
+						} else /*if(confirmation == BLOQUEADO)*/ {
 
+							//Remover de ejecucion
+							list_add(g_blocked_queue, &fd);
+							flag = 1;
 						}
 
 					}
@@ -170,7 +173,7 @@ int main(void) {
         if(flag == 1) {
 		g_esi_fd = schedule_esis();
 		list_add(g_execution_queue, &g_esi_fd); //Agrega al esi elegido a la lista de ejecucion
-		list_remove_and_destroy_by_condition(g_ready_queue, fd_searcher, destroy_int); //Saca de ready al esi elegido
+		list_remove_and_destroy_by_condition(g_ready_queue, fd_searcher_to_destroy, destroy_int); //Saca de ready al esi elegido
 		//SETEAR en 0 last burst del esi a ejecutar
 		flag = 0;
 		authorize_esi_execution(g_esi_fd);
@@ -328,7 +331,7 @@ void exit_gracefully(int status) {
 	exit(status);
 }
 
-void put_esi_on_ready_queue(new_client_fd) {
+void put_esi_on_ready_queue(int new_client_fd) {
 
 	list_add(g_ready_queue, &new_client_fd);
 }
@@ -377,7 +380,7 @@ void destroy_int(int* int_) {
 	free(int_);
 }
 
-bool fd_searcher(int* fd) {
+bool fd_searcher_to_destroy(int* fd) {
 
 	return *fd == g_esi_fd;
 }
@@ -394,20 +397,38 @@ bool esi_id_equals_searched_fd(esi_information* esi_inf, int fd){
 
 esi_information* search_esi_information_by_id(int fd){
 
-	t_list* pr = malloc(sizeof(t_list));
-	pr = g_esi_bursts;
-	esi_information* esi_inf = malloc(sizeof(esi_information)); //TODO Liberar después de usar
-    esi_inf = g_esi_bursts->head->data;
-    bool confirmation = obtener_t_nodo_con_fd(esi_inf,fd);
+	t_list* pr = g_esi_bursts;  /*Hace falta malloc y free teniendo en cuenta que son todos punteros de recorrido?*/
+	esi_information* esi_inf = g_esi_bursts->head->data; /*Idem*/
+    bool confirmation = esi_id_equals_searched_fd(esi_inf,fd);
 
     while (!confirmation){
 
-	pr=pr->head->next;
+	pr->head = pr->head->next;
 	esi_inf =pr->head->data;
-	confirmation = obtener_t_nodo_con_fd(esi_inf,fd);
+	confirmation = esi_id_equals_searched_fd(esi_inf,fd);
     }
-
-    free(pr);
 
     return esi_inf;
  }
+
+bool esi_information_in_ready(esi_information* esi_inf) {
+
+	bool condition(int* esi_id_in_ready) {
+
+		return *esi_id_in_ready == esi_inf->esi_id;
+	}
+
+	return list_any_satisfy(g_ready_queue, condition);
+}
+
+void update_executing_esi(esi_information* esi_inf) {
+
+	esi_inf->last_real_burst++;
+	esi_inf->next_left_estimated_burst--;
+}
+
+int receive_execution_result(int fd) { //TODO
+
+	int result;
+	return result;
+}

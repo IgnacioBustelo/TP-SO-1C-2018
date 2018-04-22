@@ -74,7 +74,7 @@ void remove_fd(int fd, fd_set *fdset);
  * Agrega a un esi a la cola de listos
  */
 
-void put_esi_on_ready_queue(new_client_fd);
+void put_esi_on_ready_queue(int new_client_fd);
 
 /*
  * Le suma 1 al campo de ráfagas esperadas de un ESI
@@ -122,5 +122,29 @@ bool esi_id_equals_searched_fd(esi_information* esi_inf, int fd);
  */
 
 esi_information* search_esi_information_by_id(int fd);
+
+/*
+ * El ESI se encuentra en ready
+ */
+
+bool esi_information_in_ready(esi_information* esi_inf);
+
+/*
+ * Función auxiliar para usar list_remove_and_destroy
+ */
+
+bool fd_searcher_to_destroy(int* fd);
+
+/*
+ * Le aumenta uno a la ráfaga real ejecutada y le resta uno al tiempo estimado actual
+ */
+
+void update_executing_esi(esi_information* esi_inf);
+
+/*
+ * Devuelve el resultado de la ejecución de parte de un ESI. Podría pasar que esté todo bien, que se haya bloqueado o que falle por alguna razón
+ */
+
+int receive_execution_result(int fd);
 
 #endif /* PLANIFICADOR_PLANIFICADOR_H_ */
