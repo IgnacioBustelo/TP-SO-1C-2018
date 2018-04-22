@@ -40,7 +40,7 @@ t_list* g_esi_bursts;
 t_list* g_ready_queue;
 t_list* g_execution_queue;
 t_list* g_blocked_queue;
-t_list* g_clav_bloqued_by_consol;
+t_list* g_blocked_queue_by_console;
 
 int g_esi_fd; /* TODO -- Arreglar cuanto antes-- es solo para buscar en una lista por fd */
 
@@ -141,7 +141,7 @@ int main(void) {
 							list_add(g_esi_bursts, create_esi_information(new_client_fd));
 							put_esi_on_ready_queue(new_client_fd);
 
-							if(alg_is_non_preemptive()) flag = 1;
+							if(alg_is_preemptive()) flag = 1;
 						}
 
 					} else if(fd == coordinator_fd){
@@ -360,7 +360,7 @@ void we_must_reschedule(int* flag) {
 	*flag = 1;
 }
 
-bool alg_is_non_preemptive() {
+bool alg_is_preemptive() {
 
 	int algorithm_type = setup.scheduling_algorithm;
 	switch(algorithm_type) {
@@ -380,30 +380,34 @@ void destroy_int(int* int_) {
 bool fd_searcher(int* fd) {
 
 	return *fd == g_esi_fd;
-
 }
 
-bool comparar_t_nodo_con_fd(esi_information* t_nodo, int fd){
-if (t_nodo->esi_id == fd){
+bool esi_id_equals_searched_fd(esi_information* esi_inf, int fd){
+
+    if (esi_inf->esi_id == fd){
 	return true;
-}
-else{
+    }
+    else{
 	return false;
+    }
 }
-}
 
-esi_information* Obetener_esi_inf_segun_fd(t_list* lista, int fd){
-	t_list* pr=lista;
-	esi_information* pd=lista->head->data;
- bool respuesta= obtener_t_nodo_con_fd(pd,fd);
- while (!respuesta){
-	 pr=pr->head->next;
-	 pd=pr->head->data;
-	 respuesta= obtener_t_nodo_con_fd(pd,fd);
+esi_information* search_esi_information_by_id(int fd){
+
+	t_list* pr = malloc(sizeof(t_list));
+	pr = g_esi_bursts;
+	esi_information* esi_inf = malloc(sizeof(esi_information)); //TODO Liberar después de usar
+    esi_inf = g_esi_bursts->head->data;
+    bool confirmation = obtener_t_nodo_con_fd(esi_inf,fd);
+
+    while (!confirmation){
+
+	pr=pr->head->next;
+	esi_inf =pr->head->data;
+	confirmation = obtener_t_nodo_con_fd(esi_inf,fd);
+    }
+
+    free(pr);
+
+    return esi_inf;
  }
- return pd;
- }
-
-
-
-

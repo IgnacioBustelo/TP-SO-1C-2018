@@ -88,8 +88,6 @@ void update_waited_bursts(esi_information* esi_inf);
 
 int schedule_esis();
 
-//fifo for prob
-
 /*
  * Envía señal de ejecución al ESI
  */
@@ -111,6 +109,18 @@ void we_must_reschedule(int* flag);
 /*
  * Checkea si el algoritmo es con desalojo
  */
-bool alg_is_non_preemptive();
+bool alg_is_preemptive();
+
+/*
+ * El campo id (fd) del esi_information coincide con el buscado
+ */
+
+bool esi_id_equals_searched_fd(esi_information* esi_inf, int fd);
+
+/*
+ * Obtiene los datos del ESI según el id buscando que es el fd
+ */
+
+esi_information* search_esi_information_by_id(int fd);
 
 #endif /* PLANIFICADOR_PLANIFICADOR_H_ */
