@@ -42,7 +42,7 @@ t_list* g_execution_queue;
 t_list* g_blocked_queue;
 t_list* g_clav_bloqued_by_consol;
 
-int g_esi_fd /* TODO -- Arreglar cuanto antes-- es solo para buscar en una lista por fd */
+int g_esi_fd; /* TODO -- Arreglar cuanto antes-- es solo para buscar en una lista por fd */
 
 int main(void) {
 
@@ -382,4 +382,27 @@ bool fd_searcher(int* fd) {
 	return *fd == g_esi_fd;
 
 }
+
+bool comparar_t_nodo_con_fd(esi_information* t_nodo, int fd){
+if (t_nodo->esi_id == fd){
+	return true;
+}
+else{
+	return false;
+}
+}
+
+esi_information* Obetener_t_nodo(t_list* lista, int fd){
+	t_list* pr=lista;
+	esi_information* pd=lista->head->data;
+ bool respuesta= obtener_t_nodo_con_fd(pd,fd);
+ while (respuesta){
+	 pr=pr->head->next;
+	 pd=pr->head->data;
+ }
+ return pd;
+ }
+
+
+
 
