@@ -35,8 +35,14 @@ t_planificador_config setup;
 t_log* logger;
 
 t_list* g_locked_keys;
-
 t_list* g_esi_bursts;
+
+t_list* g_ready_queue;
+t_list* g_execution_queue;
+t_list* g_blocked_queue;
+t_list* g_clav_bloqued_by_consol;
+
+int g_esi_fd /* TODO -- Arreglar cuanto antes-- es solo para buscar en una lista por fd */
 
 int main(void) {
 
@@ -79,6 +85,7 @@ int main(void) {
 	FD_SET(listener, &connected_fds);
 
 	int max_fd = (listener > coordinator_fd) ? listener : coordinator_fd;
+	int flag = 1;
 
 	while(1)
 	{
@@ -131,15 +138,43 @@ int main(void) {
 								send_confirmation(new_client_fd, confirmation);
 							}
 
+							list_add(g_esi_bursts, create_esi_information(new_client_fd));
+							put_esi_on_ready_queue(new_client_fd);
+
+							if(alg_is_non_preemptive()) flag = 1;
 						}
 
 					} else if(fd == coordinator_fd){
 
 						/* TODO -- El coordinador se comunica con el planificador*/
+								//si se pregunta por clave bloqueada, se contesta y nunca se replanifica
+								//si se avisa el desbloqueo, se desbloquea y si es con desalojo flag de replanificar en 1
+					} else if (fd == g_execution_queue->head->data) {
+
+						int confirmation = receive_confirmation(fd);
+						if(confirmation) {
+
+							list_iterate(g_esi_bursts, update_waited_bursts);
+							//sumarle 1 al burst del esi en ejecucion
+							//restarle 1 a la estimacion actual
+							//revisar flag de replanificacion y replanificar si es el caso
+						} else {
+
+                            //replanificar siempre porque el esi está bloqueado
+
+						}
 
 					}
 				}
 
+        if(flag == 1) {
+		g_esi_fd = schedule_esis();
+		list_add(g_execution_queue, &g_esi_fd); //Agrega al esi elegido a la lista de ejecucion
+		list_remove_and_destroy_by_condition(g_ready_queue, fd_searcher, destroy_int); //Saca de ready al esi elegido
+		//SETEAR en 0 last burst del esi a ejecutar
+		flag = 0;
+		authorize_esi_execution(g_esi_fd);
+        }
 	}
 
 	return EXIT_SUCCESS;
@@ -173,8 +208,10 @@ esi_information* create_esi_information(int esi_id)
 {
 	esi_information* esi_inf = malloc(sizeof(esi_information));
 	esi_inf->esi_id = esi_id;
-	esi_inf->next_burst = (double)setup.initial_estimation;
-	esi_inf->last_burst = 0;
+	esi_inf->next_left_estimated_burst = (double)setup.initial_estimation;
+	esi_inf->last_estimated_burst = esi_inf->next_left_estimated_burst;
+	esi_inf->last_real_burst = 0;
+	esi_inf->waited_bursts = 0;
 	return esi_inf;
 }
 
@@ -289,5 +326,60 @@ void exit_gracefully(int status) {
 	destroy_administrative_structures();
 
 	exit(status);
+}
+
+void put_esi_on_ready_queue(new_client_fd) {
+
+	list_add(g_ready_queue, &new_client_fd);
+}
+
+void update_waited_bursts(esi_information* esi_inf) {
+
+	esi_inf->waited_bursts++;
+}
+
+void authorize_esi_execution(int esi_fd) {
+
+	int operation_id = execute_order;
+	send(esi_fd, &operation_id, sizeof(operation_id), 0);
+}
+
+int receive_confirmation_from_esi(int fd) {
+
+	int* buffer;
+	if(recv(fd, buffer, sizeof(int), MSG_WAITALL) == -1) {
+
+		log_error(logger, "Confirmation failed");
+		//no sabes hablar, sock my port -- matar esi --no hay tiempo para vos sorete esi
+	}
+	return *buffer;
+}
+
+void we_must_reschedule(int* flag) {
+
+	*flag = 1;
+}
+
+bool alg_is_non_preemptive() {
+
+	int algorithm_type = setup.scheduling_algorithm;
+	switch(algorithm_type) {
+
+	case 0: return true;
+	        break;
+	default: return false;
+	        break;
+	}
+}
+
+void destroy_int(int* int_) {
+
+	free(int_);
+}
+
+bool fd_searcher(int* fd) {
+
+	return *fd == g_esi_fd;
+
 }
 
