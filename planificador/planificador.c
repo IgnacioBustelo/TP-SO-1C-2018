@@ -41,8 +41,7 @@ t_list* g_ready_queue;
 t_list* g_execution_queue;
 t_list* g_blocked_queue;
 t_list* g_blocked_queue_by_console;
-
-int g_esi_fd; /* TODO -- Arreglar cuanto antes-- es solo para buscar en una lista por fd */
+t_list* g_finished_queue;
 
 int main(void) {
 
@@ -85,7 +84,8 @@ int main(void) {
 	FD_SET(listener, &connected_fds);
 
 	int max_fd = (listener > coordinator_fd) ? listener : coordinator_fd;
-	int flag = 1;
+	int flag;
+	we_must_reschedule(&flag);
 
 	while(1)
 	{
@@ -139,9 +139,9 @@ int main(void) {
 							}
 
 							list_add(g_esi_bursts, create_esi_information(new_client_fd));
-							put_esi_on_ready_queue(new_client_fd);
+							put_new_esi_on_ready_queue(new_client_fd);
 
-							if(alg_is_preemptive()) flag = 1;
+							if(algorithm_is_preemptive()) we_must_reschedule(&flag);
 						}
 
 					} else if(fd == coordinator_fd){
@@ -155,60 +155,40 @@ int main(void) {
 						int confirmation = receive_execution_result(fd);
 						if(confirmation /*==TODOLINDO */) {
 
-							t_list* esis_in_ready_queue = list_filter(g_esi_bursts, esi_information_in_ready);
-							list_iterate(esis_in_ready_queue, update_waited_bursts);
-							esi_information* executing_esi = search_esi_information_by_id(fd);
-                            update_executing_esi(executing_esi);
+							update_waiting_time_of_ready_esis();
+                            update_executing_esi(fd);
 
 						} else /*if(confirmation == BLOQUEADO)*/ {
 
-							//Remover de ejecucion
-							list_add(g_blocked_queue, &fd);
-							flag = 1;
+							move_esi_from_and_to_queue(g_execution_queue, g_blocked_queue, fd)
+							we_must_reschedule(&flag);
 						}
 
 					}
 				}
 
         if(flag == 1) {
-		g_esi_fd = schedule_esis();
-		list_add(g_execution_queue, &g_esi_fd); //Agrega al esi elegido a la lista de ejecucion
-		list_remove_and_destroy_by_condition(g_ready_queue, fd_searcher_to_destroy, destroy_int); //Saca de ready al esi elegido
+		int esi_fd_to_execute = schedule_esis();
+		move_esi_from_and_to_queue(g_ready_queue, g_execution_queue, esi_fd_to_execute);
 		//SETEAR en 0 last burst del esi a ejecutar
 		flag = 0;
-		authorize_esi_execution(g_esi_fd);
+		authorize_esi_execution(esi_fd_to_execute);
         }
 	}
 
 	return EXIT_SUCCESS;
 }
 
-void remove_fd(int fd, fd_set *fdset)
-{
-	FD_CLR(fd, fdset);
-	log_info(logger, "Socket %d kicked out", fd);
-	close(fd);
-}
+key_blocker* create_key_blocker(char* key, int esi_id){
 
-key_blocker* create_key_blocker(char* key, int esi_id)
-{
     key_blocker* key_blocker = malloc(sizeof(key_blocker));
     key_blocker->key = key;
     key_blocker->esi_id = esi_id;
     return key_blocker;
 }
 
-void destroy_key_blocker(void* key_blocker_)
-{
-	key_blocker* kb = malloc(sizeof(struct key_blocker));
-	kb = (key_blocker*)key_blocker_;
-	free(kb->key);
-	free(kb);
-	free(key_blocker_);
-}
+esi_information* create_esi_information(int esi_id) {
 
-esi_information* create_esi_information(int esi_id)
-{
 	esi_information* esi_inf = malloc(sizeof(esi_information));
 	esi_inf->esi_id = esi_id;
 	esi_inf->next_left_estimated_burst = (double)setup.initial_estimation;
@@ -218,24 +198,31 @@ esi_information* create_esi_information(int esi_id)
 	return esi_inf;
 }
 
-void destroy_esi_information(void* esi_inf)
-{
-    free(esi_inf);
-}
+void create_administrative_structures() {
 
-void create_administrative_structures()
-{
 	g_locked_keys = list_create();
 	g_esi_bursts = list_create();
 }
 
-void destroy_administrative_structures()
-{
+void destroy_administrative_structures() {
+	void destroy_key_blocker(void* key_blocker_)
+	{
+		free(((key_blocker*)key_blocker_)->key);
+		free(key_blocker_);
+	}
+
 	list_destroy_and_destroy_elements(g_locked_keys, destroy_key_blocker);
+
+	void destroy_esi_information(void* esi_inf)
+	{
+	    free((esi_information*)esi_inf);
+	}
+
 	list_destroy_and_destroy_elements(g_esi_bursts, destroy_esi_information);
 }
 
 void init_config() {
+
 	config = config_create("planificador.cfg");
 	log_info(logger, "Se abrio el archivo de configuracion.");
 
@@ -271,8 +258,7 @@ void init_config() {
 	log_info(logger, "Se configuro el planificador correctamente.");
 }
 
-static char *_string_join(char **string_array, char *separator)
-{
+static char *_string_join(char **string_array, char *separator) {
 	char *str = string_new();
 	int i;
 	for (i = 0; string_array[i] != NULL; i++) {
@@ -318,27 +304,9 @@ void check_config(char* key) {
 	}
 }
 
-void exit_gracefully(int status) {
-
-	log_info(logger, "Scheduler execution ended");
-
-	config_destroy(config);
-
-	log_destroy(logger);
-
-	destroy_administrative_structures();
-
-	exit(status);
-}
-
-void put_esi_on_ready_queue(int new_client_fd) {
+void put_new_esi_on_ready_queue(int new_client_fd) {
 
 	list_add(g_ready_queue, &new_client_fd);
-}
-
-void update_waited_bursts(esi_information* esi_inf) {
-
-	esi_inf->waited_bursts++;
 }
 
 void authorize_esi_execution(int esi_fd) {
@@ -358,77 +326,109 @@ int receive_confirmation_from_esi(int fd) {
 	return *buffer;
 }
 
-void we_must_reschedule(int* flag) {
+void update_executing_esi(int esi_fd) {
 
-	*flag = 1;
-}
+	esi_information* executing_esi = obtain_esi_information_by_id(esi_fd);
 
-bool alg_is_preemptive() {
-
-	int algorithm_type = setup.scheduling_algorithm;
-	switch(algorithm_type) {
-
-	case 0: return true;
-	        break;
-	default: return false;
-	        break;
-	}
-}
-
-void destroy_int(int* int_) {
-
-	free(int_);
-}
-
-bool fd_searcher_to_destroy(int* fd) {
-
-	return *fd == g_esi_fd;
-}
-
-bool esi_id_equals_searched_fd(esi_information* esi_inf, int fd){
-
-    if (esi_inf->esi_id == fd){
-	return true;
-    }
-    else{
-	return false;
-    }
-}
-
-esi_information* search_esi_information_by_id(int fd){
-
-	t_list* pr = g_esi_bursts;  /*Hace falta malloc y free teniendo en cuenta que son todos punteros de recorrido?*/
-	esi_information* esi_inf = g_esi_bursts->head->data; /*Idem*/
-    bool confirmation = esi_id_equals_searched_fd(esi_inf,fd);
-
-    while (!confirmation){
-
-	pr->head = pr->head->next;
-	esi_inf =pr->head->data;
-	confirmation = esi_id_equals_searched_fd(esi_inf,fd);
-    }
-
-    return esi_inf;
- }
-
-bool esi_information_in_ready(esi_information* esi_inf) {
-
-	bool condition(int* esi_id_in_ready) {
-
-		return *esi_id_in_ready == esi_inf->esi_id;
-	}
-
-	return list_any_satisfy(g_ready_queue, condition);
-}
-
-void update_executing_esi(esi_information* esi_inf) {
-
-	esi_inf->last_real_burst++;
-	esi_inf->next_left_estimated_burst--;
+	executing_esi->last_real_burst++;
+	executing_esi->next_left_estimated_burst--;
 }
 
 int receive_execution_result(int fd) { //TODO
 
 	int result;
 	return result;
+}
+
+void update_waiting_time_of_ready_esis() {
+
+	bool esi_information_in_ready(void* esi_inf) {
+
+		bool condition(void* esi_id_in_ready) {
+
+			return *(int*)esi_id_in_ready == ((esi_information*)esi_inf)->esi_id;
+		}
+
+		return list_any_satisfy(g_ready_queue, condition);
+	}
+
+	t_list* esis_in_ready_queue = list_filter(g_esi_bursts, esi_information_in_ready);
+
+	void update_waited_bursts(void* esi_inf) {
+
+		((esi_information*)esi_inf)->waited_bursts++;
+	}
+
+	list_iterate(esis_in_ready_queue, update_waited_bursts);
+}
+
+void move_esi_from_and_to_queue(t_list* from_queue, t_list* to_queue, int esi_fd) {
+
+	take_esi_away_from_queue(from_queue, esi_fd);
+	list_add(to_queue, esi_fd);
+}
+
+void exit_gracefully(int status) {
+
+	log_info(logger, "Scheduler execution ended");
+
+	config_destroy(config);
+
+	log_destroy(logger);
+
+	destroy_administrative_structures();
+
+	exit(status);
+}
+
+/* --- PRIVATE FUNCTIONS --- */
+
+static bool algorithm_is_preemptive() {
+
+	int algorithm_type = setup.scheduling_algorithm;
+	switch (algorithm_type) {
+
+	case 0:
+		return true;
+		break;
+	default:
+		return false;
+		break;
+	}
+}
+
+static esi_information* obtain_esi_information_by_id(int esi_fd){
+
+	bool equal_condition(void* esi_inf) {
+
+		return ((esi_information*)esi_inf)->esi_id == esi_fd;
+	}
+
+	return list_find(g_esi_bursts, equal_condition);
+ }
+
+static void take_esi_away_from_queue(t_list* queue, int esi_fd) {
+
+	bool remove_condition(void* esi_to_delete) {
+
+		return *(int*)esi_to_delete == esi_fd;
+	}
+
+	void destroy_esi_fd(void* esi_fd_) {
+
+		free((int*)esi_fd_);
+	}
+
+	list_remove_and_destroy_by_condition(queue, remove_condition, destroy_esi_fd);
+}
+
+static void we_must_reschedule(int* flag) {
+
+	*flag = 1;
+}
+
+static void remove_fd(int fd, fd_set *fdset) {
+	FD_CLR(fd, fdset);
+	log_info(logger, "Socket %d kicked out", fd);
+	close(fd);
 }
