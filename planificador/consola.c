@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <readline/readline.h>
 
 #include "../libs/comando.h"
 #include "consola.h"

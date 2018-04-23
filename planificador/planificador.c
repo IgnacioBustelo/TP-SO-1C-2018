@@ -31,6 +31,7 @@ static esi_information* obtain_esi_information_by_id(int esi_fd);
 static void take_esi_away_from_queue(t_list* queue, int esi_fd);
 static void we_must_reschedule(int* flag);
 static void remove_fd(int fd, fd_set *fdset);
+static void set_last_burst_to_zero(int esi_fd);
 
 // Global variables
 
@@ -144,7 +145,7 @@ int main(void) {
 								send_confirmation(new_client_fd, confirmation);
 							}
 
-							list_add(g_esi_bursts, create_esi_information(new_client_fd));
+							list_add(g_esi_bursts, (void*)create_esi_information(new_client_fd));
 							put_new_esi_on_ready_queue(new_client_fd);
 
 							if(algorithm_is_preemptive()) we_must_reschedule(&flag);
@@ -173,13 +174,15 @@ int main(void) {
 					}
 				}
 
-        if(flag == 1) {
-		int esi_fd_to_execute = schedule_esis();
-		move_esi_from_and_to_queue(g_ready_queue, g_execution_queue, esi_fd_to_execute);
-		//SETEAR en 0 last burst del esi a ejecutar
-		flag = 0;
-		authorize_esi_execution(esi_fd_to_execute);
-        }
+		/* Hay que replanificar */
+		if (flag == 1) {
+
+			int esi_fd_to_execute = schedule_esis();
+			move_esi_from_and_to_queue(g_ready_queue, g_execution_queue, esi_fd_to_execute);
+			set_last_burst_to_zero(esi_fd_to_execute);
+			flag = 0;
+			authorize_esi_execution(esi_fd_to_execute);
+		}
 	}
 
 	return EXIT_SUCCESS;
@@ -312,7 +315,7 @@ void check_config(char* key) {
 
 void put_new_esi_on_ready_queue(int new_client_fd) {
 
-	list_add(g_ready_queue, &new_client_fd);
+	list_add(g_ready_queue,(void*)&new_client_fd);
 }
 
 void authorize_esi_execution(int esi_fd) {
@@ -374,6 +377,12 @@ void move_esi_from_and_to_queue(t_list* from_queue, t_list* to_queue, int esi_fd
 	list_add(to_queue, (void*)esi_fd);
 }
 
+int schedule_esis() { //TODO
+
+	int a;
+	return a;
+}
+
 void exit_gracefully(int status) {
 
 	log_info(logger, "Scheduler execution ended");
@@ -388,6 +397,12 @@ void exit_gracefully(int status) {
 }
 
 /* --- PRIVATE FUNCTIONS --- */
+
+static void remove_fd(int fd, fd_set *fdset) {
+	FD_CLR(fd, fdset);
+	log_info(logger, "Socket %d kicked out", fd);
+	close(fd);
+}
 
 static bool algorithm_is_preemptive() {
 
@@ -433,8 +448,8 @@ static void we_must_reschedule(int* flag) {
 	*flag = 1;
 }
 
-static void remove_fd(int fd, fd_set *fdset) {
-	FD_CLR(fd, fdset);
-	log_info(logger, "Socket %d kicked out", fd);
-	close(fd);
+static void set_last_burst_to_zero(int esi_fd) {
+
+	esi_information* esi_inf = obtain_esi_information_by_id(esi_fd);
+	esi_inf->last_real_burst = 0;
 }
