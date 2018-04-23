@@ -1,17 +1,23 @@
 #ifndef COORDINADOR_COORDINADOR_H_
 #define COORDINADOR_COORDINADOR_H_
 
-void set_distribution(char* algorithm_name);
+#include <commons/log.h>
 
-void init_log();
+enum distribution_algorithm_t {
+	LSU, EL, KE
+};
 
-void init_config();
+struct setup_t {
+	int port;
+	enum distribution_algorithm_t distribution;
+	int entries_num;
+	int entries_size;
+	int delay;
+};
 
-void check_config(char* key);
-
-void *handle_connection(void *arg);
-
-bool is_valid_process(int type);
+/* Shared Global Variables */
+extern t_log *logger;
+extern struct setup_t setup;
 
 void exit_gracefully(int status);
 
