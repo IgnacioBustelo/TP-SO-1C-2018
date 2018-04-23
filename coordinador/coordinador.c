@@ -14,7 +14,6 @@ struct setup_t setup;
 static void init_log();
 static void init_server(int port);
 static void *handle_connection(void *arg);
-static bool is_valid_process(int type);
 
 int main(void)
 {
@@ -80,9 +79,20 @@ static void *handle_connection(void *arg)
 	free(arg);
 
 	int type = receive_handshake(fd);
-	bool confirmation = is_valid_process(type);
+	if (type < 0) {
+		log_error(logger, "Socket %d: Error en el handshake.", fd);
+		log_info(logger, "Socket %d: Cerrando conexion...", fd);
+		close(fd);
+		return NULL;
+	}
 
-	send_confirmation(fd, confirmation);
+	bool confirmation;
+	if (!send_confirmation(fd, confirmation) || !confirmation) {
+		log_error(logger, "Socket %d: Error al recibir confirmacion.", fd);
+		log_info(logger, "Socket %d: Cerrando conexion...", fd);
+		close(fd);
+		return NULL;
+	}
 
 	switch (type) {
 	case SCHEDULER:
@@ -95,16 +105,13 @@ static void *handle_connection(void *arg)
 		// handle_instance_connection();
 		break;
 	default:
-		// fruta();
+		log_error(logger, "Socket %d: Cliente intruso.", fd);
+		log_info(logger, "Socket %d: Cerrando conexion...", fd);
+		close(fd);
 		return NULL;
 	}
 
 	return NULL;
-}
-
-static bool is_valid_process(int type)
-{
-	return (type == SCHEDULER || type == ESI || type == INSTANCE);
 }
 
 void exit_gracefully(int status)
