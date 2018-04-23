@@ -1,6 +1,9 @@
 #ifndef LIBS_SERIALIZADOR_H_
 #define LIBS_SERIALIZADOR_H_
 
+#include <commons/collections/list.h>
+#include <stdlib.h>
+
 typedef struct {
 	void*	load;
 	size_t	size;
