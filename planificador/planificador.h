@@ -74,7 +74,7 @@ int schedule_esis();
  * Borra al esi de la primer lista y lo agrega a la otra
  */
 
-void move_esi_from_and_to_queue(t_list* from_queue, t_list* to_queue, int esi_fd)
+void move_esi_from_and_to_queue(t_list* from_queue, t_list* to_queue, int esi_fd);
 
 /*
  * Envía señal de ejecución al ESI

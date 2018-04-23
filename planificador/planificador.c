@@ -24,7 +24,13 @@ typedef struct {
 } t_planificador_config;
 
 // Local function prototypes
+
 static char *_string_join(char **string_array, char *separator);
+static bool algorithm_is_preemptive();
+static esi_information* obtain_esi_information_by_id(int esi_fd);
+static void take_esi_away_from_queue(t_list* queue, int esi_fd);
+static void we_must_reschedule(int* flag);
+static void remove_fd(int fd, fd_set *fdset);
 
 // Global variables
 
@@ -160,7 +166,7 @@ int main(void) {
 
 						} else /*if(confirmation == BLOQUEADO)*/ {
 
-							move_esi_from_and_to_queue(g_execution_queue, g_blocked_queue, fd)
+							move_esi_from_and_to_queue(g_execution_queue, g_blocked_queue, fd);
 							we_must_reschedule(&flag);
 						}
 
@@ -365,7 +371,7 @@ void update_waiting_time_of_ready_esis() {
 void move_esi_from_and_to_queue(t_list* from_queue, t_list* to_queue, int esi_fd) {
 
 	take_esi_away_from_queue(from_queue, esi_fd);
-	list_add(to_queue, esi_fd);
+	list_add(to_queue, (void*)esi_fd);
 }
 
 void exit_gracefully(int status) {
