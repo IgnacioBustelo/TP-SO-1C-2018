@@ -7,7 +7,7 @@ SRC += ../libs/conector.c ../libs/comando.c
 OBJ = $(SRC:.c=.o)
 HEADER = $(SRC:.c=.h)
 
-LIB = -lcommons
+LIB = -lcommons -lreadline
 
 all: $(TARGET)
 
