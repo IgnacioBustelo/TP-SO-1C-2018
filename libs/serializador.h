@@ -16,6 +16,8 @@ void		add_content_list(package_t* package, t_list* list, size_t (*size_calculato
 
 void*		build_package(package_t* package);
 
+package_t*  receive_package(int socket_sender);
+
 void		destroy_package(package_t* package);
 
 #endif

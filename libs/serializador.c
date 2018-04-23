@@ -32,6 +32,27 @@ void* build_package(package_t* package) {
 	return package->load;
 }
 
+package_t* receive_package(int socket_sender) {
+	package_t *package = malloc(sizeof(package_t));
+
+	int ret = recv(socket_sender, &(package->size), sizeof(package->size), MSG_WAITALL);
+	if (ret == -1) {
+		free(package);
+		return NULL;
+	}
+
+	package->load = malloc(package->size);
+
+	ret = recv(socket_sender, package->load, package->size, MSG_WAITALL);
+	if (ret == -1) {
+		free(package->load);
+		free(package);
+		return NULL;
+	}
+
+	return package;
+}
+
 void destroy_package(package_t* package) {
 	free(package->load);
 	free(package);
