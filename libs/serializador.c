@@ -3,7 +3,7 @@
 #include <commons/collections/list.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <sys/socket.h>
 
 package_t* create_package(size_t size) {
 	package_t* new_package = malloc(sizeof(package_t));
@@ -30,6 +30,22 @@ void* build_package(package_t* package) {
 	package->load -= package->size;
 
 	return package->load;
+}
+
+int	send_serialized_package(int fd, void* serialized_package, size_t package_size) {
+	int bytes_sent = send(fd, serialized_package, package_size, 0);
+
+	if(bytes_sent < 0) {
+		return SEND_ERROR;
+	}
+
+	else if(bytes_sent < package_size) {
+		return send_serialized_package(fd, serialized_package + bytes_sent, package_size - bytes_sent);
+	}
+
+	else {
+		return EXIT_SUCCESS;
+	}
 }
 
 package_t* receive_package(int socket_sender) {

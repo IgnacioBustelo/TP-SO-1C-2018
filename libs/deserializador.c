@@ -7,7 +7,7 @@
 #define RECV_SIZE_ERROR		-2
 #define RECV_MALLOC_ERROR	-3
 
-int receive_package(int fd, void* receiver, size_t size) {
+int recv_package(int fd, void* receiver, size_t size) {
 	int status = recv(fd, receiver, size, MSG_WAITALL);
 
 	if(status == -1) {
@@ -19,11 +19,11 @@ int receive_package(int fd, void* receiver, size_t size) {
 	}
 }
 
-int receive_package_variable(int fd, void** receiver) {
+int recv_package_variable(int fd, void** receiver) {
 	int status;
 	size_t package_size;
 
-	status = receive_package(fd, &package_size, sizeof(package_size));
+	status = recv_package(fd, &package_size, sizeof(package_size));
 
 	if(status == RECV_DATA_ERROR) {
 		return RECV_SIZE_ERROR;
@@ -35,7 +35,7 @@ int receive_package_variable(int fd, void** receiver) {
 		return RECV_MALLOC_ERROR;
 	}
 
-	status = receive_package(fd, *receiver, package_size);
+	status = recv_package(fd, *receiver, package_size);
 
 	return status;
 }
