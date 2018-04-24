@@ -1,7 +1,14 @@
 #ifndef PLANIFICADOR_PLANIFICADOR_H_
 #define PLANIFICADOR_PLANIFICADOR_H_
 
-#define execute_order 3
+#include <stdio.h>
+#include <stdlib.h>
+#include <commons/config.h>
+#include <commons/log.h>
+#include <commons/collections/list.h>
+#include <commons/string.h>
+
+#define MAXCONN 20
 
 typedef struct key_blocker {
 
@@ -18,13 +25,9 @@ typedef struct esi_information {
 	int waited_bursts;
 } esi_information;
 
-void init_log();
-
-void init_config();
-
-void check_config(char* key);
-
-void set_distribution(char* algorithm_name);
+/*
+ * Función para salir del programa según un fallo o un éxito
+ */
 
 void exit_gracefully(int status);
 
