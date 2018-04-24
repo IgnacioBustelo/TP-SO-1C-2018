@@ -37,7 +37,7 @@ static void set_last_real_burst_to_zero(int esi_fd);
 static int receive_coordinator_opcode(int coordinator_fd);
 static char* receive_blocked_key(int coordinator_fd);
 static void add_new_blocked_key(char* blocked_key);
-send_key_status(int coordinator_fd, protocol_id protocol);
+static void send_key_status(int coordinator_fd, protocol_id protocol);
 
 // Global variables
 
@@ -165,13 +165,13 @@ int main(void) {
 
 						switch(opcode) {
 
-						case PROTOCOL_CP_IS_THIS_KEY_BLOCKED: // si la clave esta bloqueada por el esi en ejecucion
+						case PROTOCOL_CP_IS_THIS_KEY_BLOCKED: {// si la clave esta bloqueada por el esi en ejecucion
 							char* blocked_key = receive_blocked_key(fd);
 							bool response = determine_if_key_is_blocked(blocked_key);
 
 							if(response) {
 
-								//caso en el que el esi en ejecucion quiere usar una clave bloqueada por otro esi
+								//caso en el que el esi en ejecucion quiere usar una clave bloqueada por otro esi -- se podría hacer después de la respuesta del ESI
 								move_esi_from_and_to_queue(g_execution_queue, g_blocked_queue, *(int*)g_execution_queue->head->data);
 								we_must_reschedule(&flag);
 								send_key_status(fd, PROTOCOL_PC_ESI_BLOCKED);
@@ -184,6 +184,7 @@ int main(void) {
 							}
 							//otro caso: un esi quiere usar una clave bloqueada por sí mismo
 
+						}
 						}
 
 						//Si hicieron un GET el coordinador le debería decir qué clave fue bloqueada y debería agregar al esi en ejecución junto con esta clave a la lista key_blocker
@@ -400,7 +401,7 @@ void update_executing_esi(int esi_fd) {
 
 int receive_execution_result(int fd) {
 
-	enum protocol_id opcode;
+	protocol_id opcode;
 	if (recv(fd, &opcode, sizeof(opcode), MSG_WAITALL) == -1) {
 
 		log_error(logger, "Error in ESI confirmation execution");
@@ -438,7 +439,7 @@ void move_esi_from_and_to_queue(t_list* from_queue, t_list* to_queue, int esi_fd
 	list_add(to_queue, (void*)esi_fd);
 }
 
-int schedule_esis() {
+int schedule_esis() { //TODO
 
 	t_scheduling_algorithm algorithm = setup.scheduling_algorithm;
 	int* esi_fd;
@@ -461,6 +462,18 @@ int schedule_esis() {
 
 	return *esi_fd;
 }
+
+bool determine_if_key_is_blocked(char* blocked_key) {
+
+	bool string_equals(void* key_blocker_) {
+
+		if(strcmp(((key_blocker*)key_blocker_)->key, blocked_key) == 0) return true;
+		else return false;
+	}
+
+	return list_any_satisfy(g_locked_keys, string_equals);
+}
+
 
 void exit_gracefully(int status) {
 
@@ -538,7 +551,7 @@ static int receive_coordinator_opcode(int coordinator_fd) {
 	int opcode;
 	if(recv(coordinator_fd, &opcode, sizeof(int), MSG_WAITALL) == -1) {
 
-		log_error(logger, "Communication failure with coordinator");
+		log_error(logger, "Communication failure with coordinator in receive_coordinator_opcode");
 	    exit_gracefully(EXIT_FAILURE); //TODO -- Si el coordinador murió horrendamente, qué hacemos?
 	}
 	return opcode;
@@ -550,7 +563,7 @@ static char* receive_blocked_key(int coordinator_fd) {
 
 	if(package == NULL) {
 
-		log_error(logger, "Communication failure with coordinator");
+		log_error(logger, "Communication failure with coordinator in receive_blocked_key");
 	    exit_gracefully(EXIT_FAILURE); //TODO -- Si el coordinador murió horrendamente, qué hacemos?
 	}
 
@@ -565,13 +578,13 @@ static void add_new_blocked_key(char* blocked_key) {
 
 	key_blocker* key_blocker_ = malloc(sizeof(key_blocker));
 	memcpy(key_blocker_->key, blocked_key, strlen(blocked_key));
-	memcpy(key_blocker_->esi_id, *(int*)g_execution_queue->head->data, sizeof(int));
+	memcpy(&(key_blocker_->esi_id), (int*)g_execution_queue->head->data, sizeof(int));
 
 	free(blocked_key);
 	list_add(g_locked_keys, (void*)key_blocker_);
 }
 
-static send_key_status(int coordinator_fd, protocol_id protocol) {
+static void send_key_status(int coordinator_fd, protocol_id protocol) {
 
 	if (send(coordinator_fd, &protocol, sizeof(protocol), 0) == -1) {
 

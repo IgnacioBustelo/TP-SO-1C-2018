@@ -14,6 +14,8 @@ struct setup_t setup;
 static void init_log();
 static void init_server(int port);
 static void *handle_connection(void *arg);
+static int synchronize_connection(enum process_type type);
+static void handle_scheduler_connection(int fd);
 
 int main(void)
 {
@@ -86,32 +88,83 @@ static void *handle_connection(void *arg)
 		return NULL;
 	}
 
-	bool confirmation;
-	if (!send_confirmation(fd, confirmation) || !confirmation) {
-		log_error(logger, "Socket %d: Error al recibir confirmacion.", fd);
+	int retcode = synchronize_connection(type);
+	if (retcode == -1) {
+		log_error(logger, "Ya hay un Planificador conectado!");
+	} else if (retcode == -2) {
+		log_error(logger, "Se debe conectar primero el Planificador!");
+	}
+
+	bool confirmation = retcode == 1;
+	if (!send_confirmation(fd, confirmation)) {
+		log_error(logger, "Socket %d: Error al enviar confirmacion.", fd);
 		log_info(logger, "Socket %d: Cerrando conexion...", fd);
 		close(fd);
 		return NULL;
 	}
 
-	switch (type) {
-	case SCHEDULER:
-		// handle_scheduler_connection();
-		break;
-	case ESI:
-		// handle_esi_connection();
-		break;
-	case INSTANCE:
-		// handle_instance_connection();
-		break;
-	default:
-		log_error(logger, "Socket %d: Cliente intruso.", fd);
-		log_info(logger, "Socket %d: Cerrando conexion...", fd);
-		close(fd);
-		return NULL;
+	if (confirmation) {
+		switch (type) {
+		case SCHEDULER:
+			log_info(logger, "Socket %d identificado como Planificador", fd);
+			handle_scheduler_connection(fd);
+			break;
+		case ESI:
+			log_info(logger, "Socket %d identificado como ESI", fd);
+			// handle_esi_connection();
+			break;
+		case INSTANCE:
+			log_info(logger, "Socket %d identificado como Instancia", fd);
+			// handle_instance_connection();
+			break;
+		default:
+			log_error(logger, "Socket %d: Cliente intruso.", fd);
+			break;
+		}
 	}
+
+	log_info(logger, "Socket %d: Cerrando conexion...", fd);
+	close(fd);
 
 	return NULL;
+}
+
+static int synchronize_connection(enum process_type type)
+{
+	static bool scheduler_connected = false;
+	static pthread_mutex_t scheduler_connected_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+	int retcode;
+
+	synchronized(scheduler_connected_mutex) {
+		if (type == SCHEDULER) {
+			retcode = scheduler_connected ? -1 : 1;
+			scheduler_connected = true;
+		} else {
+			retcode = scheduler_connected ? 1 : -2;
+		}
+	}
+
+	return retcode;
+}
+
+static void handle_scheduler_connection(int fd)
+{
+	static bool scheduler_connected;
+	static pthread_mutex_t scheduler_connected_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+	synchronized(scheduler_connected_mutex) {
+		if (scheduler_connected) {
+			log_error(logger, "Ya hay un Planificador conectado!");
+			return;
+		} else {
+			scheduler_connected = true;
+		}
+	}
+
+	for (;;) {
+		// Atender al planificador.
+	}
 }
 
 void exit_gracefully(int status)
