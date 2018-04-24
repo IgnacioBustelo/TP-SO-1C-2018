@@ -95,6 +95,7 @@ void serialize() {
 
 	free(serialized_package);
 	destroy_package(package);
+	destroy_student(student);
 }
 
 int main(void) {
