@@ -1,11 +1,15 @@
 #ifndef ESI_ESI_H_
 #define ESI_ESI_H_
 
-void init_log();
+#include <commons/config.h>
+#include <commons/log.h>
+#include <commons/string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-void init_config();
-
-void check_config(char* key);
+/*
+ * Se finaliza el programa satisfactoriamente o no
+ */
 
 void exit_gracefully(int status);
 
