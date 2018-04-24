@@ -3,7 +3,7 @@ RM = rm -f
 
 TARGET = planificador
 SRC = $(wildcard *.c)
-SRC += ../libs/conector.c ../libs/comando.c
+SRC += ../libs/conector.c ../libs/comando.c ../libs/serializador.c
 OBJ = $(SRC:.c=.o)
 HEADER = $(SRC:.c=.h)
 
