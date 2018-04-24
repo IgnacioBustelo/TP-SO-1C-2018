@@ -171,7 +171,7 @@ int main(void) {
 
 							if(response) {
 
-								//caso en el que el esi en ejecucion quiere usar una clave bloqueada por otro esi
+								//caso en el que el esi en ejecucion quiere usar una clave bloqueada por otro esi -- se podría hacer después de la respuesta del ESI
 								move_esi_from_and_to_queue(g_execution_queue, g_blocked_queue, *(int*)g_execution_queue->head->data);
 								we_must_reschedule(&flag);
 								send_key_status(fd, PROTOCOL_PC_ESI_BLOCKED);
@@ -439,7 +439,7 @@ void move_esi_from_and_to_queue(t_list* from_queue, t_list* to_queue, int esi_fd
 	list_add(to_queue, (void*)esi_fd);
 }
 
-int schedule_esis() {
+int schedule_esis() { //TODO
 
 	t_scheduling_algorithm algorithm = setup.scheduling_algorithm;
 	int* esi_fd;
@@ -463,9 +463,15 @@ int schedule_esis() {
 	return *esi_fd;
 }
 
-bool determine_if_key_is_blocked(char* blocked_key) {  //TODO
+bool determine_if_key_is_blocked(char* blocked_key) {
 
-	return true;
+	bool string_equals(void* key_blocker_) {
+
+		if(strcmp(((key_blocker*)key_blocker_)->key, blocked_key) == 0) return true;
+		else return false;
+	}
+
+	return list_any_satisfy(g_locked_keys, string_equals);
 }
 
 
@@ -545,7 +551,7 @@ static int receive_coordinator_opcode(int coordinator_fd) {
 	int opcode;
 	if(recv(coordinator_fd, &opcode, sizeof(int), MSG_WAITALL) == -1) {
 
-		log_error(logger, "Communication failure with coordinator");
+		log_error(logger, "Communication failure with coordinator in receive_coordinator_opcode");
 	    exit_gracefully(EXIT_FAILURE); //TODO -- Si el coordinador murió horrendamente, qué hacemos?
 	}
 	return opcode;
@@ -557,7 +563,7 @@ static char* receive_blocked_key(int coordinator_fd) {
 
 	if(package == NULL) {
 
-		log_error(logger, "Communication failure with coordinator");
+		log_error(logger, "Communication failure with coordinator in receive_blocked_key");
 	    exit_gracefully(EXIT_FAILURE); //TODO -- Si el coordinador murió horrendamente, qué hacemos?
 	}
 

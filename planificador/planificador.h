@@ -107,7 +107,7 @@ void update_executing_esi(int esi_fd);
 int receive_execution_result(int esi_fd);
 
 /*
- * Dice si determinada clave ya fue tomada por un ESI
+ * Dice si determinada clave ya fue tomada por un ESI (hizo un GET)
  */
 
 bool determine_if_key_is_blocked(char* blocked_key);
