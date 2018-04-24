@@ -4,6 +4,9 @@ CC = gcc
 DEPS = serializador_funciones.h ../libs/conector.h ../libs/serializador.h ../libs/deserializador.h
 SRC = serializador_funciones.c ../libs/conector.c ../libs/serializador.c ../libs/deserializador.c
 
+empaquetado: empaquetado.c empaquetado.h ../libs/serializador.c ../libs/serializador.h
+	$(CC) -Wall empaquetado.c ../libs/serializador.c -o empaquetado -lcommons
+
 serializador: serializador_cliente.c $(SRC) $(DEPS)
 	$(CC) -Wall serializador_cliente.c $(SRC) -o serializador
 	
