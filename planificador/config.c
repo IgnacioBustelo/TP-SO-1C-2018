@@ -4,6 +4,7 @@
 
 static void check_config(t_log* logger,t_config* config, char* key);
 static void set_distribution(t_log* logger,t_planificador_config setup,char* algorithm_name);
+static void verify_alpha(t_log* logger, t_planificador_config setup, int alpha);
 static char *_string_join(char **string_array, char *separator);
 
 t_log* init_log() {
@@ -30,6 +31,11 @@ t_planificador_config init_config(t_log* logger) {
 	set_distribution(logger, setup, algorithm_name);
 	log_info(logger, "Asignado algoritmo de reemplazo de planificacion %s.", algorithm_name);
 	free(algorithm_name);
+
+	check_config(logger, config, "ALPHA");
+	int alpha = config_get_int_value(config, "ALPHA");
+	verify_alpha(logger, setup, alpha);
+	log_info(logger, "Asignando alpha %d.", setup.alpha);
 
 	check_config(logger, config,"ESTIMACION_INICIAL");
 	setup.initial_estimation = config_get_double_value(config, "ESTIMACION_INICIAL");
@@ -82,6 +88,16 @@ static void set_distribution(t_log* logger, t_planificador_config setup, char* a
 		setup.scheduling_algorithm = FIFO;
 	} else {
 		log_error(logger, "Se intento asignar un algoritmo inexistente llamado %s.", algorithm_name);
+		exit_gracefully(EXIT_FAILURE);
+	}
+}
+
+static void verify_alpha(t_log* logger, t_planificador_config setup, int alpha) {
+
+	if(alpha >= 0 && alpha <= 100) setup.alpha = alpha;
+	else {
+
+		log_error(logger, "Se intento usar un alpha = &i y es inapropiado.", alpha);
 		exit_gracefully(EXIT_FAILURE);
 	}
 }

@@ -19,6 +19,7 @@ typedef struct {
 	int port;
 	int coordinator_port;
 	t_scheduling_algorithm scheduling_algorithm;
+	int alpha;
 	double initial_estimation;
 	char* coordinator_ip;
 	char** blocked_keys;
