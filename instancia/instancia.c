@@ -40,7 +40,7 @@ int main(void) {
 //Conexion al coordinador
 
 	int coordinator_fd = connect_to_server(ip_coordinador, port_coordinator);
-		if (send_handshake(coordinator_fd, ESI) != 1) {
+		if (send_handshake(coordinator_fd, INSTANCE) != 1) {
 			log_error(logger, "Failure in send_handshake");
 			close(coordinator_fd);
 		}
