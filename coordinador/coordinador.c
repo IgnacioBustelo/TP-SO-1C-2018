@@ -168,6 +168,22 @@ static void handle_esi_connection(int fd)
 {
 	for (;;) {
 		// Recibir sentencia.
+
+		/* TODO:
+		 * --receive request--
+		 * struct instance_t *next_instance = equitative_load(instance_list);
+		 * if (next_instance != NULL) {
+		 *     // Mutex? (next_instance could be being removed from the instance_list)
+		 *     instance_list_request_add(next_instance, --REQUEST--);	// <- Mutex inside this function
+		 *     sem_post(&next_instance->requests_count);
+		 * } else {
+		 *     HANDLE_ERROR
+		 * }
+		 */
+
+		/* ALTERNATIVE:
+		 *   - Add request to request pool.
+		 */
 	}
 }
 
@@ -186,6 +202,9 @@ static void handle_instance_connection(int fd)
 		 * --send request to fd--
 		 */
 	}
+
+	instance_list_delete(instance_list, fd);
+	/* TODO: Remove from last_instances. */
 }
 
 void exit_gracefully(int status)

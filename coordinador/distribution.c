@@ -1,11 +1,12 @@
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "distribution.h"
 #include "instance-list.h"
 
 t_list *last_instances;
 
-static void last_instances_add(struct instance_t *elem);
+static void last_instances_add(struct instance_t *elem, t_list *instance_list);
 static bool list_contains(t_list *list, void *member);
 
 /* Executed before main() */
@@ -14,7 +15,7 @@ __attribute__((constructor)) void init(void) {
 }
 
 /* Executed after main() */
-__attribute__((destructor)) void init(void) {
+__attribute__((destructor)) void destroy(void) {
 	list_destroy(last_instances);
 }
 
@@ -31,13 +32,13 @@ struct instance_t *equitative_load(t_list *instance_list)
 	void *_next_instance = list_find(instance_list, last_instances_not_contains);
 	struct instance_t *next_instance = (struct instance_t *)_next_instance;
 	if (next_instance != NULL) {
-		last_instances_add(next_instance);
+		last_instances_add(next_instance, instance_list);
 	}
 
 	return next_instance;
 }
 
-static void last_instances_add(struct instance_t *elem)
+static void last_instances_add(struct instance_t *elem, t_list *instance_list)
 {
 	/* TODO: Mutexes */
 	list_add(last_instances, elem);
