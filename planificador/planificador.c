@@ -187,6 +187,7 @@ int main(void) {
 
 					remove_blocked_key_from_list(last_key_inquired);
 					update_blocked_esis(&update_blocked_esi_queue_flag);
+					send_protocol_answer(fd, PROTOCOL_PC_KEY_UNLOCKED_SUCCESFULLY);
 					break;
 				}
 
