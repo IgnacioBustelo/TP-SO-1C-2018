@@ -1,10 +1,12 @@
+#include <string.h>
+
 #include "config.h"
 
 /* -- Local function prototypes  -- */
 
 static void check_config(t_log* logger,t_config* config, char* key);
 static void set_distribution(t_log* logger,t_planificador_config setup,char* algorithm_name);
-static void verify_alpha(t_log* logger, t_planificador_config setup, int alpha);
+static void verify_alpha(t_log* logger, t_planificador_config *setup, int alpha);
 static char *_string_join(char **string_array, char *separator);
 
 t_log* init_log() {
@@ -30,11 +32,10 @@ t_planificador_config init_config(t_log* logger) {
 	char* algorithm_name = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
 	set_distribution(logger, setup, algorithm_name);
 	log_info(logger, "Asignado algoritmo de reemplazo de planificacion %s.", algorithm_name);
-	free(algorithm_name);
 
 	check_config(logger, config, "ALPHA");
 	int alpha = config_get_int_value(config, "ALPHA");
-	verify_alpha(logger, setup, alpha);
+	verify_alpha(logger, &setup, alpha);
 	log_info(logger, "Asignando alpha %d.", setup.alpha);
 
 	check_config(logger, config,"ESTIMACION_INICIAL");
@@ -42,7 +43,7 @@ t_planificador_config init_config(t_log* logger) {
 	log_info(logger, "Asignando estimacion inicial %f.", setup.initial_estimation);
 
 	check_config(logger, config,"IP_COORDINADOR");
-	setup.coordinator_ip = config_get_string_value(config, "IP_COORDINADOR");
+	setup.coordinator_ip = strdup(config_get_string_value(config, "IP_COORDINADOR"));
 	log_info(logger, "Asignando direccion coordinador %s.", setup.coordinator_ip);
 
 	check_config(logger, config,"PUERTO_COORDINADOR");
@@ -92,11 +93,11 @@ static void set_distribution(t_log* logger, t_planificador_config setup, char* a
 	}
 }
 
-static void verify_alpha(t_log* logger, t_planificador_config setup, int alpha) {
+static void verify_alpha(t_log* logger, t_planificador_config *setup, int alpha) {
 
-	if(alpha >= 0 && alpha <= 100) setup.alpha = alpha;
-	else {
-
+	if (alpha >= 0 && alpha <= 100) {
+		setup->alpha = alpha;
+	} else {
 		log_error(logger, "Se intento usar un alpha = &i y es inapropiado.", alpha);
 		exit_gracefully(EXIT_FAILURE);
 	}
