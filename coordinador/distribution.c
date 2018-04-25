@@ -21,10 +21,6 @@ __attribute__((destructor)) void destroy(void) {
 
 struct instance_t *equitative_load(t_list *instance_list)
 {
-	if (list_size(instance_list) >= list_size(last_instances)) {
-		list_remove(last_instances, 0);
-	}
-
 	bool last_instances_not_contains(void *elem) {
 		return !list_contains(last_instances, elem);
 	}
