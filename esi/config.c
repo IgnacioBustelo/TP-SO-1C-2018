@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "config.h"
 
 /* -- Local function prototypes  -- */
@@ -19,7 +21,7 @@ t_esi_config init_config(t_log* logger) {
 	log_info(logger, "Se abrio el archivo de configuracion.");
 
 	check_config(logger, config,"IP_COORDINADOR");
-	setup.ip_coordinador = config_get_string_value(config, "IP_COORDINADOR");
+	setup.ip_coordinador = strdup(config_get_string_value(config, "IP_COORDINADOR"));
 	log_info(logger, "Asignado valor %s al IP del Coordinador.", setup.ip_coordinador);
 
 	check_config(logger, config,"PUERTO_COORDINADOR");
@@ -27,7 +29,7 @@ t_esi_config init_config(t_log* logger) {
 	log_info(logger, "Asignado valor %d al puerto del Coordinador.", setup.port_coordinador);
 
 	check_config(logger, config,"IP_PLANIFICADOR");
-	setup.ip_planificador = config_get_string_value(config, "IP_PLANIFICADOR");
+	setup.ip_planificador = strdup(config_get_string_value(config, "IP_PLANIFICADOR"));
 	log_info(logger, "Asignado valor %s al IP del Planificador.", setup.ip_planificador);
 
 	check_config(logger, config,"PUERTO_PLANIFICADOR");
