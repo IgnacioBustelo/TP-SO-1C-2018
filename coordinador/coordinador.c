@@ -150,18 +150,6 @@ static int synchronize_connection(enum process_type type)
 
 static void handle_scheduler_connection(int fd)
 {
-	static bool scheduler_connected;
-	static pthread_mutex_t scheduler_connected_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-	synchronized(scheduler_connected_mutex) {
-		if (scheduler_connected) {
-			log_error(logger, "Ya hay un Planificador conectado!");
-			return;
-		} else {
-			scheduler_connected = true;
-		}
-	}
-
 	for (;;) {
 		// Atender al planificador.
 	}
