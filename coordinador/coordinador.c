@@ -2,13 +2,18 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+#include <commons/collections/list.h>
+#include "../libs/conector.h"
+
 #include "coordinador.h"
 #include "config.h"
-#include "../libs/conector.h"
+#include "instance-list.h"
 
 /* Global variables */
 t_log *logger;
 struct setup_t setup;
+
+t_list *instance_list;
 
 /* Local functions */
 static void init_log();
@@ -16,9 +21,13 @@ static void init_server(int port);
 static void *handle_connection(void *arg);
 static int synchronize_connection(enum process_type type);
 static void handle_scheduler_connection(int fd);
+static void handle_esi_connection(int fd);
+static void handle_instance_connection(int fd);
 
 int main(void)
 {
+	instance_list = instance_list_create();
+
 	init_log();
 	init_config();
 	init_server(setup.port);
@@ -111,11 +120,11 @@ static void *handle_connection(void *arg)
 			break;
 		case ESI:
 			log_info(logger, "Socket %d identificado como ESI", fd);
-			// handle_esi_connection();
+			handle_esi_connection(fd);
 			break;
 		case INSTANCE:
 			log_info(logger, "Socket %d identificado como Instancia", fd);
-			// handle_instance_connection();
+			handle_instance_connection(fd);
 			break;
 		default:
 			log_error(logger, "Socket %d: Cliente intruso.", fd);
@@ -152,6 +161,30 @@ static void handle_scheduler_connection(int fd)
 {
 	for (;;) {
 		// Atender al planificador.
+	}
+}
+
+static void handle_esi_connection(int fd)
+{
+	for (;;) {
+		// Recibir sentencia.
+	}
+}
+
+static void handle_instance_connection(int fd)
+{
+	struct instance_t *instance = instance_list_add(instance_list, fd);
+
+	for (;;) {
+		// REVIEW: sem_wait puede ser interrumpido por un signal.
+		sem_wait(&instance->requests_count);
+
+		log_info(logger, "Socket %d: Atendiendo pedido...", fd);
+
+		/* TODO
+		 * struct request_t *request = request_pop();
+		 * --send request to fd--
+		 */
 	}
 }
 
