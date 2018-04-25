@@ -55,7 +55,7 @@ setup_t init_config(t_log* logger) {
 	log_info(logger, "Se abrio el archivo de configuracion.");
 
 	check_config(config, keys[0], logger);
-	setup.coordinator_ip = config_get_string_value(config, keys[0]);
+	setup.coordinator_ip = strdup(config_get_string_value(config, keys[0]));
 	log_info(logger, "Asignando direccion coordinador %s.", setup.coordinator_ip);
 
 	check_config(config, keys[1], logger);
@@ -67,11 +67,11 @@ setup_t init_config(t_log* logger) {
 	log_info(logger, "Asignado algoritmo de reemplazo de paginas %s.", config_get_string_value(config, keys[2]));
 
 	check_config(config, keys[3], logger);
-	setup.mount_point = config_get_string_value(config, keys[3]);
+	setup.mount_point = strdup(config_get_string_value(config, keys[3]));
 	log_info(logger, "Asignando punto de montaje %s.", setup.mount_point);
 
 	check_config(config, keys[4], logger);
-	setup.instance_name = config_get_string_value(config, keys[4]);
+	setup.instance_name = strdup(config_get_string_value(config, keys[4]));
 	log_info(logger, "Asignando nombre de instancia %s.", setup.instance_name);
 
 	check_config(config, keys[5], logger);
