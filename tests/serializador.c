@@ -2,10 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../libs/conector.h"
 #include "../libs/serializador.h"
-#include "empaquetado.h"
+#include "serializador.h"
 
-student_t* create_student(int id, char* name, char* surname, float average) {
+student_t* student_create(int id, char* name, char* surname, float average) {
 	student_t* student = malloc(sizeof(student_t));
 
 	student->id = id;
@@ -20,17 +21,31 @@ size_t student_size(student_t* student) {
 	return sizeof(student->id) + sizeof(size_t) + strlen(student->name) + 1 + sizeof(size_t) + strlen(student->surname) + 1 + sizeof(student->average);
 }
 
-void destroy_student(student_t* student) {
+void student_destroy(student_t* student) {
 	free(student->name);
 	free(student->surname);
 	free(student);
 }
 
-void serialize() {
-	printf("Inicio de serializacion\n");
+package_t* serialize() {
+	student_t* student = student_create(678, "John Juan", "Doemann De Tal", 2.50);
+	size_t package_size = student_size(student);
 
+	package_t* package = create_package(package_size);
+
+	add_content(package, &student->id, sizeof(student->id));
+	add_content_variable(package, student->name, strlen(student->name) + 1);
+	add_content_variable(package, student->surname, strlen(student->surname) + 1);
+	add_content(package, &student->average, sizeof(student->average));
+
+	student_destroy(student);
+
+	return package;
+}
+
+package_t* serialize_pretty() {
 	char* message;
-	student_t* student = create_student(678, "John Juan", "Doemann De Tal", 2.50);
+	student_t* student = student_create(678, "John Juan", "Doemann De Tal", 2.50);
 	size_t package_size = student_size(student);
 
 	printf("Se va a empaquetar al alumno %s %s, de legajo %d y promedio %f\n", student->name, student->surname, student->id, student->average);
@@ -78,6 +93,22 @@ void serialize() {
 	free(message);
 
 	printf("Ya se puede enviar el mensaje\n");
+	student_destroy(student);
+
+	return package;
+}
+
+void send_to_deserializer(int fd, package_t* package) {
+	void* serialized_package = build_package(package);
+
+	send_serialized_package(fd, serialized_package, package->size);
+
+	free(serialized_package);
+}
+
+void send_to_deserializer_pretty(int fd, package_t* package) {
+	char* message;
+	package_status status;
 
 	status = check_package(package);
 	void* serialized_package = build_package(package);
@@ -87,18 +118,47 @@ void serialize() {
 
 	if(serialized_package == NULL) {
 		printf("Error empaquetando mensaje.\n");
+		destroy_package(package);
+		exit(EXIT_FAILURE);
 	}
 
 	else {
 		printf("Serializacion correcta.\n");
 	}
 
+	status = send_serialized_package(fd, serialized_package, package->size);
+
+	if(status != SEND_SUCCESS) {
+		message = status_message(package, status);
+		printf("%s", message);
+		free(message);
+
+		destroy_package(package);
+		close(fd);
+		exit(EXIT_FAILURE);
+	}
+
+	else {
+		printf("Se pudo enviar el paquete serializado\n");
+	}
+
 	free(serialized_package);
-	destroy_package(package);
-	destroy_student(student);
 }
 
 int main(void) {
-	serialize();
+	package_t* package = serialize_pretty();
+
+	printf("Inicio del Serializador\n");
+
+	int fd = connect_to_server(HOST, PORT);
+
+	printf("Conectado al Deserializador\n");
+
+	send_to_deserializer_pretty(fd, package);
+
+	printf("Envio del paquete al Deserializador\n");
+
+	destroy_package(package);
+	close(fd);
 }
 

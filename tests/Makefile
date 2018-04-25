@@ -1,17 +1,17 @@
 .PHONY = clean
 
 CC = gcc
-DEPS = serializador_funciones.h ../libs/conector.h ../libs/serializador.h ../libs/deserializador.h
-SRC = serializador_funciones.c ../libs/conector.c ../libs/serializador.c ../libs/deserializador.c
+SERIALIZADOR_DEPS = serializador.h ../libs/conector.h ../libs/serializador.h
+SERIALIZADOR_SRC = $(SERIALIZADOR_DEPS:.h=.c)
+DESERIALIZADOR_DEPS = deserializador.h ../libs/conector.h ../libs/deserializador.h
+DESERIALIZADOR_SRC = $(DESERIALIZADOR_DEPS:.h=.c)
+LIBS = -lcommons
 
-empaquetado: empaquetado.c empaquetado.h ../libs/serializador.c ../libs/serializador.h
-	$(CC) -Wall empaquetado.c ../libs/serializador.c -o empaquetado -lcommons
-
-serializador: serializador_cliente.c $(SRC) $(DEPS)
-	$(CC) -Wall serializador_cliente.c $(SRC) -o serializador
+serializador: $(SERIALIZADOR_SRC) $(SERIALIZADOR_DEPS)
+	$(CC) -Wall $(SERIALIZADOR_SRC) -o serializador $(LIBS)
 	
-deserializador: serializador_servidor.c $(SRC) $(DEPS)
-	$(CC) -Wall serializador_servidor.c $(SRC) -o deserializador
+deserializador: $(DESERIALIZADOR_SRC) $(DESERIALIZADOR_DEPS)
+	$(CC) -Wall $(DESERIALIZADOR_SRC) -o deserializador $(LIBS)
 
 valgrind_serializador: serializador deserializador
 	valgrind ./serializador
