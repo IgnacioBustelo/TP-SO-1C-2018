@@ -10,11 +10,29 @@
 
 #define MAXCONN 20
 
+/*
+ * Nodo de ESI que ha bloqueado alguna clave
+ */
+
 typedef struct key_blocker {
 
 	char* key;
 	int esi_id;
 } key_blocker;
+
+/*
+ * Nodo de ESI que está en espera de una clave bloqueada
+ */
+
+typedef struct esi_sexpecting_key {
+
+	int esi_fd;
+	char* key;
+} esi_sexpecting_key;
+
+/*
+ * Información del ESI necesaria para la planificación
+ */
 
 typedef struct esi_information {
 
@@ -36,6 +54,12 @@ void exit_gracefully(int status);
  */
 
 key_blocker* create_key_blocker(char* key, int esi_id);
+
+/*
+ * Crea un puntero a un esi_sexpecting_key
+ */
+
+esi_sexpecting_key* create_esi_sexpecting_key(int esi_fd, char* key);
 
 /*
  * Crea un esi_information
@@ -114,5 +138,17 @@ int receive_execution_result(int esi_fd);
  */
 
 bool determine_if_key_is_blocked(char* blocked_key);
+
+/*
+ * Dice si la clave solicitada la bloqueó el ESI en ejecución
+ */
+
+bool key_is_blocked_by_executing_esi(char* key);
+
+/*
+ * Toma a los ESI's que estaban bloqueados por la clave desbloqueada de la lista de sexpectantes, los elimina de ella y devuelve sus respectivos file descriptors
+ */
+
+t_list* unlock_esis(char* key_unlocked);
 
 #endif /* PLANIFICADOR_PLANIFICADOR_H_ */
