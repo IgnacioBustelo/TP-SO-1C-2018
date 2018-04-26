@@ -7,7 +7,7 @@ SRC += ../libs/conector.c
 OBJ = $(SRC:.c=.o)
 HEADER = $(SRC:.c=.h)
 
-LIB = -lcommons
+LIB = -lcommons -lparsi
 
 all: $(TARGET)
 

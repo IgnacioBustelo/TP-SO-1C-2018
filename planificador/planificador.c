@@ -45,10 +45,10 @@ int main(void) {
 	int server_port = setup.port;
 
 	int coordinator_fd = connect_to_server(host, port_coordinator);
-	log_info(logger, "Connecting to the coordinator...");
+	log_info(logger, "Conectando al coordinador");
 
 	if (send_handshake(coordinator_fd, SCHEDULER) != 1) {
-		log_error(logger, "Failure in send_handshake");
+		log_error(logger, "Fallo en en el envío del handshake");
 		close(coordinator_fd);
 		exit_gracefully(EXIT_FAILURE);
 	}
@@ -56,15 +56,15 @@ int main(void) {
 	bool confirmation;
 	int received = receive_confirmation(coordinator_fd, &confirmation);
 	if (!received || !confirmation) {
-		log_error(logger, "Failure in confirmation reception");
+		log_error(logger, "Fallo en la confirmación de recepción del handshake");
 		close(coordinator_fd);
 		exit_gracefully(EXIT_FAILURE);
 	}
 
-	log_info(logger, "Succesfully connected to the coordinator");
+	log_info(logger, "Conectado satisfactoriamente al coordinador");
 
 	int listener = init_listener(server_port, MAXCONN);
-	log_info(logger, "Listening on port %i...", server_port);
+	log_info(logger, "Escuchando en el puerto %i...", server_port);
 
 	fd_set connected_fds;
 	fd_set read_fds;
@@ -86,7 +86,7 @@ int main(void) {
 		read_fds = connected_fds;
 
 		if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) == -1) {
-			log_error(logger, "Select error");
+			log_error(logger, "Error en select");
 			exit(EXIT_FAILURE);
 		}
 
@@ -102,14 +102,14 @@ int main(void) {
 
 				struct sockaddr_in client_info;
 				socklen_t addrlen = sizeof client_info;
-				log_info(logger, "New client connecting...");
+				log_info(logger, "Nuevo cliente conectando...");
 
 				int new_client_fd = accept(listener,
 						(struct sockaddr *) &client_info, &addrlen);
 
 				if (new_client_fd == -1) {
 
-					log_error(logger, "Accept error");
+					log_error(logger, "Fallo al aceptar nueva conexión");
 				} else {
 
 					FD_SET(new_client_fd, &connected_fds);
@@ -119,14 +119,14 @@ int main(void) {
 						max_fd = new_client_fd;
 					}
 
-					log_info(logger, "Socket %d connected", new_client_fd);
+					log_info(logger, "Socket %d conectado", new_client_fd);
 
 					bool client_confirmation = false;
 					if (receive_handshake(new_client_fd) == -1) {
 
 						send_confirmation(new_client_fd, confirmation);
 						remove_fd(new_client_fd, &connected_fds);
-						log_error(logger, "Handshake fail with socket %d",
+						log_error(logger, "Fallo en el handshake con el socket %d",
 								new_client_fd);
 						close(new_client_fd);
 					} else {
@@ -321,19 +321,8 @@ void authorize_esi_execution(int esi_fd) {
 	protocol_id opcode = PROTOCOL_PE_EXEC;
 	if(send(esi_fd, &opcode, sizeof(opcode), 0) == -1) {
 
-		log_error(logger, "Failure in authorization of esi execution");
+		log_error(logger, "Fallo en la autorización del ESI a ejecutar");
 	}
-}
-
-int receive_confirmation_from_esi(int fd) {
-
-	int* buffer;
-	if(recv(fd, buffer, sizeof(int), MSG_WAITALL) == -1) {
-
-		log_error(logger, "Confirmation failed");
-		//TODO -- no sabes hablar, sock my port -- matar esi --no hay tiempo para vos sorete esi
-	}
-	return *buffer;
 }
 
 void update_executing_esi(int esi_fd) {
@@ -349,7 +338,7 @@ int receive_execution_result(int fd) {
 	protocol_id opcode;
 	if (recv(fd, &opcode, sizeof(opcode), MSG_WAITALL) == -1) {
 
-		log_error(logger, "Error in ESI confirmation execution");
+		log_error(logger, "Fallo en la confirmación de ejecución de parte del ESI");
 		// TODO -- no sabes hablar, sock my port -- matar esi --no hay tiempo para vos sorete esi
 	}
 
@@ -477,7 +466,7 @@ t_list* unlock_esis(char* key_unlocked) {
 
 void exit_gracefully(int status) {
 
-	log_info(logger, "Scheduler execution ended");
+	log_info(logger, "La ejecución del planificador terminó");
 
 	log_destroy(logger);
 
@@ -490,7 +479,7 @@ void exit_gracefully(int status) {
 
 static void remove_fd(int fd, fd_set *fdset) {
 	FD_CLR(fd, fdset);
-	log_info(logger, "Socket %d kicked out", fd);
+	log_info(logger, "El socket %d fue echado", fd);
 	close(fd);
 }
 
@@ -549,7 +538,7 @@ static int receive_coordinator_opcode(int coordinator_fd) {
 	int opcode;
 	if(recv(coordinator_fd, &opcode, sizeof(int), MSG_WAITALL) == -1) {
 
-		log_error(logger, "Communication failure with coordinator in receive_coordinator_opcode");
+		log_error(logger, "Fallo en la comunicación con el coordinador al recibir el código de operación");
 	    exit_gracefully(EXIT_FAILURE); //TODO -- Si el coordinador murió horrendamente, qué hacemos?
 	}
 	return opcode;
@@ -561,7 +550,7 @@ static char* receive_inquired_key(int coordinator_fd) {
 
 	if(package == NULL) {
 
-		log_error(logger, "Communication failure with coordinator in receive_blocked_key");
+		log_error(logger, "Fallo en la comunicación con el coordinador al recibir la clave solicitada");
 	    exit_gracefully(EXIT_FAILURE); //TODO -- Si el coordinador murió horrendamente, qué hacemos?
 	}
 
@@ -586,7 +575,7 @@ static void send_protocol_answer(int coordinator_fd, protocol_id protocol) {
 
 	if (send(coordinator_fd, &protocol, sizeof(protocol), 0) == -1) {
 
-		log_error(logger, "Failure in sending key status to coordinator");
+		log_error(logger, "Fallo en el envío del status de la clave al coordinador");
 	}
 }
 
