@@ -16,7 +16,13 @@ t_log* logger;
 
 setup_t setup;
 
+t_list* data_saving_administrative_structure;
+
+t_list* data_saving_structure;
+
 int coordinador_fd;
+
+
 
 
 // Main thread
@@ -27,25 +33,19 @@ int main(void) {
 
 	setup = init_config(logger);
 
+	//Inicializo variables de creacion
+
+
 	coordinador_fd = connect_to_server(setup.coordinator_ip, setup.coordinator_port);
 
-	// TODO: Cambiar por handshake_client()
+	log_info(logger, "Conectando al coordinador...");
 
-		if (send_handshake(coordinador_fd, INSTANCE) != 1) {
-				log_error(logger, "Fallo enviando el handshake");
-				close(coordinador_fd);
-				exit_gracefully(EXIT_FAILURE);
-			}
+	handshake_client(coordinador_fd,setup.instance_name,INSTANCE,logger);
 
-			bool confirmation;
-		int received = receive_confirmation(coordinador_fd, &confirmation);
-			if (!received || !confirmation) {
-				log_error(logger, "Fallo en la recepcion de la confirmacion");
-				close(coordinador_fd);
-				exit_gracefully(EXIT_FAILURE);
-			}
+	data_saving_administrative_structure = list_create();
 
-		log_info(logger, "Conectado al Coordinador");
+	data_saving_structure = list_create();
+
 
 	//
 

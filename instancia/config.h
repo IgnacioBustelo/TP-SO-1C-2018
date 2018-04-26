@@ -12,6 +12,11 @@ typedef struct {
 	int dump_interval;
 } setup_t;
 
+typedef struct{
+	int total_entries;
+	int entrie_size;
+} administrative_structure_setup_t;
+
 t_log*	init_log();
 
 setup_t	init_config(t_log* logger);
