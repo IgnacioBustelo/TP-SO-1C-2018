@@ -110,12 +110,6 @@ void move_esi_from_and_to_queue(t_list* from_queue, t_list* to_queue, int esi_fd
 void authorize_esi_execution(int esi_fd);
 
 /*
- * El planificador recibe la confirmación de fin de una rafaga del esi
- */
-
-int receive_confirmation_from_esi(int fd);
-
-/*
  * El ESI se encuentra en ready
  */
 
