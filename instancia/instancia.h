@@ -10,7 +10,7 @@ void exit_gracefully(int status);
 
 
 
-int actual_data_saving_structure_entries_occupied;
+
 
 typedef struct {
 	char* key;
