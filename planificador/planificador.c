@@ -2,6 +2,7 @@
 #include "planificador.h"
 #include "../protocolo/protocolo.h"
 #include "../libs/serializador.h"
+#include "../libs/deserializador.h"
 #include "config.h"
 
 /* -- Local function prototypes -- */
@@ -546,19 +547,16 @@ static int receive_coordinator_opcode(int coordinator_fd) {
 
 static char* receive_inquired_key(int coordinator_fd) {
 
-	package_t* package = receive_package(coordinator_fd);
+	char* key;
+	int result = recv_package_variable(coordinator_fd, (void**)&key);
 
-	if(package == NULL) {
+	if(result == -2 || result == -3) {
 
-		log_error(logger, "Fallo en la comunicación con el coordinador al recibir la clave solicitada");
-	    exit_gracefully(EXIT_FAILURE); //TODO -- Si el coordinador murió horrendamente, qué hacemos?
+		log_error(logger, "Error al recibir la clave de parte del coordinador");
+		exit_gracefully(EXIT_FAILURE); //TODO -- Si el coordinador murió horrendamente, qué hacemos?
 	}
 
-	char* key_blocked = malloc(package->size - sizeof(int));
-	memcpy(key_blocked,package->load+sizeof(int),package->size - sizeof(int));
-	destroy_package(package);
-
-	return key_blocked;
+	return key;
 }
 
 static void add_new_key_blocker(char* blocked_key) {
