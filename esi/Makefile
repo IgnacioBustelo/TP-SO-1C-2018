@@ -3,7 +3,7 @@ RM = rm -f
 
 TARGET = esi
 SRC = $(wildcard *.c)
-SRC += ../libs/conector.c /libs/serializador.c
+SRC += ../libs/conector.c ../libs/serializador.c
 OBJ = $(SRC:.c=.o)
 HEADER = $(SRC:.c=.h)
 
