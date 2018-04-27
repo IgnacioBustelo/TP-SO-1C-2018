@@ -205,6 +205,13 @@ int main(void) {
 				case PROTOCOL_EP_EXECUTION_SUCCESS:
 					update_waiting_time_of_ready_esis();
 					update_executing_esi(fd);
+
+					int script_end= receive_execution_result(fd);
+					if(script_end == PROTOCOL_EP_FINISHED_SCRIPT) {
+
+						esi_finished(&finished_esi_flag);
+						we_must_reschedule(&reschedule_flag);
+					}
 					break;
 
 				case PROTOCOL_EP_I_AM_BLOCKED:
@@ -213,10 +220,9 @@ int main(void) {
 					we_must_reschedule(&reschedule_flag);
 					break;
 
-				case PROTOCOL_EP_FINISHED_SCRIPT:
-					esi_finished(&finished_esi_flag);
-					we_must_reschedule(&reschedule_flag);
-				    break;
+				case PROTOCOL_EP_I_BROKE_THE_LAW: /* TODO */
+					break;
+
 				}
 
 				if(finished_esi_flag == 1) {

@@ -69,13 +69,69 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    while ((read = getline(&line, &len, fp)) != -1) {
+    size_t package_size;
+    int continue_reading_flag;
+    read = getline(&line, &len, fp);
+
+    while (read != -1) {
+
+    	continue_reading_flag = 1;
 
     	wait_for_execution_order(scheduler_fd_);
 
-    	void* package = obtain_package_from_line(line);
+    	void* package = obtain_package_from_line(line, &package_size);
 
-    	/* TODO -- Hay que continuarlo */
+    	send_serialized_package(coordinator_fd_, package, package_size);
+
+    	int execution_result = wait_for_execution_result(coordinator_fd_);
+    	int execution_result_to_scheduler;
+
+    	switch(execution_result) {
+
+    	case PROTOCOL_CE_EVERYTHING_OK:
+    		execution_result_to_scheduler = PROTOCOL_EP_EXECUTION_SUCCESS;
+    		break;
+
+    	case PROTOCOL_CE_YOU_ARE_BLOCKED:
+    		execution_result_to_scheduler = PROTOCOL_EP_I_AM_BLOCKED;
+    		continue_reading_flag = 0;
+    		break;
+
+    	case PROTOCOL_CE_ILLEGAL_OPERATION:
+    		execution_result_to_scheduler = PROTOCOL_EP_I_BROKE_THE_LAW;
+			log_error(logger, "Traté de ejecutar una operación que no es válida");
+			free(line);
+			exit_gracefully(EXIT_FAILURE);
+    		break;
+
+    	}
+
+    	if (send(scheduler_fd_, &execution_result_to_scheduler, sizeof(execution_result_to_scheduler), 0) == -1) {
+
+    		log_error(logger, "Error al enviar el resultado de ejecución al planificador");
+    		free(line);
+    		exit_gracefully(EXIT_FAILURE);
+    	}
+
+    	if(continue_reading_flag) {
+
+    		read = getline(&line, &len, fp);
+
+    		if(execution_result_to_scheduler == PROTOCOL_EP_EXECUTION_SUCCESS) {
+        	int script_end;
+
+    		if(read == -1) {
+
+    			script_end = PROTOCOL_EP_FINISHED_SCRIPT;
+    		} else {
+
+    			script_end = PROTOCOL_EP_DIDNT_FINISH_SCRIPT;
+    		}
+
+    		send(scheduler_fd_, &script_end, sizeof(script_end), 0);
+
+    		}
+    	}
 
     }
 
@@ -84,10 +140,9 @@ int main(int argc, char **argv) {
 	exit_gracefully(EXIT_SUCCESS);
 }
 
-void* obtain_package_from_line(char* line) {
+void* obtain_package_from_line(char* line, size_t* package_size) {
 
 	package_t* package;
-	size_t package_size;
     t_esi_operacion parsed = parse(line);
 
     if(parsed.valido){
@@ -100,8 +155,8 @@ void* obtain_package_from_line(char* line) {
 
             	log_info(logger, "GET\tclave: <%s>", parsed.argumentos.GET.clave);
             	operation = PROTOCOL_EC_GET;
-            	package_size = sizeof(operation) + strlen(parsed.argumentos.GET.clave) + 1;
-            	package = create_package(package_size);
+            	*package_size = sizeof(operation) + strlen(parsed.argumentos.GET.clave) + 1;
+            	package = create_package(*package_size);
             	add_content(package, &operation, sizeof(operation));
             	add_content_variable(package, parsed.argumentos.GET.clave, strlen(parsed.argumentos.GET.clave) + 1);
                 break;
@@ -109,8 +164,8 @@ void* obtain_package_from_line(char* line) {
 
             	log_info(logger, "SET\tclave: <%s>\tvalor: <%s>", parsed.argumentos.SET.clave, parsed.argumentos.SET.valor);
             	operation = PROTOCOL_EC_SET;
-            	package_size = sizeof(operation) + strlen(parsed.argumentos.SET.clave) + 1 + strlen(parsed.argumentos.SET.valor) + 1;
-            	package = create_package(package_size);
+            	*package_size = sizeof(operation) + strlen(parsed.argumentos.SET.clave) + 1 + strlen(parsed.argumentos.SET.valor) + 1;
+            	package = create_package(*package_size);
             	add_content(package, &operation, sizeof(operation));
             	add_content_variable(package, parsed.argumentos.SET.clave, strlen(parsed.argumentos.SET.clave) + 1);
             	add_content_variable(package, parsed.argumentos.SET.valor, strlen(parsed.argumentos.SET.valor) + 1);
@@ -119,8 +174,8 @@ void* obtain_package_from_line(char* line) {
 
             	log_info(logger, "STORE\tclave: <%s>", parsed.argumentos.STORE.clave);
             	operation = PROTOCOL_EC_STORE;
-            	package_size = sizeof(operation) + strlen(parsed.argumentos.STORE.clave) + 1;
-            	package = create_package(package_size);
+            	*package_size = sizeof(operation) + strlen(parsed.argumentos.STORE.clave) + 1;
+            	package = create_package(*package_size);
             	add_content(package, &operation, sizeof(operation));
             	add_content_variable(package, parsed.argumentos.STORE.clave, strlen(parsed.argumentos.STORE.clave) + 1);
                 break;
@@ -157,6 +212,18 @@ void wait_for_execution_order(int scheduler_fd) {
 		log_error(logger, "La orden de ejecución no se recibió correctamente");
 		exit_gracefully(EXIT_FAILURE);
 	}
+}
+
+int wait_for_execution_result(int coordinador_fd_) {
+
+	int execution_result;
+	if (recv(coordinator_fd_, &execution_result, sizeof(execution_result), MSG_WAITALL) == -1) {
+
+		log_error(logger, "Fallo en el receive del resultado de ejecución");
+		exit_gracefully(EXIT_FAILURE);
+	}
+
+	return execution_result;
 }
 
 void exit_gracefully(int status) {
