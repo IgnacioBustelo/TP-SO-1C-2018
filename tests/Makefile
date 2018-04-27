@@ -8,10 +8,10 @@ empaquetado: empaquetado.c empaquetado.h ../libs/serializador.c ../libs/serializ
 	$(CC) -Wall empaquetado.c ../libs/serializador.c -o empaquetado -lcommons
 
 serializador: serializador_cliente.c $(SRC) $(DEPS)
-	$(CC) -Wall serializador_cliente.c $(SRC) -o serializador
+	$(CC) -Wall serializador_cliente.c $(SRC) -o serializador -lcommons
 	
 deserializador: serializador_servidor.c $(SRC) $(DEPS)
-	$(CC) -Wall serializador_servidor.c $(SRC) -o deserializador
+	$(CC) -Wall serializador_servidor.c $(SRC) -o deserializador -lcommons
 
 valgrind_serializador: serializador deserializador
 	valgrind ./serializador

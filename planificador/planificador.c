@@ -213,7 +213,7 @@ int main(void) {
 					we_must_reschedule(&reschedule_flag);
 					break;
 
-				case PROTOCOL_EP_FINISHED_SCRIPT: /* TODO */
+				case PROTOCOL_EP_FINISHED_SCRIPT:
 					esi_finished(&finished_esi_flag);
 					we_must_reschedule(&reschedule_flag);
 				    break;
