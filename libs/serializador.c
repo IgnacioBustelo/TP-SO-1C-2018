@@ -1,11 +1,5 @@
 #include "serializador.h"
 
-#include <commons/collections/list.h>
-#include <commons/string.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-
 package_t* create_package(size_t size) {
 	package_t* new_package = malloc(sizeof(package_t));
 

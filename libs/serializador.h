@@ -2,7 +2,10 @@
 #define LIBS_SERIALIZADOR_H_
 
 #include <commons/collections/list.h>
+#include <commons/string.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
 
 typedef struct {
 	void*	load;

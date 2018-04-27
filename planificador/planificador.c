@@ -2,6 +2,7 @@
 #include "planificador.h"
 #include "../protocolo/protocolo.h"
 #include "../libs/serializador.h"
+#include "../libs/deserializador.h"
 #include "config.h"
 
 /* -- Local function prototypes -- */
@@ -13,9 +14,12 @@ static void we_must_reschedule(int* flag);
 static void remove_fd(int fd, fd_set *fdset);
 static void set_last_real_burst_to_zero(int esi_fd);
 static int receive_coordinator_opcode(int coordinator_fd);
-static char* receive_blocked_key(int coordinator_fd);
-static void add_new_blocked_key(char* blocked_key);
-static void send_key_status(int coordinator_fd, protocol_id protocol);
+static char* receive_inquired_key(int coordinator_fd);
+static void add_new_key_blocker(char* blocked_key);
+static void send_protocol_answer(int coordinator_fd, protocol_id protocol);
+static void update_blocked_esis(int* blocked_queue_flag);
+static void remove_blocked_key_from_list(char* unlocked_key);
+static void esi_finished(int* flag);
 
 /* -- Global variables -- */
 
@@ -23,8 +27,10 @@ t_log* logger;
 t_planificador_config setup;
 
 t_list* g_locked_keys;
+t_list* g_esis_sexpecting_keys;
 t_list* g_esi_bursts;
 
+t_list* g_new_queue;
 t_list* g_ready_queue;
 t_list* g_execution_queue;
 t_list* g_blocked_queue;
@@ -42,10 +48,10 @@ int main(void) {
 	int server_port = setup.port;
 
 	int coordinator_fd = connect_to_server(host, port_coordinator);
-	log_info(logger, "Connecting to the coordinator...");
+	log_info(logger, "Conectando al coordinador");
 
 	if (send_handshake(coordinator_fd, SCHEDULER) != 1) {
-		log_error(logger, "Failure in send_handshake");
+		log_error(logger, "Fallo en en el envío del handshake");
 		close(coordinator_fd);
 		exit_gracefully(EXIT_FAILURE);
 	}
@@ -53,15 +59,15 @@ int main(void) {
 	bool confirmation;
 	int received = receive_confirmation(coordinator_fd, &confirmation);
 	if (!received || !confirmation) {
-		log_error(logger, "Failure in confirmation reception");
+		log_error(logger, "Fallo en la confirmación de recepción del handshake");
 		close(coordinator_fd);
 		exit_gracefully(EXIT_FAILURE);
 	}
 
-	log_info(logger, "Succesfully connected to the coordinator");
+	log_info(logger, "Conectado satisfactoriamente al coordinador");
 
 	int listener = init_listener(server_port, MAXCONN);
-	log_info(logger, "Listening on port %i...", server_port);
+	log_info(logger, "Escuchando en el puerto %i...", server_port);
 
 	fd_set connected_fds;
 	fd_set read_fds;
@@ -72,20 +78,26 @@ int main(void) {
 	FD_SET(listener, &connected_fds);
 
 	int max_fd = (listener > coordinator_fd) ? listener : coordinator_fd;
-	int flag;
-	we_must_reschedule(&flag);
+	int finished_esi_flag;
+	int new_esi_flag;
+	int reschedule_flag;
+	int update_blocked_esi_queue_flag;
+	we_must_reschedule(&reschedule_flag);
 
 	create_administrative_structures();
 
 	while (1) {
+
 		read_fds = connected_fds;
 
 		if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) == -1) {
-			log_error(logger, "Select error");
+			log_error(logger, "Error en select");
 			exit(EXIT_FAILURE);
 		}
 
 		int fd;
+		char* last_key_inquired;
+		int old_executing_esi;
 
 		for (fd = 0; fd <= max_fd; fd++) {
 
@@ -96,14 +108,14 @@ int main(void) {
 
 				struct sockaddr_in client_info;
 				socklen_t addrlen = sizeof client_info;
-				log_info(logger, "New client connecting...");
+				log_info(logger, "Nuevo cliente conectando...");
 
 				int new_client_fd = accept(listener,
 						(struct sockaddr *) &client_info, &addrlen);
 
 				if (new_client_fd == -1) {
 
-					log_error(logger, "Accept error");
+					log_error(logger, "Fallo al aceptar nueva conexión");
 				} else {
 
 					FD_SET(new_client_fd, &connected_fds);
@@ -113,14 +125,14 @@ int main(void) {
 						max_fd = new_client_fd;
 					}
 
-					log_info(logger, "Socket %d connected", new_client_fd);
+					log_info(logger, "Socket %d conectado", new_client_fd);
 
 					bool client_confirmation = false;
 					if (receive_handshake(new_client_fd) == -1) {
 
 						send_confirmation(new_client_fd, confirmation);
 						remove_fd(new_client_fd, &connected_fds);
-						log_error(logger, "Handshake fail with socket %d",
+						log_error(logger, "Fallo en el handshake con el socket %d",
 								new_client_fd);
 						close(new_client_fd);
 					} else {
@@ -129,50 +141,61 @@ int main(void) {
 						send_confirmation(new_client_fd, confirmation);
 					}
 
-					list_add(g_esi_bursts,
-							(void*) create_esi_information(new_client_fd));
-					put_new_esi_on_ready_queue(new_client_fd);
+					put_new_esi_on_new_queue(new_client_fd);
 
-					if (algorithm_is_preemptive())
-						we_must_reschedule(&flag);
+					if (algorithm_is_preemptive()) we_must_reschedule(&reschedule_flag);
 				}
 
 			} else if (fd == coordinator_fd) {
 
-				/* TODO -- El coordinador se comunica con el planificador*/
-
 				int opcode = receive_coordinator_opcode(fd);
+
+				bool response;
 
 				switch (opcode) {
 
-				case PROTOCOL_CP_IS_THIS_KEY_BLOCKED: { // si la clave esta bloqueada por el esi en ejecucion
-					char* blocked_key = receive_blocked_key(fd);
-					bool response = determine_if_key_is_blocked(blocked_key);
+				case PROTOCOL_CP_IS_THIS_KEY_BLOCKED:
 
-					if (response) {
+					last_key_inquired = receive_inquired_key(fd);
+					response = determine_if_key_is_blocked(last_key_inquired);
+                    if(response) {
 
-						//caso en el que el esi en ejecucion quiere usar una clave bloqueada por otro esi -- se podría hacer después de la respuesta del ESI
-						move_esi_from_and_to_queue(g_execution_queue,
-								g_blocked_queue,
-								*(int*) g_execution_queue->head->data);
-						we_must_reschedule(&flag);
-						send_key_status(fd, PROTOCOL_PC_ESI_BLOCKED);
+                    	send_protocol_answer(fd, PROTOCOL_PC_KEY_IS_BLOCKED);
+                    }
+                    else {
 
-					} else {
+                    	send_protocol_answer(fd, PROTOCOL_PC_KEY_IS_NOT_BLOCKED);
+                    }
+                    break;
 
-						//caso en el que un esi quiere usar una clave no bloqueada
-						add_new_blocked_key(blocked_key);
-						send_key_status(fd, PROTOCOL_PC_ESI_CAN_TAKE_KEY);
+				case PROTOCOL_CP_IS_KEY_BLOCKED_BY_EXECUTING_ESI:
+
+					response = key_is_blocked_by_executing_esi(last_key_inquired);
+
+					if(response) {
+
+						send_protocol_answer(fd, PROTOCOL_PC_KEY_BLOCKED_BY_EXECUTING_ESI);
 					}
-					//otro caso: un esi quiere usar una clave bloqueada por sí mismo
+					else {
 
+						send_protocol_answer(fd, PROTOCOL_PC_KEY_NOT_BLOCKED_BY_EXECUTING_ESI);
+					}
+					break;
+
+				case PROTOCOL_CP_BLOCK_KEY:
+
+					add_new_key_blocker(last_key_inquired);
+					send_protocol_answer(fd, PROTOCOL_PC_KEY_BLOCKED_SUCCESFULLY);
+					break;
+
+				case PROTOCOL_CP_UNLOCK_KEY:
+
+					remove_blocked_key_from_list(last_key_inquired);
+					update_blocked_esis(&update_blocked_esi_queue_flag);
+					send_protocol_answer(fd, PROTOCOL_PC_KEY_UNLOCKED_SUCCESFULLY);
+					break;
 				}
-				}
 
-				//Si hicieron un GET el coordinador le debería decir qué clave fue bloqueada y debería agregar al esi en ejecución junto con esta clave a la lista key_blocker
-
-				//si se pregunta por clave bloqueada, se contesta y nunca se replanifica
-				//si se avisa el desbloqueo, se desbloquea y si es con desalojo flag de replanificar en 1
 			} else if (fd == *(int*) g_execution_queue->head->data) {
 
 				int confirmation = receive_execution_result(fd);
@@ -182,23 +205,53 @@ int main(void) {
 				case PROTOCOL_EP_EXECUTION_SUCCESS:
 					update_waiting_time_of_ready_esis();
 					update_executing_esi(fd);
+
+					int script_end= receive_execution_result(fd);
+					if(script_end == PROTOCOL_EP_FINISHED_SCRIPT) {
+
+						esi_finished(&finished_esi_flag);
+						we_must_reschedule(&reschedule_flag);
+					}
 					break;
 
-				default:
+				case PROTOCOL_EP_I_AM_BLOCKED:
+					list_add(g_esis_sexpecting_keys, (void*)create_esi_sexpecting_key(fd, last_key_inquired));
+					move_esi_from_and_to_queue(g_execution_queue, g_blocked_queue, fd);
+					we_must_reschedule(&reschedule_flag);
 					break;
+
+				case PROTOCOL_EP_I_BROKE_THE_LAW: /* TODO */
+					break;
+
 				}
+
+				if(finished_esi_flag == 1) {
+
+					release_resources(*(int*)g_execution_queue->head->data, &update_blocked_esi_queue_flag, &reschedule_flag);
+					move_esi_from_and_to_queue(g_execution_queue, g_finished_queue, *(int*)g_execution_queue->head->data);
+					finished_esi_flag = 0;
+				} else {
+
+					if (update_blocked_esi_queue_flag == 1 || new_esi_flag == 1) {
+
+						if(algorithm_is_preemptive()) {
+
+							move_esi_from_and_to_queue(g_execution_queue, g_ready_queue, *(int*)g_execution_queue->head->data);
+
+							we_must_reschedule(&reschedule_flag);
+						}
+
+						if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(last_key_inquired, &update_blocked_esi_queue_flag, &reschedule_flag);
+
+						if (new_esi_flag == 1) update_new_esi_queue(&new_esi_flag);
+					}
+
+				}
+
+				if (reschedule_flag == 1) reschedule(&reschedule_flag, &old_executing_esi);
+				else authorize_esi_execution(*(int*)g_execution_queue->head->data);
+
 			}
-		}
-
-		/* Hay que replanificar */
-		if (flag == 1) {
-
-			int esi_fd_to_execute = schedule_esis();
-			move_esi_from_and_to_queue(g_ready_queue, g_execution_queue,
-					esi_fd_to_execute);
-			set_last_real_burst_to_zero(esi_fd_to_execute);
-			flag = 0;
-			authorize_esi_execution(esi_fd_to_execute);
 		}
 	}
 
@@ -211,6 +264,14 @@ key_blocker* create_key_blocker(char* key, int esi_id){
     key_blocker->key = key;
     key_blocker->esi_id = esi_id;
     return key_blocker;
+}
+
+esi_sexpecting_key* create_esi_sexpecting_key(int esi_fd, char* key) {
+
+	esi_sexpecting_key* new_esi_blocked = malloc(sizeof(esi_sexpecting_key));
+	new_esi_blocked->esi_fd = esi_fd;
+	new_esi_blocked->key = key;
+	return new_esi_blocked;
 }
 
 esi_information* create_esi_information(int esi_id) {
@@ -226,7 +287,9 @@ esi_information* create_esi_information(int esi_id) {
 
 void create_administrative_structures() {
 
+	g_new_queue = list_create();
 	g_locked_keys = list_create();
+	g_esis_sexpecting_keys = list_create();
 	g_esi_bursts = list_create();
 	g_ready_queue = list_create();
 	g_execution_queue = list_create();
@@ -237,13 +300,21 @@ void create_administrative_structures() {
 
 void destroy_administrative_structures() {
 
-	void destroy_key_blocker(void* key_blocker_)
-	{
+	void destroy_key_blocker(void* key_blocker_) {
+
 		free(((key_blocker*)key_blocker_)->key);
 		free(key_blocker_);
 	}
 
 	list_destroy_and_destroy_elements(g_locked_keys, destroy_key_blocker);
+
+	void destroy_esi_sexpecting_key(void* esi_sexpecting_key_) {
+
+		free(((esi_sexpecting_key*)esi_sexpecting_key_)->key);
+		free(esi_sexpecting_key_);
+	}
+
+	list_destroy_and_destroy_elements(g_esis_sexpecting_keys, destroy_esi_sexpecting_key);
 
 	void destroy_esi_information(void* esi_inf)
 	{
@@ -262,11 +333,12 @@ void destroy_administrative_structures() {
 	list_destroy_and_destroy_elements(g_blocked_queue, delete_int_node);
 	list_destroy_and_destroy_elements(g_blocked_queue_by_console, delete_int_node);
 	list_destroy_and_destroy_elements(g_finished_queue, delete_int_node);
+	list_destroy_and_destroy_elements(g_new_queue, delete_int_node);
 }
 
-void put_new_esi_on_ready_queue(int new_client_fd) {
+void put_new_esi_on_new_queue(int new_client_fd) {
 
-	list_add(g_ready_queue,(void*)&new_client_fd);
+	list_add(g_new_queue,(void*)&new_client_fd);
 }
 
 void authorize_esi_execution(int esi_fd) {
@@ -274,19 +346,8 @@ void authorize_esi_execution(int esi_fd) {
 	protocol_id opcode = PROTOCOL_PE_EXEC;
 	if(send(esi_fd, &opcode, sizeof(opcode), 0) == -1) {
 
-		log_error(logger, "Failure in authorization of esi execution");
+		log_error(logger, "Fallo en la autorización del ESI a ejecutar");
 	}
-}
-
-int receive_confirmation_from_esi(int fd) {
-
-	int* buffer;
-	if(recv(fd, buffer, sizeof(int), MSG_WAITALL) == -1) {
-
-		log_error(logger, "Confirmation failed");
-		//TODO -- no sabes hablar, sock my port -- matar esi --no hay tiempo para vos sorete esi
-	}
-	return *buffer;
 }
 
 void update_executing_esi(int esi_fd) {
@@ -302,7 +363,7 @@ int receive_execution_result(int fd) {
 	protocol_id opcode;
 	if (recv(fd, &opcode, sizeof(opcode), MSG_WAITALL) == -1) {
 
-		log_error(logger, "Error in ESI confirmation execution");
+		log_error(logger, "Fallo en la confirmación de ejecución de parte del ESI");
 		// TODO -- no sabes hablar, sock my port -- matar esi --no hay tiempo para vos sorete esi
 	}
 
@@ -372,10 +433,146 @@ bool determine_if_key_is_blocked(char* blocked_key) {
 	return list_any_satisfy(g_locked_keys, string_equals);
 }
 
+bool key_is_blocked_by_executing_esi(char* key) {
+
+	bool condition(void* key_blocker_) {
+
+		return strcmp(((key_blocker*)key_blocker_)->key, key) == 0 && ((key_blocker*)key_blocker_)->esi_id == *(int*)g_execution_queue->head->data;
+	}
+
+	return list_any_satisfy(g_locked_keys, condition);
+}
+
+t_list* unlock_esis(char* key_unlocked) {
+
+	bool unlock_condition(void* esi_sexpecting) {
+
+		return strcmp(((esi_sexpecting_key*)esi_sexpecting)->key, key_unlocked) == 0;
+	}
+
+	t_list* filtered_list = list_filter(g_esis_sexpecting_keys, unlock_condition);
+
+	void* transformer(void* esi_sexpecting) {
+
+		return (void*)(&((esi_sexpecting_key*)esi_sexpecting)->esi_fd);
+	}
+
+    t_list* mapped_list = list_map(filtered_list, transformer);
+
+
+    bool remove_condition(void* esi_sexpecting) {
+
+    	bool condition(void* esi_fd) {
+
+    		return ((esi_sexpecting_key*)esi_sexpecting)->esi_fd == *(int*)esi_fd;
+    	}
+
+    	return list_any_satisfy(mapped_list, condition);
+    }
+
+    void esi_sexpecting_destroyer(void* esi_sexpecting_key_) {
+
+    		free(((esi_sexpecting_key*)esi_sexpecting_key_)->key);
+    		free(esi_sexpecting_key_);
+    }
+
+    int i, number_of_unlocked_esis;
+    number_of_unlocked_esis = list_size(mapped_list);
+
+    for(i = 0; i < number_of_unlocked_esis; i++) {
+
+	list_remove_and_destroy_by_condition(g_esis_sexpecting_keys, remove_condition, esi_sexpecting_destroyer);
+
+    }
+
+	return mapped_list;
+}
+
+void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag, int* reschedule_flag) {
+
+	t_list* unlocked_esis = unlock_esis(last_key_inquired);
+	list_add_all(g_ready_queue, unlocked_esis);
+	*update_blocked_esi_queue_flag = 0;
+}
+
+void reschedule(int* reschedule_flag, int* old_executing_esi) {
+
+	int esi_fd_to_execute = schedule_esis();
+	move_esi_from_and_to_queue(g_ready_queue, g_execution_queue, esi_fd_to_execute);
+
+	if(esi_fd_to_execute != *old_executing_esi) {
+
+		set_last_real_burst_to_zero(esi_fd_to_execute);
+	}
+
+	authorize_esi_execution(esi_fd_to_execute);
+	*old_executing_esi = esi_fd_to_execute;
+	*reschedule_flag = 0;
+}
+
+void update_new_esi_queue(int* new_esi_flag) {
+
+	list_add_all(g_ready_queue, g_new_queue);
+
+	void* transformer(void* esi_fd) {
+
+		return (void*) create_esi_information(*(int*)esi_fd);
+	}
+
+	list_add_all(g_esi_bursts, list_map(g_new_queue, transformer));
+
+	void int_destroyer(void* esi_fd) {
+
+		free((int*) esi_fd);
+	}
+
+	list_clean_and_destroy_elements(g_new_queue, int_destroyer);
+
+	*new_esi_flag = 0;
+}
+
+void release_resources(int esi_fd, int* update_blocked_esi_queue_flag, int* reschedule_flag) {
+
+	bool condition(void* key_locker_) {
+
+		return ((key_blocker*) key_locker_)->esi_id == esi_fd;
+	}
+
+	t_list* keys_unlocked = list_filter(g_locked_keys, condition);
+
+	int i, keys_unlocked_quantity = list_size(keys_unlocked);
+
+	for(i = 0; i < keys_unlocked_quantity; i++) {
+
+	key_blocker* blocked_key = (key_blocker*)list_get(keys_unlocked, i);
+	update_blocked_esi_queue(blocked_key->key, update_blocked_esi_queue_flag, reschedule_flag);
+	}
+
+	void destroy_key_blocker(void* key_blocker_) {
+
+		free(((key_blocker*) key_blocker_)->key);
+		free(key_blocker_);
+	}
+
+	bool condition2(void* esi_information_) {
+
+		return ((esi_information*) esi_information_)->esi_id == esi_fd;
+	}
+
+	void destroy_esi_information(void* esi_inf) {
+
+		free((esi_information*) esi_inf);
+	}
+
+	list_remove_and_destroy_by_condition(g_locked_keys, condition, destroy_key_blocker);
+
+	list_remove_and_destroy_by_condition(g_esi_bursts, condition2, destroy_esi_information);
+
+}
 
 void exit_gracefully(int status) {
 
-	log_info(logger, "Scheduler execution ended");
+	log_info(logger, "La ejecución del planificador terminó");
 
 	log_destroy(logger);
 
@@ -384,11 +581,11 @@ void exit_gracefully(int status) {
 	exit(status);
 }
 
-/* --- PRIVATE FUNCTIONS --- */
+/* ---------------------------------- PRIVATE FUNCTIONS ---------------------------------- */
 
 static void remove_fd(int fd, fd_set *fdset) {
 	FD_CLR(fd, fdset);
-	log_info(logger, "Socket %d kicked out", fd);
+	log_info(logger, "El socket %d fue echado", fd);
 	close(fd);
 }
 
@@ -436,6 +633,11 @@ static void we_must_reschedule(int* flag) {
 	*flag = 1;
 }
 
+static void esi_finished(int* flag) {
+
+	*flag = 1;
+}
+
 static void set_last_real_burst_to_zero(int esi_fd) {
 
 	esi_information* esi_inf = obtain_esi_information_by_id(esi_fd);
@@ -447,30 +649,27 @@ static int receive_coordinator_opcode(int coordinator_fd) {
 	int opcode;
 	if(recv(coordinator_fd, &opcode, sizeof(int), MSG_WAITALL) == -1) {
 
-		log_error(logger, "Communication failure with coordinator in receive_coordinator_opcode");
+		log_error(logger, "Fallo en la comunicación con el coordinador al recibir el código de operación");
 	    exit_gracefully(EXIT_FAILURE); //TODO -- Si el coordinador murió horrendamente, qué hacemos?
 	}
 	return opcode;
 }
 
-static char* receive_blocked_key(int coordinator_fd) {
+static char* receive_inquired_key(int coordinator_fd) {
 
-	package_t* package = receive_package(coordinator_fd);
+	char* key;
+	int result = recv_package_variable(coordinator_fd, (void**)&key);
 
-	if(package == NULL) {
+	if(result == -2 || result == -3) {
 
-		log_error(logger, "Communication failure with coordinator in receive_blocked_key");
-	    exit_gracefully(EXIT_FAILURE); //TODO -- Si el coordinador murió horrendamente, qué hacemos?
+		log_error(logger, "Error al recibir la clave de parte del coordinador");
+		exit_gracefully(EXIT_FAILURE); //TODO -- Si el coordinador murió horrendamente, qué hacemos?
 	}
 
-	char* key_blocked = malloc(package->size - sizeof(int));
-	memcpy(key_blocked,package->load+sizeof(int),package->size - sizeof(int));
-	destroy_package(package);
-
-	return key_blocked;
+	return key;
 }
 
-static void add_new_blocked_key(char* blocked_key) {
+static void add_new_key_blocker(char* blocked_key) {
 
 	key_blocker* key_blocker_ = malloc(sizeof(key_blocker));
 	memcpy(key_blocker_->key, blocked_key, strlen(blocked_key));
@@ -480,10 +679,31 @@ static void add_new_blocked_key(char* blocked_key) {
 	list_add(g_locked_keys, (void*)key_blocker_);
 }
 
-static void send_key_status(int coordinator_fd, protocol_id protocol) {
+static void send_protocol_answer(int coordinator_fd, protocol_id protocol) {
 
 	if (send(coordinator_fd, &protocol, sizeof(protocol), 0) == -1) {
 
-		log_error(logger, "Failure in sending key status to coordinator");
+		log_error(logger, "Fallo en el envío del status de la clave al coordinador");
 	}
+}
+
+static void update_blocked_esis(int* blocked_queue_flag) {
+
+	*blocked_queue_flag = 1;
+}
+
+static void remove_blocked_key_from_list(char* unlocked_key) {
+
+	bool remove_condition(void* key_blocker_) {
+
+		return strcmp(((key_blocker*)key_blocker_)->key, unlocked_key) == 0;
+	}
+
+	void key_blocker_destroyer(void* key_blocker_) {
+
+		free(((key_blocker*) key_blocker_)->key);
+		free(key_blocker_);
+	}
+
+	list_remove_and_destroy_by_condition(g_locked_keys, remove_condition, key_blocker_destroyer);
 }
