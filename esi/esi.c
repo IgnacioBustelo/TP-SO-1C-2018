@@ -2,6 +2,7 @@
 #include "esi.h"
 #include "config.h"
 #include "../libs/serializador.h"
+#include "../protocolo/protocolo.h"
 
 /* -- Global variables -- */
 
@@ -9,6 +10,9 @@ t_esi_config setup;
 
 FILE* fp;
 t_log* logger;
+
+int coordinator_fd_;
+int scheduler_fd_;
 
 int main(int argc, char **argv) {
 
@@ -23,32 +27,32 @@ int main(int argc, char **argv) {
 
 	bool confirmation;
 
-	int coordinator_fd = connect_to_server(ip_coordinador, port_coordinator);
-		if (send_handshake(coordinator_fd, ESI) != 1) {
+	coordinator_fd_ = connect_to_server(ip_coordinador, port_coordinator);
+		if (send_handshake(coordinator_fd_, ESI) != 1) {
 			log_error(logger, "Fallo en el envío del handshake al coordinador");
-			close(coordinator_fd);
+			close(coordinator_fd_);
 			exit_gracefully(EXIT_FAILURE);
 		}
 
-	int received = receive_confirmation(coordinator_fd, &confirmation);
+	int received = receive_confirmation(coordinator_fd_, &confirmation);
 		if (!received || !confirmation) {
 			log_error(logger, "Fallo en la confirmación de recepción de parte del coordinador");
-			close(coordinator_fd);
+			close(coordinator_fd_);
 			exit_gracefully(EXIT_FAILURE);
 		}
 
 	log_info(logger, "Conectado satisfactoriamente al coordinador");
 
-	int scheduler_fd = connect_to_server(ip_planificador, port_scheduler);
-		if (send_handshake(scheduler_fd, ESI) != 1) {
+	scheduler_fd_ = connect_to_server(ip_planificador, port_scheduler);
+		if (send_handshake(scheduler_fd_, ESI) != 1) {
 			log_error(logger, "Fallo en el envío del handshake al planificador");
-			close(scheduler_fd);
+			close(scheduler_fd_);
 		}
 
-	received = receive_confirmation(scheduler_fd, &confirmation);
+	received = receive_confirmation(scheduler_fd_, &confirmation);
 		if (!received || !confirmation) {
 			log_error(logger, "Fallo en la confirmación de recepción de parte del planificador");
-			close(scheduler_fd);
+			close(scheduler_fd_);
 		}
 
     log_info(logger, "Conectado satisfactoriamente al planificador");
@@ -67,7 +71,11 @@ int main(int argc, char **argv) {
 
     while ((read = getline(&line, &len, fp)) != -1) {
 
-    	package_t* package = obtain_package_from_line(line);
+    	wait_for_execution_order(scheduler_fd_);
+
+    	void* package = obtain_package_from_line(line);
+
+    	/* TODO -- Hay que continuarlo */
 
     }
 
@@ -76,26 +84,48 @@ int main(int argc, char **argv) {
 	exit_gracefully(EXIT_SUCCESS);
 }
 
-package_t obtain_package_from_line(char* line) {
+void* obtain_package_from_line(char* line) {
 
 	package_t* package;
+	size_t package_size;
     t_esi_operacion parsed = parse(line);
 
     if(parsed.valido){
 
+    	int operation;
+
         switch(parsed.keyword){
 
             case GET:
+
             	log_info(logger, "GET\tclave: <%s>", parsed.argumentos.GET.clave);
-            	/* TODO -- crear paquete para el caso de GET y los demás -- */
+            	operation = PROTOCOL_EC_GET;
+            	package_size = sizeof(operation) + strlen(parsed.argumentos.GET.clave) + 1;
+            	package = create_package(package_size);
+            	add_content(package, &operation, sizeof(operation));
+            	add_content_variable(package, parsed.argumentos.GET.clave, strlen(parsed.argumentos.GET.clave) + 1);
                 break;
             case SET:
+
             	log_info(logger, "SET\tclave: <%s>\tvalor: <%s>", parsed.argumentos.SET.clave, parsed.argumentos.SET.valor);
+            	operation = PROTOCOL_EC_SET;
+            	package_size = sizeof(operation) + strlen(parsed.argumentos.SET.clave) + 1 + strlen(parsed.argumentos.SET.valor) + 1;
+            	package = create_package(package_size);
+            	add_content(package, &operation, sizeof(operation));
+            	add_content_variable(package, parsed.argumentos.SET.clave, strlen(parsed.argumentos.SET.clave) + 1);
+            	add_content_variable(package, parsed.argumentos.SET.valor, strlen(parsed.argumentos.SET.valor) + 1);
                 break;
             case STORE:
+
             	log_info(logger, "STORE\tclave: <%s>", parsed.argumentos.STORE.clave);
+            	operation = PROTOCOL_EC_STORE;
+            	package_size = sizeof(operation) + strlen(parsed.argumentos.STORE.clave) + 1;
+            	package = create_package(package_size);
+            	add_content(package, &operation, sizeof(operation));
+            	add_content_variable(package, parsed.argumentos.STORE.clave, strlen(parsed.argumentos.STORE.clave) + 1);
                 break;
             default:
+
             	log_error(logger, "No pude interpretar <%s>", line);
             	free(line);
                 exit(EXIT_FAILURE);
@@ -109,8 +139,24 @@ package_t obtain_package_from_line(char* line) {
 
     destruir_operacion(parsed);
 
-    return package;
+    return build_package(package);
 
+}
+
+void wait_for_execution_order(int scheduler_fd) {
+
+    int execution_order;
+	if(recv(scheduler_fd, &execution_order, sizeof(execution_order), MSG_WAITALL) == -1) {
+
+		log_error(logger, "Fallo en el receive de la orden de ejecución");
+		exit_gracefully(EXIT_FAILURE);
+	}
+
+	if(execution_order != PROTOCOL_PE_EXEC) {
+
+		log_error(logger, "La orden de ejecución no se recibió correctamente");
+		exit_gracefully(EXIT_FAILURE);
+	}
 }
 
 void exit_gracefully(int status) {
@@ -118,6 +164,10 @@ void exit_gracefully(int status) {
 	log_info(logger, "La ejecución del ESI finalizó");
 
 	log_destroy(logger);
+
+	close(coordinator_fd_);
+
+	close(scheduler_fd_);
 
     fclose(fp);
 
