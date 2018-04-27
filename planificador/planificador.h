@@ -80,10 +80,10 @@ void create_administrative_structures();
 void destroy_administrative_structures();
 
 /*
- * Agrega a un esi a la cola de listos
+ * Agrega a un esi a la cola de nuevos
  */
 
-void put_new_esi_on_ready_queue(int new_client_fd);
+void put_new_esi_on_new_queue(int new_client_fd);
 
 /*
  * Todos los ESI's en ready aumentan en uno su tiempo esperado
@@ -144,5 +144,29 @@ bool key_is_blocked_by_executing_esi(char* key);
  */
 
 t_list* unlock_esis(char* key_unlocked);
+
+/*
+ * Desbloquea a los ESI's bloqueados por la clave recientemente desbloqueada
+ */
+
+void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag, int* reschedule_flag);
+
+/*
+ * Replanifica la cola de ready
+ */
+
+void reschedule(int* reschedule_flag, int* old_executing_esi);
+
+/*
+ * Mueve todos los ESI's nuevos a ready y agrega un nodo por cada ESI a la lista de esi_bursts
+ */
+
+void update_new_esi_queue(int* new_esi_flag);
+
+/*
+ * Libera todos los recursos que tenía alocados el ESI que finalizó su script
+ */
+
+void release_resources(int esi_fd, int* update_blocked_esi_queue_flag, int* reschedule_flag);
 
 #endif /* PLANIFICADOR_PLANIFICADOR_H_ */

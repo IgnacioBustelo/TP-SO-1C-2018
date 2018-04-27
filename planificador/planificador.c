@@ -19,6 +19,7 @@ static void add_new_key_blocker(char* blocked_key);
 static void send_protocol_answer(int coordinator_fd, protocol_id protocol);
 static void update_blocked_esis(int* blocked_queue_flag);
 static void remove_blocked_key_from_list(char* unlocked_key);
+static void esi_finished(int* flag);
 
 /* -- Global variables -- */
 
@@ -29,6 +30,7 @@ t_list* g_locked_keys;
 t_list* g_esis_sexpecting_keys;
 t_list* g_esi_bursts;
 
+t_list* g_new_queue;
 t_list* g_ready_queue;
 t_list* g_execution_queue;
 t_list* g_blocked_queue;
@@ -76,6 +78,8 @@ int main(void) {
 	FD_SET(listener, &connected_fds);
 
 	int max_fd = (listener > coordinator_fd) ? listener : coordinator_fd;
+	int finished_esi_flag;
+	int new_esi_flag;
 	int reschedule_flag;
 	int update_blocked_esi_queue_flag;
 	we_must_reschedule(&reschedule_flag);
@@ -93,6 +97,7 @@ int main(void) {
 
 		int fd;
 		char* last_key_inquired;
+		int old_executing_esi;
 
 		for (fd = 0; fd <= max_fd; fd++) {
 
@@ -136,8 +141,7 @@ int main(void) {
 						send_confirmation(new_client_fd, confirmation);
 					}
 
-					list_add(g_esi_bursts, (void*) create_esi_information(new_client_fd));
-					put_new_esi_on_ready_queue(new_client_fd);
+					put_new_esi_on_new_queue(new_client_fd);
 
 					if (algorithm_is_preemptive()) we_must_reschedule(&reschedule_flag);
 				}
@@ -210,24 +214,36 @@ int main(void) {
 					break;
 
 				case PROTOCOL_EP_FINISHED_SCRIPT: /* TODO */
+					esi_finished(&finished_esi_flag);
+					we_must_reschedule(&reschedule_flag);
 				    break;
 				}
 
-				if (update_blocked_esi_queue_flag == 1) {
+				if(finished_esi_flag == 1) {
 
-					t_list* unlocked_esis = unlock_esis(last_key_inquired);
-					list_add_all(g_ready_queue, unlocked_esis);
-					if (algorithm_is_preemptive()) we_must_reschedule(&reschedule_flag);
+					release_resources(*(int*)g_execution_queue->head->data, &update_blocked_esi_queue_flag, &reschedule_flag);
+					move_esi_from_and_to_queue(g_execution_queue, g_finished_queue, *(int*)g_execution_queue->head->data);
+					finished_esi_flag = 0;
+				} else {
+
+					if (update_blocked_esi_queue_flag == 1 || new_esi_flag == 1) {
+
+						if(algorithm_is_preemptive()) {
+
+							move_esi_from_and_to_queue(g_execution_queue, g_ready_queue, *(int*)g_execution_queue->head->data);
+
+							we_must_reschedule(&reschedule_flag);
+						}
+
+						if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(last_key_inquired, &update_blocked_esi_queue_flag, &reschedule_flag);
+
+						if (new_esi_flag == 1) update_new_esi_queue(&new_esi_flag);
+					}
+
 				}
 
-				if (reschedule_flag == 1) {
-
-					int esi_fd_to_execute = schedule_esis();
-					move_esi_from_and_to_queue(g_ready_queue, g_execution_queue, esi_fd_to_execute);
-					set_last_real_burst_to_zero(esi_fd_to_execute);
-					reschedule_flag = 0;
-					authorize_esi_execution(esi_fd_to_execute);
-				}
+				if (reschedule_flag == 1) reschedule(&reschedule_flag, &old_executing_esi);
+				else authorize_esi_execution(*(int*)g_execution_queue->head->data);
 
 			}
 		}
@@ -265,6 +281,7 @@ esi_information* create_esi_information(int esi_id) {
 
 void create_administrative_structures() {
 
+	g_new_queue = list_create();
 	g_locked_keys = list_create();
 	g_esis_sexpecting_keys = list_create();
 	g_esi_bursts = list_create();
@@ -310,11 +327,12 @@ void destroy_administrative_structures() {
 	list_destroy_and_destroy_elements(g_blocked_queue, delete_int_node);
 	list_destroy_and_destroy_elements(g_blocked_queue_by_console, delete_int_node);
 	list_destroy_and_destroy_elements(g_finished_queue, delete_int_node);
+	list_destroy_and_destroy_elements(g_new_queue, delete_int_node);
 }
 
-void put_new_esi_on_ready_queue(int new_client_fd) {
+void put_new_esi_on_new_queue(int new_client_fd) {
 
-	list_add(g_ready_queue,(void*)&new_client_fd);
+	list_add(g_new_queue,(void*)&new_client_fd);
 }
 
 void authorize_esi_execution(int esi_fd) {
@@ -464,6 +482,87 @@ t_list* unlock_esis(char* key_unlocked) {
 	return mapped_list;
 }
 
+void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag, int* reschedule_flag) {
+
+	t_list* unlocked_esis = unlock_esis(last_key_inquired);
+	list_add_all(g_ready_queue, unlocked_esis);
+	*update_blocked_esi_queue_flag = 0;
+}
+
+void reschedule(int* reschedule_flag, int* old_executing_esi) {
+
+	int esi_fd_to_execute = schedule_esis();
+	move_esi_from_and_to_queue(g_ready_queue, g_execution_queue, esi_fd_to_execute);
+
+	if(esi_fd_to_execute != *old_executing_esi) {
+
+		set_last_real_burst_to_zero(esi_fd_to_execute);
+	}
+
+	authorize_esi_execution(esi_fd_to_execute);
+	*old_executing_esi = esi_fd_to_execute;
+	*reschedule_flag = 0;
+}
+
+void update_new_esi_queue(int* new_esi_flag) {
+
+	list_add_all(g_ready_queue, g_new_queue);
+
+	void* transformer(void* esi_fd) {
+
+		return (void*) create_esi_information(*(int*)esi_fd);
+	}
+
+	list_add_all(g_esi_bursts, list_map(g_new_queue, transformer));
+
+	void int_destroyer(void* esi_fd) {
+
+		free((int*) esi_fd);
+	}
+
+	list_clean_and_destroy_elements(g_new_queue, int_destroyer);
+
+	*new_esi_flag = 0;
+}
+
+void release_resources(int esi_fd, int* update_blocked_esi_queue_flag, int* reschedule_flag) {
+
+	bool condition(void* key_locker_) {
+
+		return ((key_blocker*) key_locker_)->esi_id == esi_fd;
+	}
+
+	t_list* keys_unlocked = list_filter(g_locked_keys, condition);
+
+	int i, keys_unlocked_quantity = list_size(keys_unlocked);
+
+	for(i = 0; i < keys_unlocked_quantity; i++) {
+
+	key_blocker* blocked_key = (key_blocker*)list_get(keys_unlocked, i);
+	update_blocked_esi_queue(blocked_key->key, update_blocked_esi_queue_flag, reschedule_flag);
+	}
+
+	void destroy_key_blocker(void* key_blocker_) {
+
+		free(((key_blocker*) key_blocker_)->key);
+		free(key_blocker_);
+	}
+
+	bool condition2(void* esi_information_) {
+
+		return ((esi_information*) esi_information_)->esi_id == esi_fd;
+	}
+
+	void destroy_esi_information(void* esi_inf) {
+
+		free((esi_information*) esi_inf);
+	}
+
+	list_remove_and_destroy_by_condition(g_locked_keys, condition, destroy_key_blocker);
+
+	list_remove_and_destroy_by_condition(g_esi_bursts, condition2, destroy_esi_information);
+
+}
 
 void exit_gracefully(int status) {
 
@@ -476,7 +575,7 @@ void exit_gracefully(int status) {
 	exit(status);
 }
 
-/* --- PRIVATE FUNCTIONS --- */
+/* ---------------------------------- PRIVATE FUNCTIONS ---------------------------------- */
 
 static void remove_fd(int fd, fd_set *fdset) {
 	FD_CLR(fd, fdset);
@@ -524,6 +623,11 @@ static void take_esi_away_from_queue(t_list* queue, int esi_fd) {
 }
 
 static void we_must_reschedule(int* flag) {
+
+	*flag = 1;
+}
+
+static void esi_finished(int* flag) {
 
 	*flag = 1;
 }
