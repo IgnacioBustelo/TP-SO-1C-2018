@@ -9,6 +9,6 @@
  *   - (-2) Cantidad incorrecta de argumentos.
  */
 int execute_console_command(char *command_line);
-void *init_console(void *_);
+void *init_console();
 
 #endif /* PLANIFICADOR_CONSOLA_H_ */

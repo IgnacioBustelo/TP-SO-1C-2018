@@ -89,6 +89,13 @@ int main(void) {
 
 	create_administrative_structures();
 
+	pthread_attr_t attrs;
+	pthread_attr_init(&attrs);
+	pthread_attr_setdetachstate(&attrs, PTHREAD_CREATE_DETACHED);
+
+	pthread_t tid;
+	pthread_create(&tid, &attrs, init_console);
+
 	while (1) {
 
 		read_fds = connected_fds;
