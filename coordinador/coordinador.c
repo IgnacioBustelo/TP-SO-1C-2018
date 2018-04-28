@@ -8,6 +8,7 @@
 #include "coordinador.h"
 #include "config.h"
 #include "instance-list.h"
+#include "connection/esi-connection.h"
 
 /* Global variables */
 t_log *logger;
@@ -21,7 +22,6 @@ static void init_server(int port);
 static void *handle_connection(void *arg);
 static int synchronize_connection(enum process_type type);
 static void handle_scheduler_connection(int fd);
-static void handle_esi_connection(int fd);
 static void handle_instance_connection(int fd);
 
 int main(void)
@@ -161,29 +161,6 @@ static void handle_scheduler_connection(int fd)
 {
 	for (;;) {
 		// Atender al planificador.
-	}
-}
-
-static void handle_esi_connection(int fd)
-{
-	for (;;) {
-		// Recibir sentencia.
-
-		/* TODO:
-		 * --receive request--
-		 * struct instance_t *next_instance = equitative_load(instance_list);
-		 * if (next_instance != NULL) {
-		 *     // Mutex? (next_instance could be being removed from the instance_list)
-		 *     instance_list_request_add(next_instance, --REQUEST--);	// <- Mutex inside this function
-		 *     sem_post(&next_instance->requests_count);
-		 * } else {
-		 *     HANDLE_ERROR
-		 * }
-		 */
-
-		/* ALTERNATIVE:
-		 *   - Add request to request pool.
-		 */
 	}
 }
 
