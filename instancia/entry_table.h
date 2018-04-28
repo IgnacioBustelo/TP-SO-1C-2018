@@ -22,9 +22,9 @@ typedef struct{
 	int size;
 }entry_t;
 
-int insert_entry(key_value_t key_value);
+int insert_entry(key_value_t key_value); //S
 
-int update_entry(key_value_t key_value);
+int update_entry(key_value_t key_value); //N
 
 int delete_entry(char* key);
 

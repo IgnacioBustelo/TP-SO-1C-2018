@@ -3,10 +3,10 @@
 
 #include "entry_table.h"
 
-int coordinator_handshake(int fd_coordinator);
+int coordinator_handshake(int fd_coordinator); //N
 
-key_value_t* coordinator_receive_set(int fd_coordinator);
+key_value_t* coordinator_receive_set(int fd_coordinator); //SN en linea
 
-int coordinator_notify_status(int fd_coordinator, int status);
+int coordinator_notify_status(int fd_coordinator, int status);//S Hablar con fer
 
 #endif /* INSTANCIA_COORDINATOR_INTERFACE_H_ */
