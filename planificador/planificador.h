@@ -38,6 +38,7 @@ typedef struct esi_sexpecting_key {
 typedef struct esi_information {
 
 	int esi_id;
+	int esi_numeric_name;
 	double last_estimated_burst;
 	int last_real_burst;
 	int waited_bursts;
@@ -65,7 +66,7 @@ esi_sexpecting_key* create_esi_sexpecting_key(int esi_fd, char* key);
  * Crea un esi_information
  */
 
-esi_information* create_esi_information(int esi_id);
+esi_information* create_esi_information(int esi_id, int esi_numeric_name);
 
 /*
  * Inicializa la lista de esi's y la de claves bloqueadas

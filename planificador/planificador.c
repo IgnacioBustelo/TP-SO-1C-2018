@@ -98,6 +98,8 @@ int main(void) {
 	void* parasite;
 	pthread_create(&tid, &attrs, init_console, parasite);
 
+	int esi_numeric_arrival_order = 1;
+
 	while (1) {
 
 		read_fds = connected_fds;
@@ -154,7 +156,13 @@ int main(void) {
 
 					put_new_esi_on_new_queue(new_client_fd);
 
+					list_add(g_esi_bursts, (void*)create_esi_information(new_client_fd, esi_numeric_arrival_order));
+
+					log_info(logger, "ESI %i conectado", esi_numeric_arrival_order);
+
 					if (algorithm_is_preemptive()) we_must_reschedule(&reschedule_flag);
+
+					esi_numeric_arrival_order++;
 				}
 
 			} else if (fd == coordinator_fd) {
@@ -197,6 +205,7 @@ int main(void) {
 
 					add_new_key_blocker(last_key_inquired);
 					send_protocol_answer(fd, PROTOCOL_PC_KEY_BLOCKED_SUCCESFULLY);
+					log_info(logger,"Clave %s bloqueada", last_key_inquired);
 					break;
 
 				case PROTOCOL_CP_UNLOCK_KEY:
@@ -204,6 +213,7 @@ int main(void) {
 					remove_blocked_key_from_list(last_key_inquired);
 					update_blocked_esis(&update_blocked_esi_queue_flag);
 					send_protocol_answer(fd, PROTOCOL_PC_KEY_UNLOCKED_SUCCESFULLY);
+					log_info(logger,"Clave %s desbloqueada", last_key_inquired);
 					break;
 				}
 
@@ -216,6 +226,8 @@ int main(void) {
 				case PROTOCOL_EP_EXECUTION_SUCCESS:
 					update_waiting_time_of_ready_esis();
 					update_executing_esi(fd);
+
+					log_info(logger,"El ESI %i terminó de ejecutar una sentencia correctamente", obtain_esi_information_by_id(fd)->esi_numeric_name);
 
 					int script_end= receive_execution_result(fd);
 					if(script_end == PROTOCOL_EP_FINISHED_SCRIPT) {
@@ -230,15 +242,20 @@ int main(void) {
 					move_esi_from_and_to_queue(g_execution_queue, g_blocked_queue, fd);
 					update_esi_information_next_estimated_burst(fd);
 					we_must_reschedule(&reschedule_flag);
+
+					log_info(logger,"El ESI %i se encuentra bloqueado esperando la clave %s", obtain_esi_information_by_id(fd)->esi_numeric_name, last_key_inquired);
 					break;
 
 				case PROTOCOL_EP_I_BROKE_THE_LAW: /* TODO */
+
+					log_info(logger,"El ESI %i trató de ejecutar una sentencia invalida", obtain_esi_information_by_id(fd)->esi_numeric_name);
 					break;
 
 				}
 
 				if(finished_esi_flag == 1) {
 
+					log_info(logger,"El ESI %i finalizó la ejecución de su script correctamente", obtain_esi_information_by_id(fd)->esi_numeric_name);
 					release_resources(*(int*)g_execution_queue->head->data, &update_blocked_esi_queue_flag);
 					move_esi_from_and_to_queue(g_execution_queue, g_finished_queue, *(int*)g_execution_queue->head->data);
 					finished_esi_flag = 0;
@@ -286,10 +303,11 @@ esi_sexpecting_key* create_esi_sexpecting_key(int esi_fd, char* key) {
 	return new_esi_blocked;
 }
 
-esi_information* create_esi_information(int esi_id) {
+esi_information* create_esi_information(int esi_id, int esi_numeric_name) {
 
 	esi_information* esi_inf = malloc(sizeof(esi_information));
 	esi_inf->esi_id = esi_id;
+	esi_inf->esi_numeric_name = esi_numeric_name;
 	esi_inf->last_estimated_burst = (double)setup.initial_estimation;
 	esi_inf->last_real_burst = 0;
 	esi_inf->waited_bursts = 0;
@@ -474,6 +492,10 @@ int schedule_esis() {
 
 	}
 
+	 esi_information* esi_inf = obtain_esi_information_by_id(*esi_fd);
+
+	 log_info(logger,"El ESI seleccionado para ejecutar es el ESI %i", esi_inf->esi_numeric_name);
+
 	return *esi_fd;
 }
 
@@ -548,6 +570,8 @@ void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_q
 	t_list* unlocked_esis = unlock_esis(last_key_inquired);
 	list_add_all(g_ready_queue, unlocked_esis);
 	*update_blocked_esi_queue_flag = 0;
+
+	log_info(logger,"Clave %s liberada", last_key_inquired);
 }
 
 void reschedule(int* reschedule_flag, int* old_executing_esi) {
@@ -569,13 +593,6 @@ void update_new_esi_queue(int* new_esi_flag) {
 
 	list_add_all(g_ready_queue, g_new_queue);
 
-	void* transformer(void* esi_fd) {
-
-		return (void*) create_esi_information(*(int*)esi_fd);
-	}
-
-	list_add_all(g_esi_bursts, list_map(g_new_queue, transformer));
-
 	void int_destroyer(void* esi_fd) {
 
 		free((int*) esi_fd);
@@ -587,6 +604,8 @@ void update_new_esi_queue(int* new_esi_flag) {
 }
 
 void release_resources(int esi_fd, int* update_blocked_esi_queue_flag) {
+
+	log_info(logger,"Liberando recursos del ESI %i...", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
 
 	bool condition(void* key_locker_) {
 
@@ -622,6 +641,8 @@ void release_resources(int esi_fd, int* update_blocked_esi_queue_flag) {
 	list_remove_and_destroy_by_condition(g_locked_keys, condition, destroy_key_blocker);
 
 	list_remove_and_destroy_by_condition(g_esi_bursts, condition2, destroy_esi_information);
+
+	log_info(logger,"Los recursos del ESI %i fueron liberados correctamente", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
 
 }
 
