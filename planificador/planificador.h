@@ -7,6 +7,7 @@
 #include <commons/log.h>
 #include <commons/collections/list.h>
 #include <commons/string.h>
+#include <pthread.h>
 
 #define MAXCONN 20
 
@@ -38,7 +39,6 @@ typedef struct esi_information {
 
 	int esi_id;
 	double last_estimated_burst;
-	double next_left_estimated_burst;
 	int last_real_burst;
 	int waited_bursts;
 } esi_information;

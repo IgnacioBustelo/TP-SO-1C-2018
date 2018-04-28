@@ -31,7 +31,7 @@ int execute_console_command(char *command_line)
 	return execute_command_line(commands, COMMANDS_SIZE, command_line);
 }
 
-void *init_console()
+void *init_console(void* _)
 {
 	for (;;) {
 		char *line = readline("> ");

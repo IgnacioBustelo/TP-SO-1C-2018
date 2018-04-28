@@ -4,6 +4,7 @@
 #include "../libs/serializador.h"
 #include "../libs/deserializador.h"
 #include "config.h"
+#include "consola.h"
 
 /* -- Local function prototypes -- */
 
@@ -94,7 +95,8 @@ int main(void) {
 	pthread_attr_setdetachstate(&attrs, PTHREAD_CREATE_DETACHED);
 
 	pthread_t tid;
-	pthread_create(&tid, &attrs, init_console);
+	void* parasite;
+	pthread_create(&tid, &attrs, init_console, parasite);
 
 	while (1) {
 
@@ -288,7 +290,6 @@ esi_information* create_esi_information(int esi_id) {
 
 	esi_information* esi_inf = malloc(sizeof(esi_information));
 	esi_inf->esi_id = esi_id;
-	esi_inf->next_left_estimated_burst = (double)setup.initial_estimation;
 	esi_inf->last_estimated_burst = (double)setup.initial_estimation;
 	esi_inf->last_real_burst = 0;
 	esi_inf->waited_bursts = 0;
@@ -365,7 +366,6 @@ void update_executing_esi(int esi_fd) {
 	esi_information* executing_esi = obtain_esi_information_by_id(esi_fd);
 
 	executing_esi->last_real_burst++;
-	executing_esi->next_left_estimated_burst--;
 }
 
 int receive_execution_result(int fd) {
@@ -380,7 +380,7 @@ int receive_execution_result(int fd) {
 	return opcode;
 }
 
-void sock_my_port(int esi_fd) {
+void sock_my_port(int esi_fd) { /* TODO */
 
 
 

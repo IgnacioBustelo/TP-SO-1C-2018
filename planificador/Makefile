@@ -7,7 +7,7 @@ SRC += ../libs/conector.c ../libs/comando.c ../libs/serializador.c ../libs/deser
 OBJ = $(SRC:.c=.o)
 HEADER = $(SRC:.c=.h)
 
-LIB = -lcommons -lreadline
+LIB = -lcommons -lreadline -lpthread
 
 all: $(TARGET)
 
