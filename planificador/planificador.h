@@ -149,7 +149,7 @@ t_list* unlock_esis(char* key_unlocked);
  * Desbloquea a los ESI's bloqueados por la clave recientemente desbloqueada
  */
 
-void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag, int* reschedule_flag);
+void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag);
 
 /*
  * Replanifica la cola de ready
@@ -167,6 +167,6 @@ void update_new_esi_queue(int* new_esi_flag);
  * Libera todos los recursos que tenía alocados el ESI que finalizó su script
  */
 
-void release_resources(int esi_fd, int* update_blocked_esi_queue_flag, int* reschedule_flag);
+void release_resources(int esi_fd, int* update_blocked_esi_queue_flag);
 
 #endif /* PLANIFICADOR_PLANIFICADOR_H_ */

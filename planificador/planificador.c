@@ -20,6 +20,9 @@ static void send_protocol_answer(int coordinator_fd, protocol_id protocol);
 static void update_blocked_esis(int* blocked_queue_flag);
 static void remove_blocked_key_from_list(char* unlocked_key);
 static void esi_finished(int* flag);
+static double next_estimated_burst_sjf(double alpha, int last_real_burst, double last_estimated_burst);
+static double next_estimated_burst_hrrn(int waited_time, int last_real_burst);
+static void update_esi_information_next_estimated_burst(int esi_fd);
 
 /* -- Global variables -- */
 
@@ -110,8 +113,7 @@ int main(void) {
 				socklen_t addrlen = sizeof client_info;
 				log_info(logger, "Nuevo cliente conectando...");
 
-				int new_client_fd = accept(listener,
-						(struct sockaddr *) &client_info, &addrlen);
+				int new_client_fd = accept(listener, (struct sockaddr *) &client_info, &addrlen);
 
 				if (new_client_fd == -1) {
 
@@ -217,6 +219,7 @@ int main(void) {
 				case PROTOCOL_EP_I_AM_BLOCKED:
 					list_add(g_esis_sexpecting_keys, (void*)create_esi_sexpecting_key(fd, last_key_inquired));
 					move_esi_from_and_to_queue(g_execution_queue, g_blocked_queue, fd);
+					update_esi_information_next_estimated_burst(fd);
 					we_must_reschedule(&reschedule_flag);
 					break;
 
@@ -227,7 +230,7 @@ int main(void) {
 
 				if(finished_esi_flag == 1) {
 
-					release_resources(*(int*)g_execution_queue->head->data, &update_blocked_esi_queue_flag, &reschedule_flag);
+					release_resources(*(int*)g_execution_queue->head->data, &update_blocked_esi_queue_flag);
 					move_esi_from_and_to_queue(g_execution_queue, g_finished_queue, *(int*)g_execution_queue->head->data);
 					finished_esi_flag = 0;
 				} else {
@@ -241,7 +244,7 @@ int main(void) {
 							we_must_reschedule(&reschedule_flag);
 						}
 
-						if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(last_key_inquired, &update_blocked_esi_queue_flag, &reschedule_flag);
+						if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(last_key_inquired, &update_blocked_esi_queue_flag);
 
 						if (new_esi_flag == 1) update_new_esi_queue(&new_esi_flag);
 					}
@@ -279,7 +282,7 @@ esi_information* create_esi_information(int esi_id) {
 	esi_information* esi_inf = malloc(sizeof(esi_information));
 	esi_inf->esi_id = esi_id;
 	esi_inf->next_left_estimated_burst = (double)setup.initial_estimation;
-	esi_inf->last_estimated_burst = esi_inf->next_left_estimated_burst;
+	esi_inf->last_estimated_burst = (double)setup.initial_estimation;
 	esi_inf->last_real_burst = 0;
 	esi_inf->waited_bursts = 0;
 	return esi_inf;
@@ -370,6 +373,12 @@ int receive_execution_result(int fd) {
 	return opcode;
 }
 
+void sock_my_port(int esi_fd) {
+
+
+
+}
+
 void update_waiting_time_of_ready_esis() {
 
 	bool esi_information_in_ready(void* esi_inf) {
@@ -398,7 +407,7 @@ void move_esi_from_and_to_queue(t_list* from_queue, t_list* to_queue, int esi_fd
 	list_add(to_queue, (void*)esi_fd);
 }
 
-int schedule_esis() { //TODO
+int schedule_esis() {
 
 	t_scheduling_algorithm algorithm = setup.scheduling_algorithm;
 	int* esi_fd;
@@ -410,13 +419,52 @@ int schedule_esis() { //TODO
 		break;
 
 	case SJFCD:
-		break;
+	case SJFSD: {
 
-	case SJFSD:
-		break;
+		void* obtain_esi_information(void* esi_fd) {
 
-	case HRRN:
+			return (void*)obtain_esi_information_by_id(*(int*)esi_fd);
+		}
+
+		bool comparator (void* esi_inf1, void* esi_inf2) {
+
+			int last_estimated_burst1 = ((esi_information*)esi_inf1)->last_estimated_burst;
+			int last_real_burst1 = ((esi_information*)esi_inf1)->last_real_burst;
+			int last_estimated_burst2 = ((esi_information*)esi_inf2)->last_estimated_burst;
+			int last_real_burst2 = ((esi_information*)esi_inf2)->last_real_burst;
+
+			return last_estimated_burst1 - last_real_burst1 <= last_estimated_burst2 - last_real_burst2;
+
+		}
+
+		t_list* mapped_to_sort_list = list_map(g_ready_queue, obtain_esi_information);
+	 	list_sort(mapped_to_sort_list, comparator);
+	 	esi_fd = &((esi_information*)mapped_to_sort_list->head->data)->esi_id;
 		break;
+	}
+
+	case HRRN: {
+
+		void* obtain_esi_information(void* esi_fd) {
+
+			return (void*)obtain_esi_information_by_id(*(int*)esi_fd);
+		}
+
+		bool comparator (void* esi_inf1, void* esi_inf2) {
+
+			int last_estimated_burst1 = ((esi_information*)esi_inf1)->last_estimated_burst;
+			int last_estimated_burst2 = ((esi_information*)esi_inf2)->last_estimated_burst;
+
+			return last_estimated_burst1 <= last_estimated_burst2;
+
+		}
+
+		t_list* mapped_to_sort_list = list_map(g_ready_queue, obtain_esi_information);
+		list_sort(mapped_to_sort_list, comparator);
+		esi_fd = &((esi_information*) mapped_to_sort_list->head->data)->esi_id;
+		break;
+	}
+
 	}
 
 	return *esi_fd;
@@ -488,7 +536,7 @@ t_list* unlock_esis(char* key_unlocked) {
 	return mapped_list;
 }
 
-void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag, int* reschedule_flag) {
+void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag) {
 
 	t_list* unlocked_esis = unlock_esis(last_key_inquired);
 	list_add_all(g_ready_queue, unlocked_esis);
@@ -531,7 +579,7 @@ void update_new_esi_queue(int* new_esi_flag) {
 	*new_esi_flag = 0;
 }
 
-void release_resources(int esi_fd, int* update_blocked_esi_queue_flag, int* reschedule_flag) {
+void release_resources(int esi_fd, int* update_blocked_esi_queue_flag) {
 
 	bool condition(void* key_locker_) {
 
@@ -545,7 +593,7 @@ void release_resources(int esi_fd, int* update_blocked_esi_queue_flag, int* resc
 	for(i = 0; i < keys_unlocked_quantity; i++) {
 
 	key_blocker* blocked_key = (key_blocker*)list_get(keys_unlocked, i);
-	update_blocked_esi_queue(blocked_key->key, update_blocked_esi_queue_flag, reschedule_flag);
+	update_blocked_esi_queue(blocked_key->key, update_blocked_esi_queue_flag);
 	}
 
 	void destroy_key_blocker(void* key_blocker_) {
@@ -706,4 +754,34 @@ static void remove_blocked_key_from_list(char* unlocked_key) {
 	}
 
 	list_remove_and_destroy_by_condition(g_locked_keys, remove_condition, key_blocker_destroyer);
+}
+
+static double next_estimated_burst_sjf(double alpha, int last_real_burst, double last_estimated_burst) {
+
+	return alpha*last_real_burst + (1 - alpha)*last_estimated_burst;
+
+}
+
+static double next_estimated_burst_hrrn(int waited_time, int last_real_burst) {
+
+	return waited_time/last_real_burst;
+}
+
+static void update_esi_information_next_estimated_burst(int esi_fd) {
+
+	esi_information* esi_inf = obtain_esi_information_by_id(esi_fd);
+
+	if(setup.scheduling_algorithm == SJFCD || setup.scheduling_algorithm == SJFSD) {
+
+		esi_inf->last_estimated_burst = next_estimated_burst_sjf(setup.alpha, esi_inf->last_real_burst, esi_inf->last_estimated_burst);
+		esi_inf->last_real_burst = 0;
+		esi_inf->waited_bursts = 0;
+	}
+
+	if(setup.scheduling_algorithm == HRRN) {
+
+		esi_inf->last_estimated_burst = next_estimated_burst_hrrn(esi_inf->waited_bursts, esi_inf->last_real_burst);
+		esi_inf->last_real_burst = 0;
+		esi_inf->waited_bursts = 0;
+	}
 }
