@@ -3,28 +3,33 @@
 
 #include <commons/collections/dictionary.h>
 
-t_dictionary * entry_table;
+t_dictionary* entry_table;
 
 int total_entries;
 int entry_size;
 
 int size_data_saving_structure_entries;
 
+typedef enum {
+	ET_INSERT_SUCCESS
+} entry_status;
+
 //Aca guardamos lo que recibimos del coordinador  RIP .
 typedef struct {
-	char key[40];
-	void* value;
+	char*	key;
+	void*	value;
+	int		size;
 } key_value_t;
 
 //Estructura que vamos a almacenar en el diccionario RIP .
 typedef struct{
-	int number;
-	int size;
-}entry_t;
+	int		number;
+	int		size;
+} entry_t;
 
-int insert_entry(key_value_t key_value); //S
+int insert_entry(key_value_t* key_value); //S
 
-int update_entry(key_value_t key_value); //N
+int update_entry(key_value_t* key_value); //N
 
 int delete_entry(char* key);
 
