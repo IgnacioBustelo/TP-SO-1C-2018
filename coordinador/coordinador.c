@@ -15,7 +15,7 @@
 t_log *logger;
 struct setup_t setup;
 
-t_list *instance_list;
+struct instance_list_t *instance_list;
 
 /* Local functions */
 static void init_server(int port);
@@ -159,7 +159,10 @@ static void handle_scheduler_connection(int fd)
 
 static void handle_instance_connection(int fd)
 {
-	struct instance_t *instance = instance_list_add(instance_list, fd);
+	/* TODO: Receive instance name. */
+#include <commons/string.h>
+	char *name = string_itoa(fd);
+	struct instance_t *instance = instance_list_add(instance_list, name, fd);
 
 	for (;;) {
 		// REVIEW: sem_wait puede ser interrumpido por un signal.
@@ -173,7 +176,7 @@ static void handle_instance_connection(int fd)
 		 */
 	}
 
-	instance_list_delete(instance_list, fd);
+	instance_list_delete(instance_list, name);
 	/* TODO: Remove from last_instances. */
 }
 
