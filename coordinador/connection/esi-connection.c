@@ -4,8 +4,8 @@
 #include <sys/socket.h>
 
 #include "../../protocolo/protocolo.h"
+#include "../logger.h"
 
-#include "../coordinador.h"
 #include "esi-connection.h"
 
 static struct esi_operation_t *recv_esi_operation(int fd);

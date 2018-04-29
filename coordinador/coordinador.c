@@ -7,6 +7,7 @@
 
 #include "coordinador.h"
 #include "config.h"
+#include "logger.h"
 #include "instance-list.h"
 #include "connection/esi-connection.h"
 
@@ -17,7 +18,6 @@ struct setup_t setup;
 t_list *instance_list;
 
 /* Local functions */
-static void init_log();
 static void init_server(int port);
 static void *handle_connection(void *arg);
 static int synchronize_connection(enum process_type type);
@@ -28,17 +28,10 @@ int main(void)
 {
 	instance_list = instance_list_create();
 
-	init_log();
 	init_config();
 	init_server(setup.port);
 
 	exit_gracefully(EXIT_SUCCESS);
-}
-
-static void init_log()
-{
-	logger = log_create("coordinador.log", "Coordinador", true, LOG_LEVEL_INFO);
-	log_info(logger, "Se inicio el logger.");
 }
 
 static void init_server(int port)
@@ -186,8 +179,5 @@ static void handle_instance_connection(int fd)
 
 void exit_gracefully(int status)
 {
-	log_info(logger, "Finalizo la ejecucion del Coordinador.");
-	log_destroy(logger);
-
 	exit(status);
 }

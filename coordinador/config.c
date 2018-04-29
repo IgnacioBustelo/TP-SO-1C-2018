@@ -6,6 +6,7 @@
 #include <commons/string.h>
 
 #include "coordinador.h"
+#include "config.h"
 
 t_log *logger;
 struct setup_t setup;
