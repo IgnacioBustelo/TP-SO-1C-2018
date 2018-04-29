@@ -1,6 +1,40 @@
 #ifndef INSTANCIA_INSTANCIA_H_
 #define INSTANCIA_INSTANCIA_H_
 
+// Versión nueva
+
+#include <commons/collections/dictionary.h>
+
+
+
+// Estructuras de datos
+
+// Acá guardamos lo que recibimos del Coordinador.
+
+typedef struct {
+	char*	key;
+	char*	value;
+	size_t	size;
+} key_value_t;
+
+
+
+// Variables globales
+
+t_dictionary* entry_table;
+
+t_dictionary* storage;
+
+size_t total_entries;
+
+size_t entry_size;
+
+
+
+// Versión vieja
+
+
+
 #define KEY_SIZE 12
 
 #define FREE_SPACE_LEFT 10

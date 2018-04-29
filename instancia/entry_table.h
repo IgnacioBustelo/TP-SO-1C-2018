@@ -1,36 +1,31 @@
 #ifndef INSTANCIA_ENTRY_TABLE_H_
 #define INSTANCIA_ENTRY_TABLE_H_
 
-#include <commons/collections/dictionary.h>
+#include <stdlib.h>
 
-t_dictionary* entry_table;
+#include "instancia.h"
 
-int total_entries;
-int entry_size;
+// Estructuras de datos
 
-int size_data_saving_structure_entries;
+// Entrada para la tabla de entradas
+
+typedef struct{
+	size_t	number;
+	size_t	size;
+} entry_t;
+
+// Códigos de éxito para las operaciones sobre la tabla de entradas
 
 typedef enum {
 	ET_INSERT_SUCCESS
 } entry_status;
 
-//Aca guardamos lo que recibimos del coordinador  RIP .
-typedef struct {
-	char*	key;
-	void*	value;
-	int		size;
-} key_value_t;
+int entry_table_init(); // Lo hace Santi
 
-//Estructura que vamos a almacenar en el diccionario RIP .
-typedef struct{
-	int		number;
-	int		size;
-} entry_t;
+int entry_table_insert(key_value_t* key_value); // Lo hace Santi
 
-int insert_entry(key_value_t* key_value); //S
+int entry_table_update(key_value_t* key_value); // Lo hace Nico
 
-int update_entry(key_value_t* key_value); //N
-
-int delete_entry(char* key);
+int entry_table_delete(char* key); // Lo hace Nico
 
 #endif

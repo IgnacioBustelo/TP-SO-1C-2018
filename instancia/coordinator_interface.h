@@ -1,12 +1,12 @@
 #ifndef INSTANCIA_COORDINATOR_INTERFACE_H_
 #define INSTANCIA_COORDINATOR_INTERFACE_H_
 
-#include "entry_table.h"
+#include "instancia.h"
 
-int coordinator_handshake(int fd_coordinator); //N
+int coordinator_handshake(int fd_coordinator); // Lo hace Nico
 
-key_value_t* coordinator_receive_set(int fd_coordinator); //SN en linea
+key_value_t* coordinator_receive_set(int fd_coordinator); // Hablado con Fer
 
-int coordinator_notify_status(int fd_coordinator, int status);//S Hablar con fer
+int coordinator_notify_status(int fd_coordinator, int status); // Lo hace Santi
 
 #endif /* INSTANCIA_COORDINATOR_INTERFACE_H_ */

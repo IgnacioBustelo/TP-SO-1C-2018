@@ -1,17 +1,18 @@
 #include <stdlib.h>
 
 #include "entry_table.h"
+#include "instancia.h"
 #include "storage.h"
 
-int insert_entry(key_value_t* key_value) {
+int entry_table_insert(key_value_t* key_value) {
 	if(dictionary_has_key(entry_table, key_value->key)) {
-		return update_entry(key_value);
+		return entry_table_update(key_value);
 	}
 
 	else {
 		entry_t* entry = malloc(sizeof(entry_t));
 
-		entry->number = set_value(key_value);
+		entry->number = storage_set(key_value);
 		entry->size = key_value->size;
 
 		dictionary_put(entry_table, key_value->key, (void*) entry);

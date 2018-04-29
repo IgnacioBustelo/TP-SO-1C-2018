@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include "../entry_table.h"
-#include "../storage.h"
+#include "../instancia.h"
 
 // Variables globales
 
@@ -13,12 +13,11 @@ t_list* list_key_values;
 
 // Utilidades
 
-static key_value_t* key_value_create(char* key, void* value, int size) {
+static key_value_t* key_value_create(char* key, char* value, size_t size) {
 	key_value_t* key_value = malloc(sizeof(key_value_t));
-	key_value->value = malloc(size);
 
 	key_value->key = string_substring_until(key, 40);
-	memcpy(key_value->value, value, size);
+	key_value->value = string_duplicate(value);
 	key_value->size = size;
 
 	return key_value;
@@ -30,35 +29,35 @@ static void key_value_destroy(key_value_t* key_value) {
 	free(key_value);
 }
 
-static key_value_t* value_generator(char key[40], int size) {
+static key_value_t* value_generator(char key[40], size_t size) {
 	char* value = string_repeat('X', size);
 
-	key_value_t* key_value = key_value_create(key, (void*) value, string_length(value));
+	key_value_t* key_value = key_value_create(key, value, string_length(value));
 
 	free(value);
 
 	return key_value;
 }
 
-static int required_entries(int size) {
+static int required_entries(size_t size) {
 	return size < entry_size ? 1 : size/entry_size;
 }
 
 static void print_key_value(key_value_t* key_value) {
-	printf("Clave: %s, Valor: %s, Tamanio: %d\n", key_value->key, (char*) key_value->value, key_value->size);
+	printf("Clave: %s, Valor: %s, Tamanio: %d\n", key_value->key, key_value->value, key_value->size);
 }
 
 static void print_entry(char* key, entry_t* entry) {
-	printf("Clave: %s, Entrada: %d, Tamanio: %d, Ocupa %d entradas\n", key, entry->number, entry->size, required_entries(entry->size));
+	printf("Clave: %s, Entrada: %d, Tamanio: %d, Ocupa %d entrada/s\n", key, entry->number, entry->size, required_entries(entry->size));
 }
 
 // Implementaciones mock
 
-int update_entry(key_value_t* key_value) {
+int entry_table_update(key_value_t* key_value) {
 	return ET_INSERT_SUCCESS;
 }
 
-int set_value(key_value_t* key_value) {
+int storage_set(key_value_t* key_value) {
 	static int next_entry = 1, current_entry = 1;
 
 	current_entry = next_entry;
@@ -69,8 +68,14 @@ int set_value(key_value_t* key_value) {
 
 // Creación y Destrucción
 
-static void before() {
-	entry_size = 5;
+static void before(char *argv[]) {
+	if(argv[1] == NULL) {
+		entry_size = 5;
+	}
+
+	else {
+		entry_size = (size_t) atoi(argv[1]);
+	}
 
 	list_key_values = list_create();
 
@@ -86,10 +91,11 @@ static void before() {
 static void after() {
 	list_destroy_and_destroy_elements(list_key_values, (void*) key_value_destroy);
 	dictionary_destroy_and_destroy_elements(entry_table, free);
+	exit(EXIT_SUCCESS);
 }
 
-int main(void) {
-	before();
+int main(int argc, char *argv[]) {
+	before(argv);
 
 	printf("Tamanio de entradas: %d\n", entry_size);
 
@@ -97,7 +103,7 @@ int main(void) {
 	list_iterate(list_key_values, (void*) print_key_value);
 
 	printf("Ingresar claves en la tabla de entradas:\n");
-	list_iterate(list_key_values, (void*) insert_entry);
+	list_iterate(list_key_values, (void*) entry_table_insert);
 
 	printf("Mostrar Tabla De Entradas:\n");
 	dictionary_iterator(entry_table, (void*) print_entry);
