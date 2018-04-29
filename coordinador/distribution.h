@@ -3,6 +3,8 @@
 
 #include <commons/collections/list.h>
 
-extern t_list *last_instances;
+#include "instance-list.h"
+
+struct instance_t *equitative_load(struct instance_list_t *instance_list);
 
 #endif /* COORDINADOR_DISTRIBUTION_H_ */
