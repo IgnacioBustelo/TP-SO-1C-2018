@@ -96,7 +96,7 @@ static void before(int argc, char *argv[]) {
 		 }
 	}
 
-	entry_table = dictionary_create();
+	entry_table_init();
 }
 
 static void after() {

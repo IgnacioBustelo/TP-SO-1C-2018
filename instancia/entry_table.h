@@ -17,6 +17,8 @@ typedef struct{
 // Códigos de éxito para las operaciones sobre la tabla de entradas
 
 typedef enum {
+	ET_INIT_SUCCESS,
+	ET_INIT_ERROR,
 	ET_INSERT_SUCCESS
 } entry_status;
 

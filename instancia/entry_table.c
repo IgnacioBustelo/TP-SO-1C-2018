@@ -4,6 +4,18 @@
 #include "instancia.h"
 #include "storage.h"
 
+int entry_table_init() {
+	entry_table = dictionary_create();
+
+	if (entry_table != NULL) {
+		return ET_INIT_SUCCESS;
+	}
+
+	else {
+		return ET_INIT_ERROR;
+	}
+}
+
 int entry_table_insert(key_value_t* key_value) {
 	if(dictionary_has_key(entry_table, key_value->key)) {
 		return entry_table_update(key_value);
