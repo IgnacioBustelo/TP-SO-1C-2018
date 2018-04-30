@@ -1,18 +1,27 @@
+#include <commons/string.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "../storage.h"
 
-static void print_values(char* key, void* value) {
-	printf("Entrada %s: ", key);
+// Utilidades
 
-	if(value == NULL) {
+static void print_values(char* key, char* value) {
+	printf("Entrada %s:\t", key);
+
+	if(string_length(value) == 0) {
 		printf("NULL\n");
 	}
 
 	else {
-		printf("%s\n", (char*) value);
+		printf("%s\n", value);
 	}
+}
+
+// Implementaciones mock
+
+int storage_next_entry(size_t key_size) {
+	return 1;
 }
 
 int main(int argc, char* argv[]) {

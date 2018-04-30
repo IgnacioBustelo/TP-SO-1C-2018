@@ -13,12 +13,12 @@ t_list* list_key_values;
 
 // Utilidades
 
-static key_value_t* key_value_create(char* key, char* value, size_t size) {
+static key_value_t* key_value_create(char* key, char* value) {
 	key_value_t* key_value = malloc(sizeof(key_value_t));
 
 	key_value->key = string_substring_until(key, 40);
 	key_value->value = string_duplicate(value);
-	key_value->size = size;
+	key_value->size = (size_t) (string_length(value) + 1);
 
 	return key_value;
 }
@@ -32,23 +32,34 @@ static void key_value_destroy(key_value_t* key_value) {
 static key_value_t* value_generator(char key[40], size_t size) {
 	char* value = string_repeat('X', size);
 
-	key_value_t* key_value = key_value_create(key, value, string_length(value));
+	key_value_t* key_value = key_value_create(key, value);
 
 	free(value);
 
 	return key_value;
 }
 
-static int required_entries(size_t size) {
-	return size < entry_size ? 1 : size/entry_size;
+static size_t required_entries(size_t size) {
+	int required_entries = size/entry_size;
+
+	return size % entry_size == 0 ? required_entries : ++required_entries;
 }
 
 static void print_key_value(key_value_t* key_value) {
-	printf("Clave: %s, Valor: %s, Tamanio: %d\n", key_value->key, key_value->value, key_value->size);
+	printf("Clave: %s\t Tamanio: %d\t Valor: %s\n", key_value->key, key_value->size, key_value->value);
 }
 
 static void print_entry(char* key, entry_t* entry) {
-	printf("Clave: %s, Entrada: %d, Tamanio: %d, Ocupa %d entrada/s\n", key, entry->number, entry->size, required_entries(entry->size));
+	size_t entries_required = required_entries(entry->size);
+	char* entrada_text = string_duplicate("entrada");
+
+	if(entries_required > 1) {
+		string_append(&entrada_text, "s");
+	}
+
+	printf("Clave: %s\t Entrada: %d\t Tamanio: %d\t Ocupa %d %s\n", key, entry->number, entry->size, entries_required, entrada_text);
+
+	free(entrada_text);
 }
 
 // Implementaciones mock
@@ -75,6 +86,11 @@ static void before(int argc, char *argv[]) {
 
 	else {
 		entry_size = (size_t) atoi(argv[1]);
+
+		if(entry_size <= 0) {
+			printf("No se puede poner nada si el tamaño de entradas no es un numero natural.\n");
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	list_key_values = list_create();
@@ -91,7 +107,7 @@ static void before(int argc, char *argv[]) {
 		 int i;
 		 for(i = 2; i < argc; i += 2) {
 			 if(argv[i + 1] != NULL) {
-				 list_add(list_key_values, key_value_create(argv[i], argv[i + 1], string_length(argv[i + 1])));
+				 list_add(list_key_values, key_value_create(argv[i], argv[i + 1]));
 			 }
 		 }
 	}
