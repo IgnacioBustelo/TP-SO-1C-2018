@@ -68,7 +68,7 @@ int storage_set(key_value_t* key_value) {
 
 // Creación y Destrucción
 
-static void before(char *argv[]) {
+static void before(int argc, char *argv[]) {
 	if(argv[1] == NULL) {
 		entry_size = 5;
 	}
@@ -79,11 +79,22 @@ static void before(char *argv[]) {
 
 	list_key_values = list_create();
 
-	list_add(list_key_values, (void*) value_generator("1A", 2));
-	list_add(list_key_values, (void*) value_generator("2B", 5));
-	list_add(list_key_values, (void*) value_generator("3C", 7));
-	list_add(list_key_values, (void*) value_generator("4D", 13));
-	list_add(list_key_values, (void*) value_generator("5E", 15));
+	if(argc < 4) {
+		list_add(list_key_values, (void*) value_generator("A", 2));
+		list_add(list_key_values, (void*) value_generator("B", 5));
+		list_add(list_key_values, (void*) value_generator("C", 7));
+		list_add(list_key_values, (void*) value_generator("D", 13));
+		list_add(list_key_values, (void*) value_generator("E", 15));
+	}
+
+	else {
+		 int i;
+		 for(i = 2; i < argc; i += 2) {
+			 if(argv[i + 1] != NULL) {
+				 list_add(list_key_values, key_value_create(argv[i], argv[i + 1], string_length(argv[i + 1])));
+			 }
+		 }
+	}
 
 	entry_table = dictionary_create();
 }
@@ -95,7 +106,7 @@ static void after() {
 }
 
 int main(int argc, char *argv[]) {
-	before(argv);
+	before(argc, argv);
 
 	printf("Tamanio de entradas: %d\n", entry_size);
 
