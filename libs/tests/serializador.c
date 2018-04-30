@@ -151,6 +151,7 @@ int main(int argc, char* argv[]) {
 
 	if (argc < 5) {
 		student = student_create(678, "John", "Doe", 6.50);
+		printf("Como faltan parámetros, se serializa el alumno %s %s, legajo %d y promedio %f\n", student->name, student->surname, student->id, student->average);
 	}
 
 	else {
