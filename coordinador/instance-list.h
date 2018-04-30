@@ -4,6 +4,8 @@
 #include <pthread.h>
 #include <semaphore.h>
 
+#include <commons/collections/list.h>
+
 struct instance_list_t {
 	pthread_mutex_t lock;
 	t_list *elements;

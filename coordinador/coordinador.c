@@ -10,24 +10,20 @@
 #include "logger.h"
 #include "instance-list.h"
 #include "connection/esi-connection.h"
+#include "connection/instance-connection.h"
 
 /* Global variables */
 t_log *logger;
 struct setup_t setup;
-
-struct instance_list_t *instance_list;
 
 /* Local functions */
 static void init_server(int port);
 static void *handle_connection(void *arg);
 static int synchronize_connection(enum process_type type);
 static void handle_scheduler_connection(int fd);
-static void handle_instance_connection(int fd);
 
 int main(void)
 {
-	instance_list = instance_list_create();
-
 	init_config();
 	init_server(setup.port);
 
@@ -155,29 +151,6 @@ static void handle_scheduler_connection(int fd)
 	for (;;) {
 		// Atender al planificador.
 	}
-}
-
-static void handle_instance_connection(int fd)
-{
-	/* TODO: Receive instance name. */
-#include <commons/string.h>
-	char *name = string_itoa(fd);
-	struct instance_t *instance = instance_list_add(instance_list, name, fd);
-
-	for (;;) {
-		// REVIEW: sem_wait puede ser interrumpido por un signal.
-		sem_wait(&instance->requests_count);
-
-		log_info(logger, "Socket %d: Atendiendo pedido...", fd);
-
-		/* TODO
-		 * struct request_t *request = request_pop();
-		 * --send request to fd--
-		 */
-	}
-
-	instance_list_delete(instance_list, name);
-	/* TODO: Remove from last_instances. */
 }
 
 void exit_gracefully(int status)
