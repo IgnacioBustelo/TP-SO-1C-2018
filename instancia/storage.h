@@ -5,6 +5,11 @@
 
 #include "instancia.h"
 
+typedef enum {
+	STRG_INIT_SUCCESS,
+	STRG_INIT_CREATE_ERROR
+} storage_status;
+
 int storage_init(); // Lo hace Santi
 
 int storage_next_entry(size_t key_size); // Lo hace Nico
