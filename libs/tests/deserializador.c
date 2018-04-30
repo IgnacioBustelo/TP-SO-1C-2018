@@ -1,7 +1,7 @@
 #include <sys/socket.h>
 
-#include "../libs/conector.h"
-#include "../libs/deserializador.h"
+#include "../conector.h"
+#include "../deserializador.h"
 #include "deserializador.h"
 
 void person_destroy(person_t* student) {

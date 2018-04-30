@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../libs/conector.h"
-#include "../libs/serializador.h"
+#include "../conector.h"
+#include "../serializador.h"
 #include "serializador.h"
 
 student_t* student_create(int id, char* name, char* surname, float average) {
@@ -27,8 +27,7 @@ void student_destroy(student_t* student) {
 	free(student);
 }
 
-package_t* serialize() {
-	student_t* student = student_create(678, "John Juan", "Doemann De Tal", 2.50);
+package_t* serialize(student_t* student) {
 	size_t package_size = student_size(student);
 
 	package_t* package = create_package(package_size);
@@ -43,9 +42,8 @@ package_t* serialize() {
 	return package;
 }
 
-package_t* serialize_pretty() {
+package_t* serialize_pretty(student_t* student) {
 	char* message;
-	student_t* student = student_create(678, "John Juan", "Doemann De Tal", 2.50);
 	size_t package_size = student_size(student);
 
 	printf("Se va a empaquetar al alumno %s %s, de legajo %d y promedio %f\n", student->name, student->surname, student->id, student->average);
@@ -145,10 +143,21 @@ void send_to_deserializer_pretty(int fd, package_t* package) {
 	free(serialized_package);
 }
 
-int main(void) {
-	package_t* package = serialize_pretty();
-
+int main(int argc, char* argv[]) {
 	printf("Inicio del Serializador\n");
+
+	student_t* student;
+	package_t* package;
+
+	if (argc < 5) {
+		student = student_create(678, "John", "Doe", 6.50);
+	}
+
+	else {
+		student = student_create(atoi(argv[1]), argv[2], argv[3], atof(argv[4]));
+	}
+
+	package = serialize_pretty(student);
 
 	int fd = connect_to_server(HOST, PORT);
 
@@ -160,5 +169,7 @@ int main(void) {
 
 	destroy_package(package);
 	close(fd);
+
+	exit(EXIT_SUCCESS);
 }
 
