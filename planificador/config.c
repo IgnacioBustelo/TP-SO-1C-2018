@@ -36,7 +36,7 @@ t_planificador_config init_config(t_log* logger) {
 	check_config(logger, config, "ALPHA");
 	int alpha = config_get_int_value(config, "ALPHA");
 	verify_alpha(logger, &setup, alpha);
-	log_info(logger, "Asignando alpha %d.", setup.alpha);
+	log_info(logger, "Asignando alpha %f.", setup.alpha);
 
 	check_config(logger, config,"ESTIMACION_INICIAL");
 	setup.initial_estimation = config_get_double_value(config, "ESTIMACION_INICIAL");
@@ -96,7 +96,7 @@ static void set_distribution(t_log* logger, t_planificador_config setup, char* a
 static void verify_alpha(t_log* logger, t_planificador_config *setup, int alpha) {
 
 	if (alpha >= 0 && alpha <= 100) {
-		setup->alpha = (float)alpha/100;
+		setup->alpha = (double)alpha/100;
 	} else {
 		log_error(logger, "Se intento usar un alpha = &i y es inapropiado.", alpha/100);
 		exit_gracefully(EXIT_FAILURE);

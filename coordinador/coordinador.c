@@ -2,16 +2,21 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+#include <commons/collections/list.h>
+#include "../libs/conector.h"
+
 #include "coordinador.h"
 #include "config.h"
-#include "../libs/conector.h"
+#include "logger.h"
+#include "instance-list.h"
+#include "connection/esi-connection.h"
+#include "connection/instance-connection.h"
 
 /* Global variables */
 t_log *logger;
 struct setup_t setup;
 
 /* Local functions */
-static void init_log();
 static void init_server(int port);
 static void *handle_connection(void *arg);
 static int synchronize_connection(enum process_type type);
@@ -19,17 +24,10 @@ static void handle_scheduler_connection(int fd);
 
 int main(void)
 {
-	init_log();
 	init_config();
 	init_server(setup.port);
 
 	exit_gracefully(EXIT_SUCCESS);
-}
-
-static void init_log()
-{
-	logger = log_create("coordinador.log", "Coordinador", true, LOG_LEVEL_INFO);
-	log_info(logger, "Se inicio el logger.");
 }
 
 static void init_server(int port)
@@ -111,11 +109,11 @@ static void *handle_connection(void *arg)
 			break;
 		case ESI:
 			log_info(logger, "Socket %d identificado como ESI", fd);
-			// handle_esi_connection();
+			handle_esi_connection(fd);
 			break;
 		case INSTANCE:
 			log_info(logger, "Socket %d identificado como Instancia", fd);
-			// handle_instance_connection();
+			handle_instance_connection(fd);
 			break;
 		default:
 			log_error(logger, "Socket %d: Cliente intruso.", fd);
@@ -157,8 +155,5 @@ static void handle_scheduler_connection(int fd)
 
 void exit_gracefully(int status)
 {
-	log_info(logger, "Finalizo la ejecucion del Coordinador.");
-	log_destroy(logger);
-
 	exit(status);
 }
