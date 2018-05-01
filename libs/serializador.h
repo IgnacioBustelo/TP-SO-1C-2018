@@ -13,7 +13,13 @@ typedef struct {
 	size_t	remaining_load;
 } package_t;
 
-typedef enum { LOAD_SUCCESS, LOAD_MISSING, LOAD_EXTRA, SEND_SUCCESS, SEND_ERROR} package_status;
+typedef enum {
+	LOAD_SUCCESS,
+	LOAD_MISSING,
+	LOAD_EXTRA,
+	SEND_SUCCESS,
+	SEND_ERROR }
+package_status;
 
 package_t*			create_package(size_t size);
 
@@ -35,6 +41,6 @@ char*				status_message(package_t* package, package_status status);
 
 // Deprecated
 
-package_t* receive_package(int socket_sender);
+package_t*			receive_package(int socket_sender);
 
 #endif
