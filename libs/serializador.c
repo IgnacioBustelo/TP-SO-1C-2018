@@ -51,8 +51,6 @@ void* build_package(package_t* package) {
 	else {
 		return NULL;
 	}
-
-	return package->load;
 }
 
 package_status	send_serialized_package(int fd, void* serialized_package, size_t package_size) {
