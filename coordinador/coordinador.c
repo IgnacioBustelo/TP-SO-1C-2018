@@ -8,7 +8,7 @@
 #include "coordinador.h"
 #include "config.h"
 #include "logger.h"
-#include "instance-list.h"
+#include "instance-list/instance-list.h"
 #include "connection/esi-connection.h"
 #include "connection/instance-connection.h"
 
