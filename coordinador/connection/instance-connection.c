@@ -4,7 +4,8 @@
 
 #include "../logger.h"
 #include "../config.h"
-#include "../instance-list.h"
+#include "../instance-list/instance-list.h"
+#include "../instance-list/instance-request-list.h"
 
 #define CHECK_SEND_WITH_SIZE(FD, BLOCK, BLOCK_SIZE) (send(FD, BLOCK, BLOCK_SIZE, 0) != (BLOCK_SIZE))
 #define CHECK_SEND(FD, BLOCK) CHECK_SEND_WITH_SIZE(FD, BLOCK, sizeof(*(BLOCK)))
@@ -58,19 +59,23 @@ void handle_instance_connection(int fd)
 	struct instance_t *instance = instance_list_add(instance_list, name, fd);
 
 	for (;;) {
-		// REVIEW: sem_wait puede ser interrumpido por un signal.
-		sem_wait(&instance->requests_count);
-
+		struct request_node_t *request = request_list_pop(instance->requests);
 		log_info(logger, "[Instancia %s] Atendiendo pedido...", name);
 
-		/* TODO
-		 * struct request_t *request = request_pop();
-		 * --send request to fd--
-		 */
+		bool success = false;
+		switch (request->type) {
+		case INSTANCE_SET:
+			success = instance_send_set_instruction(fd, request->set.key, request->set.value);
+			break;
+		case INSTANCE_STORE:
+			/* TODO:
+			 * success = instance_send_store_instruction(fd, request->store.key);
+			 */
+			break;
+		}
 	}
 
-	instance_list_delete(instance_list, name);
-	/* TODO: Remove from last_instances. */
+	instance_list_remove(instance_list, name);
 }
 
 static char *instance_recv_name(int fd)
