@@ -4,6 +4,7 @@
 // Versión nueva
 
 #include <commons/collections/dictionary.h>
+#include <stdlib.h>
 
 
 
@@ -28,6 +29,8 @@ t_dictionary* storage;
 size_t total_entries;
 
 size_t entry_size;
+
+int fd_instancia;
 
 int fd_coordinador;
 

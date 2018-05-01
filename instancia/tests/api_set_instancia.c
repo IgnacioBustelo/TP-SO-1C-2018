@@ -1,53 +1,32 @@
 #include <stdlib.h>
 
-#include "../libs/conector.h"
-#include "../libs/serializador.h"
+#include "../../libs/conector.h"
 #include "../coordinator_api.h"
+#include "utils.h"
 
-// Utilidades
+#define PORT 8080
 
-static void print_key_value(key_value_t* key_value) {
-	printf("Clave: %s\t Tamanio: %d\t Valor: %s\n", key_value->key, key_value->size, key_value->value);
-}
+int main(void) {
+	printf("Instancia: Inicio\n");
 
-static void instancia() {
-	int server_fd = init_listener(8080, 1);
+	fd_instancia = init_listener(PORT, 1);
 
 	struct sockaddr_in client_info;
 	socklen_t addrlen = sizeof client_info;
 
-	int client_fd = accept(server_fd, (struct sockaddr *) &client_info, &addrlen);
+	printf("Instancia: Esperando al Coordinador\n");
+
+	fd_coordinador = accept(fd_instancia, (struct sockaddr *) &client_info, &addrlen);
+
+	printf("Instancia: Coordinador aceptado\n");
 
 	key_value_t* key_value = coordinator_receive_set();
 
+	printf("Instancia: Clave obtenida: ");
 	print_key_value(key_value);
 
+	key_value_destroy(key_value);
 
-}
-
-static void coordinador_mock(int argc, char* argv[]) {
-	if(argc < 3) {
-
-	}
-
-
-}
-
-int main(int argc, char* argv[]) {
-	int pid = fork();
-
-	if(pid > 0) {
-		instancia();
-	}
-
-	else if(pid == 0) {
-		coordinador_mock(argc, argv);
-	}
-
-	else {
-		printf("Fallo craendo procesos\n");
-		exit(EXIT_FAILURE);
-	}
-
-	exit(EXIT_SUCCESS);
+	close(fd_coordinador);
+	close(fd_instancia);
 }
