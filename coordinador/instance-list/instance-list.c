@@ -8,6 +8,8 @@
 
 #include "instance-list.h"
 
+#include "instance-request-list.h"
+
 /* TODO:
  *   - Request structure
  *   - Request list functions
@@ -25,20 +27,37 @@ struct instance_list_t *instance_list_create(void)
 	return instance_list;
 }
 
-struct instance_t *instance_list_add(struct instance_list_t *instance_list, char *name, int fd)
-{
-	struct instance_t *node = instance_list_node_create(name, fd);
-	list_add_in_index(instance_list->elements, 0, node);
-	return node;
-}
-
-struct instance_t *instance_list_remove(struct instance_list_t *instance_list, char *name)
+struct instance_t *instance_list_get(struct instance_list_t *instance_list, char *name)
 {
 	bool find_by_name(void *elem) {
 		struct instance_t *node = elem;
 		return string_equals(node->name, name);
 	}
-	return (struct instance_t *)list_remove_by_condition(instance_list->elements, find_by_name);
+
+	return (struct instance_t *)list_find(instance_list->elements, find_by_name);
+}
+
+struct instance_t *instance_list_add(struct instance_list_t *instance_list, char *name, int fd)
+{
+	struct instance_t *node = instance_list_get(instance_list, name);
+	if (node == NULL) {
+		node = instance_list_node_create(name, fd);
+		list_add_in_index(instance_list->elements, 0, node);
+	} else {
+		node->fd = fd;
+	}
+
+	return node;
+}
+
+struct instance_t *instance_list_remove(struct instance_list_t *instance_list, char *name)
+{
+	struct instance_t *node = instance_list_get(instance_list, name);
+	if (node != NULL) {
+		node->fd = DISCONNECTED;
+	}
+
+	return node;
 }
 
 struct instance_t *instance_list_push(struct instance_list_t *instance_list, struct instance_t *elem)
@@ -49,7 +68,11 @@ struct instance_t *instance_list_push(struct instance_list_t *instance_list, str
 
 struct instance_t *instance_list_pop(struct instance_list_t *instance_list)
 {
-	return list_remove(instance_list->elements, 0);
+	bool is_connected_instance(void *_elem) {
+		struct instance_t *elem = (struct instance_t *)_elem;
+		return elem->fd != DISCONNECTED;
+	}
+	return list_remove_by_condition(instance_list->elements, is_connected_instance);
 }
 
 bool instance_list_delete(struct instance_list_t *instance_list, char *name)
@@ -69,19 +92,15 @@ static struct instance_t *instance_list_node_create(char *name, int fd)
 	struct instance_t *node = malloc(sizeof(*node));
 	node->name = name;
 	node->fd = fd;
-	node->requests = list_create();
-	sem_init(&node->requests_count, 0, 0);
+	node->requests = request_list_create();
 
 	return node;
 }
 
 static void instance_list_node_destroy(struct instance_t *victim)
 {
-	/* TODO:
-	 * request_list_destroy(victim->requests);
-	 */
 	free(victim->name);
-	sem_destroy(&victim->requests_count);
+	request_list_destroy(victim->requests);
 	free(victim);
 }
 

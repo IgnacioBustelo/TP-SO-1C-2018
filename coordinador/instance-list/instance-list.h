@@ -6,6 +6,8 @@
 
 #include <commons/collections/list.h>
 
+#define DISCONNECTED -1
+
 struct instance_list_t {
 	pthread_mutex_t lock;
 	t_list *elements;
@@ -14,11 +16,11 @@ struct instance_list_t {
 struct instance_t {
 	char *name;
 	int fd;
-	t_list *requests;
-	sem_t requests_count;
+	struct request_list_t *requests;
 };
 
 struct instance_list_t *instance_list_create(void);
+struct instance_t *instance_list_get(struct instance_list_t *instance_list, char *name);
 struct instance_t *instance_list_add(struct instance_list_t *instance_list, char *name, int fd);
 struct instance_t* instance_list_remove(struct instance_list_t *instance_list, char *name);
 struct instance_t *instance_list_push(struct instance_list_t *instance_list, struct instance_t *elem);
