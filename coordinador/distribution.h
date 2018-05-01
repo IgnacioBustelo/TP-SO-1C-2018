@@ -3,7 +3,7 @@
 
 #include <commons/collections/list.h>
 
-#include "instance-list.h"
+#include "instance-list/instance-list.h"
 
 struct instance_t *equitative_load(struct instance_list_t *instance_list);
 

@@ -2,7 +2,7 @@
 #include <stddef.h>
 
 #include "distribution.h"
-#include "instance-list.h"
+#include "instance-list/instance-list.h"
 
 #define synchronized(lock)									\
 	for (pthread_mutex_t * i_ = &lock; i_;					\
@@ -14,7 +14,9 @@ struct instance_t *equitative_load(struct instance_list_t *instance_list)
 	struct instance_t *next_instance;
 	synchronized(instance_list->lock) {
 		next_instance = instance_list_pop(instance_list);
-		instance_list_push(instance_list, next_instance);
+		if (next_instance != NULL) {
+			instance_list_push(instance_list, next_instance);
+		}
 	}
 
 	return next_instance;
