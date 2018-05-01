@@ -1,13 +1,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "distribution.h"
+#include "defines.h"
 #include "instance-list/instance-list.h"
 
-#define synchronized(lock)									\
-	for (pthread_mutex_t * i_ = &lock; i_;					\
-		i_ = NULL, pthread_mutex_unlock(&lock))				\
-		for (pthread_mutex_lock(i_); i_; i_ = NULL)
+#include "distribution.h"
 
 struct instance_t *equitative_load(struct instance_list_t *instance_list)
 {

@@ -6,12 +6,8 @@
 
 #include <commons/collections/queue.h>
 
+#include "../defines.h"
 #include "instance-request-list.h"
-
-#define synchronized(lock)									\
-	for (pthread_mutex_t * i_ = &lock; i_;					\
-		i_ = NULL, pthread_mutex_unlock(&lock))				\
-		for (pthread_mutex_lock(i_); i_; i_ = NULL)
 
 static struct request_node_t *request_node_create_set(char *key, char *value);
 static struct request_node_t *request_node_create_store(char *key);

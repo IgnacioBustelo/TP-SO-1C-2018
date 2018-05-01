@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 
 #include "../../protocolo/protocolo.h"
+#include "../defines.h"
 #include "../logger.h"
 
 #include "esi-connection.h"

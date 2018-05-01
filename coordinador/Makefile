@@ -4,7 +4,7 @@ RM = rm -f
 TARGET = coordinador
 SRC = $(wildcard *.c) $(wildcard */*.c) ../libs/conector.c
 OBJ = $(SRC:.c=.o)
-HEADER = $(SRC:.c=.h)
+HEADER = $(SRC:.c=.h) defines.h
 
 LIB = -lcommons -lpthread
 

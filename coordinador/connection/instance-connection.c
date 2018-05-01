@@ -2,18 +2,11 @@
 #include <string.h>
 #include <sys/socket.h>
 
+#include "../defines.h"
 #include "../logger.h"
 #include "../config.h"
 #include "../instance-list/instance-list.h"
 #include "../instance-list/instance-request-list.h"
-
-#define CHECK_SEND_WITH_SIZE(FD, BLOCK, BLOCK_SIZE) (send(FD, BLOCK, BLOCK_SIZE, 0) != (BLOCK_SIZE))
-#define CHECK_SEND(FD, BLOCK) CHECK_SEND_WITH_SIZE(FD, BLOCK, sizeof(*(BLOCK)))
-
-#define CHECK_RECV_WITH_SIZE(FD, BLOCK, BLOCK_SIZE) (recv(FD, BLOCK, BLOCK_SIZE, MSG_WAITALL) != (BLOCK_SIZE))
-#define CHECK_RECV(FD, BLOCK) CHECK_RECV_WITH_SIZE(FD, BLOCK, sizeof(*(BLOCK)))
-
-#define PACKED __attribute__((packed))
 
 /* Esto debe estar en otro lugar. */
 enum protocol_t {
