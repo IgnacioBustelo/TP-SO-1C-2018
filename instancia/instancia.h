@@ -29,6 +29,13 @@ size_t total_entries;
 
 size_t entry_size;
 
+int fd_coordinador;
+
+
+
+// Interfaz
+
+void instance_set();
 
 
 // Versión vieja

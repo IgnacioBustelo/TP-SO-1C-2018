@@ -3,20 +3,7 @@
 #include <string.h>
 
 #include "../storage.h"
-
-// Utilidades
-
-static void print_values(char* key, char* value) {
-	printf("Entrada %s:\t", key);
-
-	if(string_length(value) == 0) {
-		printf("NULL\n");
-	}
-
-	else {
-		printf("%s\n", value);
-	}
-}
+#include "utils.h"
 
 // Implementaciones mock
 
@@ -25,17 +12,14 @@ int storage_next_entry(size_t key_size) {
 }
 
 int main(int argc, char* argv[]) {
-	if(argc < 2) {
-		total_entries = 10;
-	}
+	total_entries = (argc < 2) ? 10 : (size_t) atoi(argv[1]);
 
-	else {
-		total_entries = (size_t) atoi(argv[1]);
-	}
+	printf("Cantidad de entradas: %d\n", total_entries);
 
 	storage_init();
 
-	dictionary_iterator(storage, (void*) print_values);
+	printf("Valores almacenados en el Storage:\n");
+	dictionary_iterator(storage, (void*) print_stored_values);
 
 	dictionary_destroy_and_destroy_elements(storage, free);
 

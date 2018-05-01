@@ -1,18 +1,22 @@
 TARGET = et_insert st_init st_set
 LIBS = -lcommons
 
+DEPS = utils.h ../instancia.h ../entry_table.h ../storage.h
+ET_SRC = utils.c ../entry_table.c
+ST_SRC = utils.c ../entry_table.c ../storage.c
+
 .PHONY = clean $(TARGET)
 
 all: $(TARGET)
 
-et_insert: entry_table_insert.c ../instancia.h ../entry_table.c ../entry_table.h ../storage.h
-	gcc entry_table_insert.c ../entry_table.c -o et_insert $(LIBS)
+et_insert: entry_table_insert.c $(ET_SRC) $(DEPS)
+	gcc $< $(ET_SRC) -o $@ $(LIBS)
 
-st_init: storage_init.c ../instancia.h ../storage.c ../storage.h
-	gcc storage_init.c ../storage.c -o st_init $(LIBS)
+st_init: storage_init.c $(ST_SRC) $(DEPS)
+	gcc $< $(ST_SRC) -o $@ $(LIBS)
 	
-st_set: storage_set.c ../instancia.h ../storage.c ../storage.h
-	gcc storage_set.c ../storage.c -o st_set $(LIBS)
+st_set: storage_set.c $(ST_SRC) $(DEPS)
+	gcc $< $(ST_SRC) -o $@ $(LIBS)
 
 clean:
 	rm -f *.o $(TARGET)
