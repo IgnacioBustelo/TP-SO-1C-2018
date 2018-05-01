@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
 	storage_init();
 
 	printf("Valores almacenados en el Storage:\n");
-	dictionary_iterator(storage, (void*) print_stored_values);
+	print_ordered_stored_values();
 
 	dictionary_destroy_and_destroy_elements(storage, free);
 

@@ -21,6 +21,6 @@ void print_key_value(key_value_t* key_value);
 
 void print_entry(char* key, entry_t* entry);
 
-void print_stored_values(char* key, char* value);
+void print_ordered_stored_values();
 
 #endif

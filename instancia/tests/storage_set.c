@@ -8,7 +8,7 @@
 // Implementaciones mock
 
 int storage_next_entry(size_t size) {
-	static int next_entry = 1, current_entry = 1;
+	static int next_entry = 0, current_entry = 0;
 
 	current_entry = next_entry;
 	next_entry = current_entry + required_entries(size);
@@ -24,7 +24,7 @@ void before(int argc, char* argv[]) {
 	key_value_list = list_create();
 
 	total_entries = (argc < 2) ? 10 : (size_t) atoi(argv[1]);
-	entry_size = (argc < 4) ? 5 : (size_t) atoi(argv[2]);
+	entry_size = (argc < 3) ? 5 : (size_t) atoi(argv[2]);
 
 	if(argc < 5) {
 		list_add(key_value_list, key_value_create("A", "XD"));
@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
 	list_iterate(key_value_list, (void*) storage_set);
 
 	printf("Valores almacenados en el Storage:\n");
-	dictionary_iterator(storage, (void*) print_stored_values);
+	print_ordered_stored_values();
 
 	after();
 }

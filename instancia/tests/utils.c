@@ -63,14 +63,57 @@ void print_entry(char* key, entry_t* entry) {
 	free(entrada_text);
 }
 
-void print_stored_values(char* key, char* value) {
-	printf("Entrada %s:\t", key);
+void print_ordered_stored_values() {
+	typedef struct {
+		int entry;
+		char* value;
+	} entry_value_t;
 
-	if(string_length(value) == 0) {
-		printf("NULL\n");
+	t_list* ordered_value_list;
+
+	void* entry_value_create(char* key, void* value) {
+		entry_value_t* entry_value = malloc(sizeof(entry_value_t));
+
+		entry_value->entry = atoi(key);
+		entry_value->value = string_duplicate((char*) value);
+
+		return (void*) entry_value;
 	}
 
-	else {
-		printf("%s\n", value);
+	void entry_value_destroy(entry_value_t* entry_value) {
+		free(entry_value->value);
+		free(entry_value);
 	}
+
+	void storage_to_list(char* key, void* value) {
+		void* entry_value = entry_value_create(key, value);
+
+		list_add(ordered_value_list, entry_value);
+	}
+
+	bool compare_keys(void* key_1, void* key_2) {
+		return ((entry_value_t*) key_1)->entry < ((entry_value_t*) key_2)->entry;
+	}
+
+	void print_struct_value(entry_value_t* entry_value) {
+		printf("Entrada %d:\t", entry_value->entry);
+
+		if(string_length(entry_value->value) == 0) {
+			printf("NULL\n");
+		}
+
+		else {
+			printf("%s\n", entry_value->value);
+		}
+	}
+
+	ordered_value_list = list_create();
+
+	dictionary_iterator(storage, (void*) storage_to_list);
+
+	list_sort(ordered_value_list, (void*) compare_keys);
+
+	list_iterate(ordered_value_list, (void*) print_struct_value);
+
+	list_destroy_and_destroy_elements(ordered_value_list, (void*) entry_value_destroy);
 }
