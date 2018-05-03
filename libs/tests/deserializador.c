@@ -62,15 +62,19 @@ int main(void) {
 
 	int serializer_fd = accept(deserializer_fd, (struct sockaddr *) &client_addr, &client_addr_size);
 
-	printf("Serializador aceptado\n");
+	printf("Serializador aceptado\n\n");
+
+	printf("Deserializacion 1\n");
 
 	person = deserialize_pretty(serializer_fd);
 
-	printf("Deserializacion 1 exitosa\n");
+	printf("Deserializacion 1 exitosa\n\n");
 
 	person_destroy(person);
 
-	person = deserialize(serializer_fd);
+	printf("Deserializacion 1\n");
+
+	person = deserialize_pretty(serializer_fd);
 
 	printf("Deserializacion 2 exitosa\n");
 

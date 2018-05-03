@@ -147,7 +147,7 @@ int main(int argc, char* argv[]) {
 
 	int fd = connect_to_server(HOST, PORT);
 
-	printf("Conectado al Deserializador\n");
+	printf("Conectado al Deserializador\n\n");
 
 	serialize_v1(fd, student);
 
