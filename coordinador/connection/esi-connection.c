@@ -4,9 +4,30 @@
 #include <sys/socket.h>
 
 #include "../../protocolo/protocolo.h"
+#include "../defines.h"
 #include "../logger.h"
 
 #include "esi-connection.h"
+
+enum esi_operation_type_t {
+	ESI_GET, ESI_SET, ESI_STORE
+};
+
+struct esi_operation_t {
+	enum esi_operation_type_t type;
+	union {
+		struct {
+			char* key;
+		} get;
+		struct {
+			char* key;
+			char* value;
+		} set;
+		struct {
+			char* key;
+		} store;
+	};
+};
 
 static struct esi_operation_t *recv_esi_operation(int fd);
 static bool recv_esi_get_args(int fd, struct esi_operation_t *operation);
@@ -52,17 +73,17 @@ static struct esi_operation_t *recv_esi_operation(int fd)
 
 	switch (op_id) {
 	case PROTOCOL_EC_GET:
-		operation->keyword = ESI_GET;
+		operation->type = ESI_GET;
 		log_info(logger, "[ESI] Socket %d: Codigo de operacion GET recibida.", fd);
 		success = recv_esi_get_args(fd, operation);
 		break;
 	case PROTOCOL_EC_SET:
-		operation->keyword = ESI_SET;
+		operation->type = ESI_SET;
 		log_info(logger, "[ESI] Socket %d: Codigo de operacion SET recibida.", fd);
 		success = recv_esi_set_args(fd, operation);
 		break;
 	case PROTOCOL_EC_STORE:
-		operation->keyword = ESI_STORE;
+		operation->type = ESI_STORE;
 		log_info(logger, "[ESI] Socket %d: Codigo de operacion recibida.", fd);
 		success = recv_esi_store_args(fd, operation);
 		break;
