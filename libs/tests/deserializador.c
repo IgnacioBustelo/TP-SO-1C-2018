@@ -49,6 +49,8 @@ person_t* deserialize_pretty(int serializer_fd) {
 }
 
 int main(void) {
+	person_t* person;
+
 	printf("Inicio del Deserializador\n");
 
 	int deserializer_fd = init_listener(PORT, 1);
@@ -62,11 +64,18 @@ int main(void) {
 
 	printf("Serializador aceptado\n");
 
-	person_t* person = deserialize_pretty(serializer_fd);
+	person = deserialize_pretty(serializer_fd);
 
-	printf("Deserializacion exitosa\n");
+	printf("Deserializacion 1 exitosa\n");
 
 	person_destroy(person);
+
+	person = deserialize(serializer_fd);
+
+	printf("Deserializacion 2 exitosa\n");
+
+	person_destroy(person);
+
 	close(serializer_fd);
 	close(deserializer_fd);
 

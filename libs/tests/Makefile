@@ -4,7 +4,7 @@ CC = gcc
 TARGETS = serializador deserializador
 LIBS = -lcommons
 
-SERIALIZADOR_DEPS = serializador.h ../conector.h ../serializador.h
+SERIALIZADOR_DEPS = serializador.h ../conector.h ../serializador.h ../serializador_v2.h
 SERIALIZADOR_SRC = $(SERIALIZADOR_DEPS:.h=.c)
 
 DESERIALIZADOR_DEPS = deserializador.h ../conector.h ../deserializador.h
