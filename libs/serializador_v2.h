@@ -4,18 +4,18 @@
 #include <stdlib.h>
 
 typedef struct {
-	void* load;
+	void* bytes;
 	size_t current_size;
-} package_t;
+} chunk_t;
 
-package_t* package_create();
+chunk_t*	chunk_create();
 
-void package_add(package_t* package, void* content, size_t content_size);
+void		chunk_add(chunk_t* chunk, void* content, size_t content_size);
 
-void package_add_variable(package_t* package, void* content, size_t content_size);
+void		chunk_add_variable(chunk_t* chunk, void* content, size_t content_size);
 
-void* package_build(package_t* package);
+void*		chunk_build(chunk_t* chunk);
 
-void package_destroy(package_t* package);
+void		chunk_destroy(chunk_t* chunk);
 
 #endif

@@ -1,38 +1,39 @@
 #include <stdlib.h>
+#include <string.h>
 
 #include "serializador_v2.h"
 
-package_t* package_create() {
-	package_t* package = malloc(sizeof(package_t));
+chunk_t* chunk_create() {
+	chunk_t* chunk = malloc(sizeof(chunk_t));
 
-	package->current_size = 0;
+	chunk->current_size = 0;
 
-	return package;
+	return chunk;
 }
 
-void package_add(package_t* package, void* content, size_t content_size) {
-	package->load = realloc(package->load, package->current_size + content_size);
+void chunk_add(chunk_t* chunk, void* content, size_t content_size) {
+	chunk->bytes = realloc(chunk->bytes, chunk->current_size + content_size);
 
-	memcpy(package->load + package->current_size, content, content_size);
+	memcpy(chunk->bytes + chunk->current_size, content, content_size);
 
-	package->current_size += content_size;
+	chunk->current_size += content_size;
 }
 
-void package_add_variable(package_t* package, void* content, size_t content_size) {
-	package_add(package, &content_size, sizeof(content_size));
+void chunk_add_variable(chunk_t* chunk, void* content, size_t content_size) {
+	chunk_add(chunk, &content_size, sizeof(content_size));
 
-	package_add(package, content, content_size);
+	chunk_add(chunk, content, content_size);
 }
 
-void* package_build(package_t* package) {
-	void* serialized_package = malloc(package->current_size);
+void* chunk_build(chunk_t* chunk) {
+	void* serialized_chunk = malloc(chunk->current_size);
 
-	memcpy(serialized_package, package->load, package->current_size);
+	memcpy(serialized_chunk, chunk->bytes, chunk->current_size);
 
-	return serialized_package;
+	return serialized_chunk;
 }
 
-void package_destroy(package_t* package) {
-	free(package->load);
-	free(package);
+void chunk_destroy(chunk_t* chunk) {
+	free(chunk->bytes);
+	free(chunk);
 }
