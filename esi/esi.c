@@ -155,7 +155,7 @@ void* obtain_package_from_line(char* line, size_t* package_size) {
 
             	log_info(logger, "GET\tclave: <%s>", parsed.argumentos.GET.clave);
             	operation = PROTOCOL_EC_GET;
-            	*package_size = sizeof(operation) + strlen(parsed.argumentos.GET.clave) + 1;
+            	*package_size = sizeof(operation) + sizeof(size_t) + strlen(parsed.argumentos.GET.clave) + 1;
             	package = create_package(*package_size);
             	add_content(package, &operation, sizeof(operation));
             	add_content_variable(package, parsed.argumentos.GET.clave, strlen(parsed.argumentos.GET.clave) + 1);
@@ -164,7 +164,7 @@ void* obtain_package_from_line(char* line, size_t* package_size) {
 
             	log_info(logger, "SET\tclave: <%s>\tvalor: <%s>", parsed.argumentos.SET.clave, parsed.argumentos.SET.valor);
             	operation = PROTOCOL_EC_SET;
-            	*package_size = sizeof(operation) + strlen(parsed.argumentos.SET.clave) + 1 + strlen(parsed.argumentos.SET.valor) + 1;
+            	*package_size = sizeof(operation) + sizeof(size_t) +strlen(parsed.argumentos.SET.clave) + 1 + sizeof(size_t) + strlen(parsed.argumentos.SET.valor) + 1;
             	package = create_package(*package_size);
             	add_content(package, &operation, sizeof(operation));
             	add_content_variable(package, parsed.argumentos.SET.clave, strlen(parsed.argumentos.SET.clave) + 1);
@@ -174,7 +174,7 @@ void* obtain_package_from_line(char* line, size_t* package_size) {
 
             	log_info(logger, "STORE\tclave: <%s>", parsed.argumentos.STORE.clave);
             	operation = PROTOCOL_EC_STORE;
-            	*package_size = sizeof(operation) + strlen(parsed.argumentos.STORE.clave) + 1;
+            	*package_size = sizeof(operation) + sizeof(size_t) + strlen(parsed.argumentos.STORE.clave) + 1;
             	package = create_package(*package_size);
             	add_content(package, &operation, sizeof(operation));
             	add_content_variable(package, parsed.argumentos.STORE.clave, strlen(parsed.argumentos.STORE.clave) + 1);
