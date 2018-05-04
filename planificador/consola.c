@@ -56,11 +56,13 @@ void *init_console(void* _)
 static void pause_scheduler(char **_)
 {
 	printf("Pausar planificacion\n");
-}
+	pause_planific();
+	}
 
 static void lock_process(char **args)
 {
 	void _lock_process(char *key, char *pid) {
+
 		printf("Bloquear proceso ESI (clave = %s, id = %s)\n", key, pid);
 	}
 	_lock_process(args[0], args[1]);
@@ -78,7 +80,9 @@ static void unlock_process(char **args)
 static void list_locked_process(char **args)
 {
 	void _list_locked_process(char *resource) {
+
 		printf("Listar processos bloqueados por recurso %s\n", resource);
+		show_blocked_process(resource);
 	}
 	_list_locked_process(args[0]);
 }
@@ -103,3 +107,18 @@ static void check_deadlock(char **_)
 {
 	printf("Detectar deadlock\n");
 }
+
+void pause_planific(){
+	pause_flag=1;
+}
+
+void show_blocked_process(void * resource){
+	void show_esi_from_resource(void* recurs){
+		if ( ((esi_sexpecting_key*)recurs)->key == (char*)resource){
+			printf("El proceso %i se encuentra bloqueado por la clave %s\n", ((esi_sexpecting_key*)recurs)->esi_fd,(char*)resource);
+		}
+	}
+
+	list_iterate(g_esis_sexpecting_keys,show_blocked_process);
+}
+

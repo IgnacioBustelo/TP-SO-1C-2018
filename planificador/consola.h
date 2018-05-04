@@ -12,3 +12,15 @@ int execute_console_command(char *command_line);
 void *init_console();
 
 #endif /* PLANIFICADOR_CONSOLA_H_ */
+
+
+/*
+ * Establece el flag de pausa en 1
+ */
+void pause_planific(void);
+
+/*
+ * Muestra los procesos bloqueados por una determinada key
+ */
+
+void show_blocked_process(void * resource);

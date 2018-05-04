@@ -24,7 +24,7 @@ static void esi_finished(int* flag);
 static double next_estimated_burst_sjf(double alpha, int last_real_burst, double last_estimated_burst);
 static double next_estimated_burst_hrrn(int waited_time, int last_real_burst);
 static void update_esi_information_next_estimated_burst(int esi_fd);
-
+static void pause_now(void);
 /* -- Global variables -- */
 
 t_log* logger;
@@ -33,6 +33,7 @@ t_planificador_config setup;
 t_list* g_locked_keys;
 t_list* g_esis_sexpecting_keys;
 t_list* g_esi_bursts;
+t_list* g_locked_keys_by_console;
 
 t_list* g_new_queue;
 t_list* g_ready_queue;
@@ -41,6 +42,7 @@ t_list* g_blocked_queue;
 t_list* g_blocked_queue_by_console;
 t_list* g_finished_queue;
 
+int pause_flag=0;
 int main(void) {
 
 	logger = init_log();
@@ -69,6 +71,7 @@ int main(void) {
 	}
 
 	log_info(logger, "Conectado satisfactoriamente al coordinador");
+			printf("Pausar planificacion\n");
 
 	int listener = init_listener(server_port, MAXCONN);
 	log_info(logger, "Escuchando en el puerto %i...", server_port);
@@ -277,7 +280,10 @@ int main(void) {
 
 				}
 
-				if (reschedule_flag == 1) reschedule(&reschedule_flag, &old_executing_esi);
+				if (reschedule_flag == 1){
+					if (pause_flag==1) pause_now();
+					reschedule(&reschedule_flag, &old_executing_esi);
+				}
 				else authorize_esi_execution(*(int*)g_execution_queue->head->data);
 
 			}
@@ -812,4 +818,11 @@ static void update_esi_information_next_estimated_burst(int esi_fd) {
 		esi_inf->last_real_burst = 0;
 		esi_inf->waited_bursts = 0;
 	}
+}
+
+void pause_now(void){
+	//Leproso, revisar
+	getchar();
+	getchar();
+
 }
