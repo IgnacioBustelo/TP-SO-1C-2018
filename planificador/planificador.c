@@ -170,7 +170,7 @@ int main(void) {
 
 			} else if (fd == coordinator_fd) {
 
-				int opcode = receive_coordinator_opcode(fd);
+				int opcode = receive_coord((esi_information*)esi_inf)->waited_bursts++;inator_opcode(fd);
 
 				bool response;
 

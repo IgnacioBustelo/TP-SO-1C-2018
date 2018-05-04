@@ -18,9 +18,7 @@ void *init_console();
  * Establece el flag de pausa en 1
  */
 void pause_planific(void);
-
 /*
  * Muestra los procesos bloqueados por una determinada key
  */
-
 void show_blocked_process(void * resource);
