@@ -12,6 +12,7 @@
 #include "instance-list/instance-list.h"
 #include "connection/esi-connection.h"
 #include "connection/instance-connection.h"
+#include "connection/scheduler-connection.h"
 
 /* Global variables */
 t_log *logger;
@@ -21,7 +22,6 @@ struct setup_t setup;
 static void init_server(int port);
 static void *handle_connection(void *arg);
 static int synchronize_connection(enum process_type type);
-static void handle_scheduler_connection(int fd);
 
 int main(void)
 {
@@ -145,13 +145,6 @@ static int synchronize_connection(enum process_type type)
 	}
 
 	return retcode;
-}
-
-static void handle_scheduler_connection(int fd)
-{
-	for (;;) {
-		// Atender al planificador.
-	}
 }
 
 void exit_gracefully(int status)
