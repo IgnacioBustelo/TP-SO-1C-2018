@@ -2,18 +2,13 @@
 #include <string.h>
 #include <sys/socket.h>
 
+#include "../../protocolo/protocolo_coordinador_instancia.h"
+
 #include "../defines.h"
 #include "../logger.h"
 #include "../config.h"
 #include "../instance-list/instance-list.h"
 #include "../instance-list/instance-request-list.h"
-
-/* Esto debe estar en otro lugar. */
-enum protocol_t {
-	PROTOCOL_CI_HANDSHAKE_CONFIRMATION,
-	PROTOCOL_CI_SET,
-	PROTOCOL_IC_NOTIFY_STATUS
-};
 
 t_log *logger;
 struct setup_t setup;
@@ -40,25 +35,34 @@ void handle_instance_connection(int fd)
 {
 	char *name = instance_recv_name(fd);
 	if (name == NULL) {
-		/* Informar error a la instancia? */
+		instance_send_confirmation_error(fd);
 		return;
-	}
-	log_info(logger, "[Instancia] Socket %d: Nombre de instancia: \"%s\"", name);
-
-	if (!instance_send_confirmation(fd)) {
-		log_error(logger, "[Instancia %s] Error al enviar confirmacion!", name);
 	}
 
 	struct instance_t *instance = instance_list_add(instance_list, name, fd);
+	if (instance == NULL) {
+		instance_send_confirmation_error(fd);
+		log_error(logger, "[Instancia] Socket %d: Ya existe otra instancia con nombre \"%s\"!", fd, name);
+		free(name);
+		return;
+	}
+
+	log_info(logger, "[Instancia] Socket %d: Instancia \"%s\" conectada.", fd, name);
+
+	if (!instance_send_confirmation(fd)) {
+		log_error(logger, "[Instancia %s] Error al enviar confirmacion!", name);
+		free(name);
+		return;
+	}
 
 	for (;;) {
 		struct request_node_t *request = request_list_pop(instance->requests);
 		log_info(logger, "[Instancia %s] Atendiendo pedido...", name);
 
-		bool success = false;
+		bool send_success = false;		// TODO: Quitar el false.
 		switch (request->type) {
 		case INSTANCE_SET:
-			success = instance_send_set_instruction(fd, request->set.key, request->set.value);
+			send_success = instance_send_set_instruction(fd, request->set.key, request->set.value);
 			break;
 		case INSTANCE_STORE:
 			/* TODO:
@@ -66,9 +70,21 @@ void handle_instance_connection(int fd)
 			 */
 			break;
 		}
+
+		if (!send_success) {
+			log_error(logger, "[Instancia %s] Error al enviar instruccion!", name);
+			break;
+		}
+
+		int status;
+		if (!instance_recv_execution_status(fd, &status)) {
+			log_error(logger, "[Instancia %s] Error al recibir resultado de ejecucion!", name);
+			break;
+		}
 	}
 
 	instance_list_remove(instance_list, name);
+	free(name);
 }
 
 static char *instance_recv_name(int fd)
@@ -91,13 +107,18 @@ static char *instance_recv_name(int fd)
 
 static bool instance_recv_execution_status(int fd, int *status_code)
 {
-	return CHECK_RECV(fd, status_code);
+	request_instancia op_code;
+	if (!CHECK_RECV(fd, &op_code) || op_code != PROTOCOL_IC_NOTIFY_STATUS) {
+		return false;
+	} else {
+		return CHECK_RECV(fd, status_code);
+	}
 }
 
 static bool instance_send_confirmation(int fd)
 {
 	struct {
-		enum protocol_t op_code;
+		request_coordinador op_code;
 		bool validation;
 		size_t entry_size;
 		size_t entry_num;
@@ -114,7 +135,7 @@ static bool instance_send_confirmation(int fd)
 static bool instance_send_confirmation_error(int fd)
 {
 	struct {
-		enum protocol_t op_code;
+		request_coordinador op_code;
 		bool validation;
 	} PACKED package;
 
@@ -126,7 +147,7 @@ static bool instance_send_confirmation_error(int fd)
 
 static bool instance_send_set_instruction(int fd, char *key, char *value)
 {
-	enum protocol_t op_code = PROTOCOL_CI_SET;
+	request_coordinador op_code = PROTOCOL_CI_SET;
 	size_t key_size = strlen(key) + 1;
 	size_t value_size = strlen(value) + 1;
 

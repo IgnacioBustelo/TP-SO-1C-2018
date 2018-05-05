@@ -7,6 +7,9 @@
 #include "../defines.h"
 #include "../logger.h"
 
+#include "../distribution.h"
+#include "../instance-list/instance-request-list.h"
+#include "instance-connection.h"
 #include "esi-connection.h"
 
 enum esi_operation_type_t {
@@ -29,35 +32,45 @@ struct esi_operation_t {
 	};
 };
 
+t_log *logger;
+struct instance_list_t *instance_list;
+
+static void handle_esi_operation(struct esi_operation_t *operation);
 static struct esi_operation_t *recv_esi_operation(int fd);
 static bool recv_esi_get_args(int fd, struct esi_operation_t *operation);
 static bool recv_esi_set_args(int fd, struct esi_operation_t *operation);
 static bool recv_esi_store_args(int fd, struct esi_operation_t *operation);
 
-t_log *logger;
-
 void handle_esi_connection(int fd)
 {
 	struct esi_operation_t *operation;
 	for (operation = recv_esi_operation(fd); operation != NULL; operation = recv_esi_operation(fd)) {
-		/* TODO:
-		 * --receive request--
-		 * struct instance_t *next_instance = equitative_load(instance_list);
-		 * if (next_instance != NULL) {
-		 *     // Mutex? (next_instance could be being removed from the instance_list)
-		 *     instance_list_request_add(next_instance, --REQUEST--);	// <- Mutex inside this function
-		 *     sem_post(&next_instance->requests_count);
-		 * } else {
-		 *     HANDLE_ERROR
-		 * }
-		 */
-
-		/* ALTERNATIVE:
-		 *   - Add request to request pool.
-		 */
+		handle_esi_operation(operation);
 	}
 
 	log_error(logger, "[ESI] Socket %d: Cerrando conexion.", fd);
+}
+
+static void handle_esi_operation(struct esi_operation_t *operation)
+{
+	/* TODO: Log de operaciones. */
+	if (operation->type == ESI_GET) {
+		log_info(logger, "GET %s", operation->get.key);
+		/* TODO: Preguntar al Planificador. */
+	} else {
+		struct instance_t *instance = equitative_load(instance_list);
+		if (instance == NULL) {
+			// HANDLE_ERROR
+			return;
+		}
+		if (operation->type == ESI_SET) {
+			log_info(logger, "SET %s \"%s\"", operation->set.key, operation->set.value);
+			request_list_push_set(instance->requests, operation->set.key, operation->set.value);
+		} else /* operation->type == ESI_STORE */ {
+			log_info(logger, "STORE %s", operation->store.key);
+			request_list_push_store(instance->requests, operation->store.key);
+		}
+	}
 }
 
 static struct esi_operation_t *recv_esi_operation(int fd)

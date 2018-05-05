@@ -43,8 +43,10 @@ struct instance_t *instance_list_add(struct instance_list_t *instance_list, char
 	if (node == NULL) {
 		node = instance_list_node_create(name, fd);
 		list_add_in_index(instance_list->elements, 0, node);
-	} else {
+	} else if (node->fd == DISCONNECTED) {
 		node->fd = fd;
+	} else {
+		return NULL;
 	}
 
 	return node;
@@ -90,7 +92,7 @@ bool instance_list_delete(struct instance_list_t *instance_list, char *name)
 static struct instance_t *instance_list_node_create(char *name, int fd)
 {
 	struct instance_t *node = malloc(sizeof(*node));
-	node->name = name;
+	node->name = strdup(name);
 	node->fd = fd;
 	node->requests = request_list_create();
 

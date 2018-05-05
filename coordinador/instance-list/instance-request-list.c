@@ -11,6 +11,7 @@
 
 static struct request_node_t *request_node_create_set(char *key, char *value);
 static struct request_node_t *request_node_create_store(char *key);
+static void request_list_push(struct request_list_t *request_list, struct request_node_t *elem);
 static void request_node_destroy(struct request_node_t *node);
 
 struct request_list_t *request_list_create(void)
@@ -49,7 +50,7 @@ struct request_node_t *request_list_push_store(struct request_list_t *request_li
 	return node;
 }
 
-void request_list_push(struct request_list_t *request_list, struct request_node_t *elem)
+static void request_list_push(struct request_list_t *request_list, struct request_node_t *elem)
 {
 	synchronized(request_list->lock) {
 		queue_push(request_list->elements, elem);
