@@ -19,6 +19,7 @@ static char* receive_inquired_key(int coordinator_fd);
 static void add_new_key_blocker(char* blocked_key);
 static void send_protocol_answer(int coordinator_fd, protocol_id protocol);
 static void update_blocked_esis(int* blocked_queue_flag);
+static void new_esi_detected(int* new_esi_flag);
 static void remove_blocked_key_from_list(char* unlocked_key);
 static void esi_finished(int* flag);
 static double next_estimated_burst_sjf(double alpha, int last_real_burst, double last_estimated_burst);
@@ -85,10 +86,10 @@ int main(void) {
 	FD_SET(listener, &connected_fds);
 
 	int max_fd = (listener > coordinator_fd) ? listener : coordinator_fd;
-	int finished_esi_flag;
-	int new_esi_flag;
-	int reschedule_flag;
-	int update_blocked_esi_queue_flag;
+	int finished_esi_flag = 0;
+	int new_esi_flag = 0;
+	int reschedule_flag = 0;
+	int update_blocked_esi_queue_flag = 0;
 	we_must_reschedule(&reschedule_flag);
 
 	create_administrative_structures();
@@ -114,7 +115,7 @@ int main(void) {
 
 		int fd;
 		char* last_key_inquired;
-		int old_executing_esi;
+		int old_executing_esi = -1;
 
 		for (fd = 0; fd <= max_fd; fd++) {
 
@@ -162,6 +163,8 @@ int main(void) {
 					list_add(g_esi_bursts, (void*)create_esi_information(new_client_fd, esi_numeric_arrival_order));
 
 					log_info(logger, "ESI %i conectado", esi_numeric_arrival_order);
+
+					new_esi_detected(&new_esi_flag);
 
 					if (algorithm_is_preemptive()) we_must_reschedule(&reschedule_flag);
 
@@ -499,9 +502,9 @@ int schedule_esis() {
 
 	}
 
-	 esi_information* esi_inf = obtain_esi_information_by_id(*esi_fd);
+	esi_information* esi_inf = obtain_esi_information_by_id(*esi_fd);
 
-	 log_info(logger,"El ESI seleccionado para ejecutar es el ESI %i", esi_inf->esi_numeric_name);
+	log_info(logger,"El ESI seleccionado para ejecutar es el ESI %i", esi_inf->esi_numeric_name);
 
 	return *esi_fd;
 }
@@ -780,6 +783,11 @@ static void send_protocol_answer(int coordinator_fd, protocol_id protocol) {
 static void update_blocked_esis(int* blocked_queue_flag) {
 
 	*blocked_queue_flag = 1;
+}
+
+static void new_esi_detected(int* new_esi_flag) {
+
+	*new_esi_flag = 1;
 }
 
 static void remove_blocked_key_from_list(char* unlocked_key) {
