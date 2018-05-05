@@ -1,10 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <readline/readline.h>
-
-#include "../libs/comando.h"
 #include "consola.h"
-#include "planificador.h"
 
 static void pause_scheduler(char **_);
 static void resume_scheduler(char **_);

@@ -1,6 +1,15 @@
 #ifndef PLANIFICADOR_CONSOLA_H_
 #define PLANIFICADOR_CONSOLA_H_
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <readline/readline.h>
+#include "../libs/comando.h"
+#include "planificador.h"
+
+extern int pause_flag;
+extern t_list* g_esis_sexpecting_keys;
+
 /**
  * Recibe una linea de comando y lo ejecuta.
  * El valor de retorno indica si fue ejecutado exitosamente u ocurrio un error:
