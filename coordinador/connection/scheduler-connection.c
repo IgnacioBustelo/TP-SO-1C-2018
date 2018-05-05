@@ -55,3 +55,33 @@ enum key_state_t scheduler_recv_key_state(char *key)
 		return KEY_RECV_ERROR;
 	}
 }
+
+bool scheduler_block_key(void)
+{
+	protocol_id request = PROTOCOL_CP_BLOCK_KEY;
+	if (!CHECK_SEND(scheduler_fd, &request)) {
+		return false;
+	}
+
+	protocol_id response;
+	if (!CHECK_RECV(scheduler_fd, &response)) {
+		return false;
+	} else {
+		return response == PROTOCOL_PC_KEY_BLOCKED_SUCCESFULLY;
+	}
+}
+
+bool scheduler_unblock_key(void)
+{
+	protocol_id request = PROTOCOL_CP_UNLOCK_KEY;
+	if (!CHECK_SEND(scheduler_fd, &request)) {
+		return false;
+	}
+
+	protocol_id response;
+	if (!CHECK_RECV(scheduler_fd, &response)) {
+		return false;
+	} else {
+		return response == PROTOCOL_PC_KEY_UNLOCKED_SUCCESFULLY;
+	}
+}

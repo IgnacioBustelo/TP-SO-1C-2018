@@ -11,6 +11,7 @@
 #include "../instance-list/instance-request-list.h"
 #include "instance-connection.h"
 #include "esi-connection.h"
+#include "scheduler-connection.h"
 
 enum esi_operation_type_t {
 	ESI_GET, ESI_SET, ESI_STORE
@@ -56,11 +57,21 @@ static void handle_esi_operation(struct esi_operation_t *operation)
 	/* TODO: Log de operaciones. */
 	if (operation->type == ESI_GET) {
 		log_info(logger, "GET %s", operation->get.key);
-		/* TODO: Preguntar al Planificador. */
+		switch (scheduler_recv_key_state(operation->get.key)) {
+		case KEY_UNBLOCKED:
+		case KEY_BLOCKED_BY_EXECUTING_ESI:
+			scheduler_block_key();
+			break;
+		case KEY_BLOCKED:
+			/* TODO: Send YOU_ARE_BLOCKED */
+			break;
+		case KEY_RECV_ERROR:
+			break;
+		}
 	} else {
 		struct instance_t *instance = equitative_load(instance_list);
 		if (instance == NULL) {
-			// HANDLE_ERROR
+			// TODO: HANDLE_ERROR
 			return;
 		}
 		if (operation->type == ESI_SET) {
