@@ -4,8 +4,10 @@
 
 #include "../libs/comando.h"
 #include "consola.h"
+#include "planificador.h"
 
 static void pause_scheduler(char **_);
+static void resume_scheduler(char **_);
 static void lock_process(char **args);
 static void unlock_process(char **args);
 static void list_locked_process(char **args);
@@ -18,6 +20,7 @@ static void check_deadlock(char **_);
 
 static struct command_t commands[] = {
 	DEF_COMMAND("pausar",      0, pause_scheduler),
+	DEF_COMMAND("continuar",   0, resume_scheduler),
 	DEF_COMMAND("bloquear",    2, lock_process),
 	DEF_COMMAND("desbloquear", 1, unlock_process),
 	DEF_COMMAND("listar",      1, list_locked_process),
@@ -56,8 +59,16 @@ void *init_console(void* _)
 static void pause_scheduler(char **_)
 {
 	printf("Pausar planificacion\n");
-	pause_planific();
-	}
+
+	pause_flag = 1;
+}
+
+static void resume_scheduler(char **_)
+{
+	printf("Continuar planificacion\n");
+
+	pause_flag = 0;
+}
 
 static void lock_process(char **args)
 {
@@ -106,10 +117,6 @@ static void instance_status(char **args)
 static void check_deadlock(char **_)
 {
 	printf("Detectar deadlock\n");
-}
-
-void pause_planific(){
-	pause_flag=1;
 }
 
 void show_blocked_process(void * resource){
