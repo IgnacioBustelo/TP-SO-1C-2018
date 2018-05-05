@@ -19,7 +19,10 @@ typedef struct{
 typedef enum {
 	ET_INIT_SUCCESS,
 	ET_INIT_ERROR,
-	ET_INSERT_SUCCESS
+	ET_INSERT_SUCCESS,
+	ET_UPDATE_SUCCESS,
+	ET_UPDATE_ERROR
+
 } entry_status;
 
 int entry_table_init(); // Lo hace Santi
