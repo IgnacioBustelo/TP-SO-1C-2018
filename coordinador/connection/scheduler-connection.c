@@ -2,16 +2,25 @@
 #include <stddef.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 #include "../defines.h"
 #include "../../protocolo/protocolo.h"
 
 #include "scheduler-connection.h"
 
+static bool scheduler_connected;
 static int scheduler_fd;
+
+__attribute__((destructor)) void close_scheduler_fd(void) {
+	if (scheduler_connected) {
+		close(scheduler_fd);
+	}
+}
 
 void handle_scheduler_connection(int fd)
 {
+	scheduler_connected = true;
 	scheduler_fd = fd;
 }
 

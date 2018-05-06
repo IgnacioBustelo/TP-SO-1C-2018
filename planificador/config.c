@@ -5,7 +5,7 @@
 /* -- Local function prototypes  -- */
 
 static void check_config(t_log* logger,t_config* config, char* key);
-static void set_distribution(t_log* logger,t_planificador_config setup,char* algorithm_name);
+static void set_distribution(t_log* logger, t_planificador_config* setup, char* algorithm_name);
 static void verify_alpha(t_log* logger, t_planificador_config *setup, int alpha);
 static char *_string_join(char **string_array, char *separator);
 
@@ -30,7 +30,7 @@ t_planificador_config init_config(t_log* logger) {
 
 	check_config(logger, config,"ALGORITMO_PLANIFICACION");
 	char* algorithm_name = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
-	set_distribution(logger, setup, algorithm_name);
+	set_distribution(logger, &setup, algorithm_name);
 	log_info(logger, "Asignado algoritmo de reemplazo de planificacion %s.", algorithm_name);
 
 	check_config(logger, config, "ALPHA");
@@ -74,19 +74,19 @@ static void check_config(t_log* logger,t_config* config, char* key) {
 	}
 }
 
-static void set_distribution(t_log* logger, t_planificador_config setup, char* algorithm_name) {
+static void set_distribution(t_log* logger, t_planificador_config* setup, char* algorithm_name) {
 
 	if(string_equals_ignore_case(algorithm_name, "SJFCD")) {
-		setup.scheduling_algorithm = SJFCD;
+		setup->scheduling_algorithm = SJFCD;
 	}
 	else if(string_equals_ignore_case(algorithm_name, "SJFSD")) {
-		setup.scheduling_algorithm = SJFSD;
+		setup->scheduling_algorithm = SJFSD;
 	}
 	else if(string_equals_ignore_case(algorithm_name, "HRRN")){
-		setup.scheduling_algorithm = HRRN;
+		setup->scheduling_algorithm = HRRN;
 	}
 	else if(string_equals_ignore_case(algorithm_name, "FIFO")) {
-		setup.scheduling_algorithm = FIFO;
+		setup->scheduling_algorithm = FIFO;
 	} else {
 		log_error(logger, "Se intento asignar un algoritmo inexistente llamado %s.", algorithm_name);
 		exit_gracefully(EXIT_FAILURE);

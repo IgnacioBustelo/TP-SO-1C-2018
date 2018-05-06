@@ -9,8 +9,8 @@
 #include "../defines.h"
 #include "instance-request-list.h"
 
-static struct request_node_t *request_node_create_set(char *key, char *value);
-static struct request_node_t *request_node_create_store(char *key);
+static struct request_node_t *request_node_create_set(int esi_fd, char *key, char *value);
+static struct request_node_t *request_node_create_store(int esi_fd, char *key);
 static void request_list_push(struct request_list_t *request_list, struct request_node_t *elem);
 static void request_node_destroy(struct request_node_t *node);
 
@@ -34,17 +34,17 @@ void request_list_destroy(struct request_list_t *list)
 	sem_destroy(&list->count);
 }
 
-struct request_node_t *request_list_push_set(struct request_list_t *request_list, char *key, char *value)
+struct request_node_t *request_list_push_set(struct request_list_t *request_list, int esi_fd, char *key, char *value)
 {
-	struct request_node_t *node = request_node_create_set(key, value);
+	struct request_node_t *node = request_node_create_set(esi_fd, key, value);
 	request_list_push(request_list, node);
 
 	return node;
 }
 
-struct request_node_t *request_list_push_store(struct request_list_t *request_list, char *key)
+struct request_node_t *request_list_push_store(struct request_list_t *request_list, int esi_fd, char *key)
 {
-	struct request_node_t *node = request_node_create_store(key);
+	struct request_node_t *node = request_node_create_store(esi_fd, key);
 	request_list_push(request_list, node);
 
 	return node;
@@ -69,9 +69,10 @@ struct request_node_t *request_list_pop(struct request_list_t *request_list)
 	return node;
 }
 
-static struct request_node_t *request_node_create_set(char *key, char *value)
+static struct request_node_t *request_node_create_set(int esi_fd, char *key, char *value)
 {
 	struct request_node_t *node = malloc(sizeof(*node));
+	node->requesting_esi_fd = esi_fd;
 	node->type = INSTANCE_SET;
 	node->set.key = strdup(key);
 	node->set.value = strdup(value);
@@ -79,9 +80,10 @@ static struct request_node_t *request_node_create_set(char *key, char *value)
 	return node;
 }
 
-static struct request_node_t *request_node_create_store(char *key)
+static struct request_node_t *request_node_create_store(int esi_fd, char *key)
 {
 	struct request_node_t *node = malloc(sizeof(*node));
+	node->requesting_esi_fd = esi_fd;
 	node->type = INSTANCE_STORE;
 	node->store.key = strdup(key);
 

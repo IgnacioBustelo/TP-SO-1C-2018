@@ -25,6 +25,7 @@ static void esi_finished(int* flag);
 static double next_estimated_burst_sjf(double alpha, int last_real_burst, double last_estimated_burst);
 static double next_estimated_burst_hrrn(int waited_time, int last_real_burst);
 static void update_esi_information_next_estimated_burst(int esi_fd);
+static void block_by_console_procedure();
 
 /* -- Global variables -- */
 
@@ -34,7 +35,7 @@ t_planificador_config setup;
 t_list* g_locked_keys;
 t_list* g_esis_sexpecting_keys;
 t_list* g_esi_bursts;
-t_list* g_locked_keys_by_console;
+t_list* g_new_blocked_by_console_esis;
 
 t_list* g_new_queue;
 t_list* g_ready_queue;
@@ -43,7 +44,8 @@ t_list* g_blocked_queue;
 t_list* g_blocked_queue_by_console;
 t_list* g_finished_queue;
 
-int pause_flag = 0;
+int scheduler_paused_flag = 0;
+int block_esi_by_console_flag = 0;
 
 int main(void) {
 
@@ -182,6 +184,9 @@ int main(void) {
 				case PROTOCOL_CP_IS_THIS_KEY_BLOCKED:
 
 					last_key_inquired = receive_inquired_key(fd);
+
+					log_info(logger, "El coordinador preguntó si la clave %s está bloqueada", last_key_inquired);
+
 					response = determine_if_key_is_blocked(last_key_inquired);
                     if(response) {
 
@@ -200,10 +205,12 @@ int main(void) {
 					if(response) {
 
 						send_protocol_answer(fd, PROTOCOL_PC_KEY_BLOCKED_BY_EXECUTING_ESI);
+						log_info(logger, "La clave %s que fue solicitada fue bloqueada por el ESI en ejecución");
 					}
 					else {
 
 						send_protocol_answer(fd, PROTOCOL_PC_KEY_NOT_BLOCKED_BY_EXECUTING_ESI);
+						log_info(logger, "La clave %s que fue solicitada no fue bloqueada por el ESI en ejecución");
 					}
 					break;
 
@@ -279,19 +286,40 @@ int main(void) {
 						if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(last_key_inquired, &update_blocked_esi_queue_flag);
 
 						if (new_esi_flag == 1) update_new_esi_queue(&new_esi_flag);
+
+						if(block_esi_by_console_flag == 1) block_by_console_procedure();
+
 					}
 
 				}
 
 				if (reschedule_flag == 1){
 
-					if (pause_flag==1) pause_now();
 					reschedule(&reschedule_flag, &old_executing_esi);
 				}
-				else authorize_esi_execution(*(int*)g_execution_queue->head->data);
+				else if (!list_is_empty(g_execution_queue)) {
+
+					authorize_esi_execution(*(int*)g_execution_queue->head->data);
+				}
 
 			}
 		}
+
+		if(list_is_empty(g_execution_queue) && !list_is_empty(g_new_queue)) {
+
+			if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(last_key_inquired, &update_blocked_esi_queue_flag);
+
+			if (new_esi_flag == 1) update_new_esi_queue(&new_esi_flag);
+
+			if (block_esi_by_console_flag == 1) block_by_console_procedure();
+
+			if(scheduler_paused_flag != 1) {
+
+				reschedule(&reschedule_flag, &old_executing_esi);
+			}
+
+		}
+
 	}
 
 	return EXIT_SUCCESS;
@@ -335,6 +363,14 @@ void create_administrative_structures() {
 	g_blocked_queue = list_create();
 	g_blocked_queue_by_console = list_create();
 	g_finished_queue = list_create();
+	g_new_blocked_by_console_esis = list_create();
+
+	int i = 0;
+	while(setup.blocked_keys[i] != NULL) {
+
+		list_add(g_locked_keys, (void*)create_key_blocker(setup.blocked_keys[i], -1));
+		i++;
+	}
 }
 
 void destroy_administrative_structures() {
@@ -373,11 +409,16 @@ void destroy_administrative_structures() {
 	list_destroy_and_destroy_elements(g_blocked_queue_by_console, delete_int_node);
 	list_destroy_and_destroy_elements(g_finished_queue, delete_int_node);
 	list_destroy_and_destroy_elements(g_new_queue, delete_int_node);
+
+	list_destroy_and_destroy_elements(g_new_blocked_by_console_esis, destroy_esi_sexpecting_key);
 }
 
 void put_new_esi_on_new_queue(int new_client_fd) {
 
-	list_add(g_new_queue,(void*)&new_client_fd);
+	int* client_fd = malloc(sizeof(int));
+	*client_fd = new_client_fd;
+
+	list_add(g_new_queue,(void*)client_fd);
 }
 
 void authorize_esi_execution(int esi_fd) {
@@ -439,7 +480,9 @@ void update_waiting_time_of_ready_esis() {
 void move_esi_from_and_to_queue(t_list* from_queue, t_list* to_queue, int esi_fd) {
 
 	take_esi_away_from_queue(from_queue, esi_fd);
-	list_add(to_queue, (void*)esi_fd);
+	int* esi = malloc(sizeof(int));
+	*esi = esi_fd;
+	list_add(to_queue, (void*)esi);
 }
 
 int schedule_esis() {
@@ -603,12 +646,7 @@ void update_new_esi_queue(int* new_esi_flag) {
 
 	list_add_all(g_ready_queue, g_new_queue);
 
-	void int_destroyer(void* esi_fd) {
-
-		free((int*) esi_fd);
-	}
-
-	list_clean_and_destroy_elements(g_new_queue, int_destroyer);
+	list_clean(g_new_queue);
 
 	*new_esi_flag = 0;
 }
@@ -656,13 +694,6 @@ void release_resources(int esi_fd, int* update_blocked_esi_queue_flag) {
 
 }
 
-void pause_now() {
-
-	//Leproso, revisar
-	getchar();
-	getchar();
-}
-
 void exit_gracefully(int status) {
 
 	log_info(logger, "La ejecución del planificador terminó");
@@ -687,7 +718,7 @@ static bool algorithm_is_preemptive() {
 	int algorithm_type = setup.scheduling_algorithm;
 	switch (algorithm_type) {
 
-	case 0:
+	case 1:
 		return true;
 		break;
 	default:
@@ -834,4 +865,88 @@ static void update_esi_information_next_estimated_burst(int esi_fd) {
 		esi_inf->last_real_burst = 0;
 		esi_inf->waited_bursts = 0;
 	}
+}
+
+static void block_by_console_procedure() {
+
+	void* trans(void* esi_sexpecting_key_) {
+
+		bool condition(void* esi_inf) {
+
+			return ((esi_information*)esi_inf)->esi_numeric_name == ((esi_sexpecting_key*)esi_sexpecting_key_)->esi_fd;
+		}
+
+	    esi_information* esi_inf = list_find(g_esi_bursts, condition);
+
+	    ((esi_sexpecting_key*)esi_sexpecting_key_)->esi_fd = esi_inf->esi_id;
+
+		return esi_sexpecting_key_;
+	}
+
+	t_list* mapped_list = list_map(g_new_blocked_by_console_esis, trans);
+	list_add_all(g_esis_sexpecting_keys, mapped_list);
+
+	void* transformer(void* esi_key) {
+
+		return (void*)(((esi_sexpecting_key*)esi_key)->esi_fd);
+	}
+
+	t_list* esis = list_map(mapped_list, transformer);
+
+	bool condition2(void* esi_fd) {
+
+		return *(int*)g_execution_queue->head->data == *(int*)esi_fd;
+	}
+
+	if(!list_is_empty(g_execution_queue) && list_any_satisfy(esis, condition2)) {
+
+		int* esi_executing_and_dispatched = list_find(esis, condition2);
+		take_esi_away_from_queue(g_execution_queue, *esi_executing_and_dispatched);
+		list_add(g_blocked_queue_by_console, (void*)esi_executing_and_dispatched);
+	}
+
+	bool condition3(void* esi_fd) {
+
+		bool condition4(void* esi_fd_in_ready) {
+
+			return *(int*)esi_fd_in_ready == *(int*)esi_fd;
+		}
+
+		return list_any_satisfy(g_ready_queue, condition4);
+	}
+
+	if (!list_is_empty(g_ready_queue) && list_any_satisfy(esis, condition3)) {
+
+		t_list* filtered_list = list_filter(esis, condition3);
+
+		bool remove_condition(void* esi_fd_ready) {
+
+			bool condition5(void* esi_fd) {
+
+				return *(int*)esi_fd == *(int*)esi_fd_ready;
+			}
+
+			return list_any_satisfy(filtered_list, condition5);
+		}
+
+		void int_destroyer(void* int_) {
+
+			free((int*) int_);
+		}
+
+		list_remove_and_destroy_by_condition(g_ready_queue, remove_condition, int_destroyer);
+		list_add_all(g_blocked_queue_by_console, filtered_list);
+	}
+
+	//Hay que validar que no me traten de bloquear un ESI que no estaba en ready o ejecucion -- TODO
+
+	void destroy_esi_sexpecting_key(void* esi_sexpecting_key_) {
+
+		free(((esi_sexpecting_key*) esi_sexpecting_key_)->key);
+		free(esi_sexpecting_key_);
+	}
+
+	list_clean_and_destroy_elements(g_new_blocked_by_console_esis, destroy_esi_sexpecting_key);
+
+	block_esi_by_console_flag = 0;
 }

@@ -10,6 +10,7 @@ enum request_type_t {
 };
 
 struct request_node_t {
+	int requesting_esi_fd;
 	enum request_type_t type;
 	union {
 		struct {
@@ -30,8 +31,8 @@ struct request_list_t {
 
 struct request_list_t *request_list_create(void);
 void request_list_destroy(struct request_list_t *list);
-struct request_node_t *request_list_push_set(struct request_list_t *request_list, char *key, char *value);
-struct request_node_t *request_list_push_store(struct request_list_t *request_list, char *key);
+struct request_node_t *request_list_push_set(struct request_list_t *request_list, int esi_fd, char *key, char *value);
+struct request_node_t *request_list_push_store(struct request_list_t *request_list, int esi_fd, char *key);
 struct request_node_t *request_list_pop(struct request_list_t *request_list);
 
 #endif /* COORDINADOR_INSTANCE_REQUEST_LIST_H_ */
