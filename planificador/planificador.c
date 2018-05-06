@@ -864,18 +864,76 @@ static void update_esi_information_next_estimated_burst(int esi_fd) {
 
 static void block_by_console_procedure() {
 
-	//obtener el esi_fd y no el numeric value
-	list_add_all(g_esis_sexpecting_keys, g_new_blocked_by_console_esis);
+	void* trans(void* esi_sexpecting_key_) {
+
+		bool condition(void* esi_inf) {
+
+			return ((esi_information*)esi_inf)->esi_numeric_name == ((esi_sexpecting_key*)esi_sexpecting_key_)->esi_fd;
+		}
+
+	    esi_information* esi_inf = list_find(g_esi_bursts, condition);
+
+	    ((esi_sexpecting_key*)esi_sexpecting_key_)->esi_fd = esi_inf->esi_id;
+
+		return esi_sexpecting_key_;
+	}
+
+	t_list* mapped_list = list_map(g_new_blocked_by_console_esis, trans);
+	list_add_all(g_esis_sexpecting_keys, mapped_list);
 
 	void* transformer(void* esi_key) {
 
-		return ((esi_sexpecting_key*)esi_key)->esi_fd;
+		return (void*)(((esi_sexpecting_key*)esi_key)->esi_fd);
 	}
 
-	t_list* esis = list_map(g_new_blocked_by_console_esis, transformer);
+	t_list* esis = list_map(mapped_list, transformer);
 
-	//Falta sacar a los que estaban en listos o ejecucion y obtener el esi_fd y no el numeric value
-	list_add_all(g_blocked_queue_by_console, esis);
+	bool condition2(void* esi_fd) {
+
+		return *(int*)g_execution_queue->head->data == *(int*)esi_fd;
+	}
+
+	if(!list_is_empty(g_execution_queue) && list_any_satisfy(esis, condition2)) {
+
+		int* esi_executing_and_dispatched = list_find(esis, condition2);
+		take_esi_away_from_queue(g_execution_queue, *esi_executing_and_dispatched);
+		list_add(g_blocked_queue_by_console, (void*)esi_executing_and_dispatched);
+	}
+
+	bool condition3(void* esi_fd) {
+
+		bool condition4(void* esi_fd_in_ready) {
+
+			return *(int*)esi_fd_in_ready == *(int*)esi_fd;
+		}
+
+		return list_any_satisfy(g_ready_queue, condition4);
+	}
+
+	if (!list_is_empty(g_ready_queue) && list_any_satisfy(esis, condition3)) {
+
+		t_list* filtered_list = list_filter(esis, condition3);
+
+		bool remove_condition(void* esi_fd_ready) {
+
+			bool condition5(void* esi_fd) {
+
+				return *(int*)esi_fd == *(int*)esi_fd_ready;
+			}
+
+			return list_any_satisfy(filtered_list, condition5);
+		}
+
+		void int_destroyer(void* int_) {
+
+			free((int*) int_);
+		}
+
+		list_remove_and_destroy_by_condition(g_ready_queue, remove_condition, int_destroyer);
+		list_add_all(g_blocked_queue_by_console, filtered_list);
+	}
+
+	//Hay que validar que no me traten de bloquear un ESI que no estaba en ready o ejecucion -- TODO
 
 	void destroy_esi_sexpecting_key(void* esi_sexpecting_key_) {
 
