@@ -7,7 +7,7 @@
 #include "../libs/comando.h"
 #include "planificador.h"
 
-extern int pause_flag;
+extern int scheduler_paused_flag;
 extern t_list* g_esis_sexpecting_keys;
 
 /**

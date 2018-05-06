@@ -54,14 +54,14 @@ static void pause_scheduler(char **_)
 {
 	printf("Pausar planificacion\n");
 
-	pause_flag = 1;
+	scheduler_paused_flag = 1;
 }
 
 static void resume_scheduler(char **_)
 {
 	printf("Continuar planificacion\n");
 
-	pause_flag = 0;
+	scheduler_paused_flag = 0;
 }
 
 static void lock_process(char **args)

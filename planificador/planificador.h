@@ -170,10 +170,4 @@ void update_new_esi_queue(int* new_esi_flag);
 
 void release_resources(int esi_fd, int* update_blocked_esi_queue_flag);
 
-/*
- * El planificador pausa su planificación
- */
-
-void pause_now();
-
 #endif /* PLANIFICADOR_PLANIFICADOR_H_ */
