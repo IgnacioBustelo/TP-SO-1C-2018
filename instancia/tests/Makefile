@@ -1,10 +1,11 @@
 TARGET = et_insert st_init st_set api_set_instancia api_set_coordinador
 LIBS = -lcommons
 
-DEPS = utils.h ../instancia.h ../entry_table.h ../coordinator_api.h ../storage.h ../../libs/conector.h ../../libs/serializador.h ../../libs/deserializador.h
-ET_SRC = utils.c ../entry_table.c
-ST_SRC = utils.c ../entry_table.c ../storage.c
-API_SRC = utils.c ../coordinator_api.c ../../libs/conector.c ../../libs/deserializador.c ../../libs/serializador.c
+DEPS = utils.h ../coordinator_api.h ../globals.h ../entry_table.h ../instancia.h ../storage.h ../../libs/conector.h ../../libs/serializador.h ../../libs/serializador_v2.h ../../libs/deserializador.h
+ET_SRC = utils.c ../globals.c ../entry_table.c
+ST_SRC = utils.c ../globals.c ../entry_table.c ../storage.c
+API_SRC = utils.c ../globals.c ../coordinator_api.c ../../libs/conector.c ../../libs/deserializador.c ../../libs/serializador.c ../../libs/serializador_v2.c
+COORD_SRC = ../../libs/conector.c ../../libs/serializador_v2.c
 
 .PHONY = clean $(TARGET)
 
@@ -22,8 +23,8 @@ st_set: storage_set.c $(ST_SRC) $(DEPS)
 api_set_instancia: api_set_instancia.c $(API_SRC) $(DEPS)
 	gcc $< $(API_SRC) -o $@ $(LIBS)
 	
-api_set_coordinador: api_set_coordinador.c $(API_SRC) $(DEPS)
-	gcc $< $(API_SRC) -o $@ $(LIBS)
+api_set_coordinador: api_set_coordinador.c $(COORD_SRC) $(DEPS)
+	gcc $< $(COORD_SRC) -o $@ $(LIBS)
 
 clean:
 	rm -f *.o $(TARGET)

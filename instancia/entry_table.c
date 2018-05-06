@@ -1,39 +1,28 @@
 #include <stdlib.h>
 
 #include "entry_table.h"
-#include "instancia.h"
-#include "storage.h"
+#include "globals.h"
 
-int entry_table_init() {
+void entry_table_init() {
 	entry_table = dictionary_create();
-
-	if (entry_table != NULL) {
-		return ET_INIT_SUCCESS;
-	}
-
-	else {
-		return ET_INIT_ERROR;
-	}
 }
 
-int entry_table_insert(key_value_t* key_value) {
+void entry_table_insert(int next_entry, key_value_t* key_value) {
 	entry_t* entry = malloc(sizeof(entry_t));
 
-	entry->number = storage_set(key_value);
+	entry->number = next_entry;
 	entry->size = key_value->size;
 
 	dictionary_put(entry_table, key_value->key, (void*) entry);
-
-	return ET_INSERT_SUCCESS;
 }
 
 
-int entry_table_update(key_value_t* key_value){
+void entry_table_update(int next_entry, key_value_t* key_value){
 	if(dictionary_has_key(entry_table,key_value->key))
 			{
 				entry_t* entry = malloc(sizeof(entry_t));
 
-				entry_t* entry_old = dictionary_get(entry_table,key_value);
+				entry_t* entry_old = dictionary_get(entry_table, key_value->key);
 
 				entry->number=entry_old->number;
 				entry->size = key_value->size;
@@ -42,13 +31,10 @@ int entry_table_update(key_value_t* key_value){
 
 				dictionary_put(entry_table, key_value->key, (void*) entry);
 
-				storage_update(key_value);
-
-				return ET_UPDATE_SUCCESS;
+				// storage_update(key_value); Perdón, pero esto ya no es necesario.
 			}
-	return ET_UPDATE_ERROR;
 }
 
-int entry_table_delete(char* key){
-	return 1;
+void entry_table_delete(char* key){
+
 }

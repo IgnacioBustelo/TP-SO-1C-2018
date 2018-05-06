@@ -1,36 +1,39 @@
-#include "coordinator_api.h"
-
 #include <commons/string.h>
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "../protocolo/protocolo_coordinador_instancia.h"
 #include "../libs/deserializador.h"
 #include "../libs/serializador.h"
-#include "instancia.h"
+#include "../libs/serializador_v2.h"
+#include "coordinator_api.h"
+#include "globals.h"
 
-void coordinator_api_request() {
-	request_coordinador header;
+key_value_t* coordinator_api_receive_set() {
+	char *key, *value;
 
-	recv_package(fd_coordinador, &header, sizeof(request_coordinador));
+	recv_package_variable(fd_coordinador, (void**) &key);
+	recv_package_variable(fd_coordinador, (void**) &value);
 
-	switch(header) {
-		case PROTOCOL_CI_SET: /*instance_set()*/; break;
+	key_value_t* key_value = key_value_create(key, value);
 
-		default: break;
-	}
-}
-
-key_value_t* coordinator_receive_set() {
-	key_value_t* key_value = malloc(sizeof(key_value_t));
-
-	recv_package_variable(fd_coordinador, (void**) &key_value->key);
-	recv_package_variable(fd_coordinador, (void**) &key_value->value);
-
-	key_value->size = string_length(key_value->value) + 1;
+	free(key);
+	free(value);
 
 	return key_value;
 }
 
-int coordinator_notify_status(int status) {
-	return send(fd_coordinador, &status, sizeof(int), 0);
+void coordinator_api_notify_status(int status) {
+	chunk_t* chunk = chunk_create();
+	request_instancia header = PROTOCOL_IC_NOTIFY_STATUS;
+
+	chunk_add(chunk, &header, sizeof(header));
+	chunk_add(chunk, &status, sizeof(status));
+
+	void* status_message = chunk_build(chunk);
+
+	send_serialized_package(fd_coordinador, &status_message, chunk->current_size);
+
+	free(status_message);
+	chunk_destroy(chunk);
 }

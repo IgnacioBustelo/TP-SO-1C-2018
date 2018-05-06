@@ -7,13 +7,13 @@
 
 // Implementaciones mock
 
-int storage_next_entry(size_t size) {
+void store_next_key_value(key_value_t* key_value) {
 	static int next_entry = 0, current_entry = 0;
 
 	current_entry = next_entry;
-	next_entry = current_entry + required_entries(size);
+	next_entry = current_entry + entry_table_required_entries(key_value->size);
 
-	return current_entry;
+	storage_set(current_entry, key_value);
 }
 
 // Creación y Destrucción
@@ -23,8 +23,8 @@ t_list* key_value_list;
 void before(int argc, char* argv[]) {
 	key_value_list = list_create();
 
-	total_entries = (argc < 2) ? 10 : (size_t) atoi(argv[1]);
-	entry_size = (argc < 3) ? 5 : (size_t) atoi(argv[2]);
+	storage_setup.total_entries = (argc < 2) ? 10 : (size_t) atoi(argv[1]);
+	storage_setup.entry_size = (argc < 3) ? 5 : (size_t) atoi(argv[2]);
 
 	if(argc < 5) {
 		list_add(key_value_list, key_value_create("A", "XD"));
@@ -50,9 +50,9 @@ void after() {
 int main(int argc, char* argv[]) {
 	before(argc, argv);
 
-	printf("Tamanio de entradas: %d\nCantidad de entradas: %d\n", entry_size, total_entries);
+	printf("Tamanio de entradas: %d\nCantidad de entradas: %d\n", storage_setup.entry_size, storage_setup.total_entries);
 
-	list_iterate(key_value_list, (void*) storage_set);
+	list_iterate(key_value_list, (void*) store_next_key_value);
 
 	printf("Valores almacenados en el Storage:\n");
 	print_ordered_stored_values();
