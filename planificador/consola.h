@@ -8,7 +8,9 @@
 #include "planificador.h"
 
 extern int scheduler_paused_flag;
+extern int block_esi_by_console_flag;
 extern t_list* g_esis_sexpecting_keys;
+extern t_list* g_new_blocked_by_console_esis;
 
 /**
  * Recibe una linea de comando y lo ejecuta.
@@ -22,12 +24,8 @@ void *init_console();
 
 #endif /* PLANIFICADOR_CONSOLA_H_ */
 
+/*
+ * Muestra los procesos bloqueados por una determinada clave
+ */
 
-/*
- * Establece el flag de pausa en 1
- */
-void pause_planific(void);
-/*
- * Muestra los procesos bloqueados por una determinada key
- */
-void show_blocked_process(void * resource);
+void show_blocked_process(char* resource);

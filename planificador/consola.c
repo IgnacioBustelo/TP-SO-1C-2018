@@ -30,6 +30,7 @@ int execute_console_command(char *command_line)
 
 void *init_console(void* _)
 {
+
 	for (;;) {
 		char *line = readline("> ");
 		int execute_result = execute_console_command(line);
@@ -69,13 +70,16 @@ static void lock_process(char **args)
 	void _lock_process(char *key, char *pid) {
 
 		printf("Bloquear proceso ESI (clave = %s, id = %s)\n", key, pid);
+		block_esi_by_console_flag = 1;
+		list_add(g_new_blocked_by_console_esis, (void*)create_esi_sexpecting_key(*(int*)pid, key));
+
 	}
 	_lock_process(args[0], args[1]);
 }
 
 static void unlock_process(char **args)
 {
-	void _unlock_process(char *key) {
+	void _unlock_process(char* key) {
 		printf("Desbloquear proceso ESI (clave = %s)\n", key);
 	}
 
@@ -84,7 +88,7 @@ static void unlock_process(char **args)
 
 static void list_locked_process(char **args)
 {
-	void _list_locked_process(char *resource) {
+	void _list_locked_process(char* resource) {
 
 		printf("Listar processos bloqueados por recurso %s\n", resource);
 		show_blocked_process(resource);
@@ -113,13 +117,16 @@ static void check_deadlock(char **_)
 	printf("Detectar deadlock\n");
 }
 
-void show_blocked_process(void * resource){
-	void show_esi_from_resource(void* recurs){
-		if ( ((esi_sexpecting_key*)recurs)->key == (char*)resource){
-			printf("El proceso %i se encuentra bloqueado por la clave %s\n", ((esi_sexpecting_key*)recurs)->esi_fd,(char*)resource);
+void show_blocked_process(char* resource) {
+
+	void show_esi_from_resource(void* resource2){
+
+		if (strcmp(((esi_sexpecting_key*)resource2)->key, resource) == 0) {
+
+			printf("El proceso %i se encuentra bloqueado por la clave %s\n", ((esi_sexpecting_key*)resource2)->esi_fd, resource);
 		}
 	}
 
-	list_iterate(g_esis_sexpecting_keys,show_blocked_process);
+	list_iterate(g_esis_sexpecting_keys, show_esi_from_resource);
 }
 
