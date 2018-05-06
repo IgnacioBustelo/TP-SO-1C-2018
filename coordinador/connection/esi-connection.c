@@ -41,14 +41,17 @@ static struct esi_operation_t *esi_recv_operation(int fd);
 static bool esi_recv_get_args(int fd, struct esi_operation_t *operation);
 static bool esi_recv_set_args(int fd, struct esi_operation_t *operation);
 static bool esi_recv_store_args(int fd, struct esi_operation_t *operation);
+static void esi_operation_destroy(struct esi_operation_t *victim);
 
 void handle_esi_connection(int fd)
 {
 	struct esi_operation_t *operation;
 	for (operation = esi_recv_operation(fd); operation != NULL; operation = esi_recv_operation(fd)) {
 		if (!handle_esi_operation(fd, operation)) {
+			esi_operation_destroy(operation);
 			break;
 		}
+		esi_operation_destroy(operation);
 	}
 
 	log_error(logger, "[ESI] Socket %d: Cerrando conexion.", fd);
@@ -62,13 +65,16 @@ static bool handle_esi_operation(int fd, struct esi_operation_t *operation)
 		switch (scheduler_recv_key_state(operation->get.key)) {
 		case KEY_UNBLOCKED:
 		case KEY_BLOCKED_BY_EXECUTING_ESI:
+			log_info(logger, "[ESI] Socket %d: Bloqueando la clave...", fd);
 			scheduler_block_key();
 			esi_send_execution_success(fd);
 			break;
 		case KEY_BLOCKED:
+			log_info(logger, "[ESI] Socket %d: Clave bloqueada.", fd);
 			esi_send_notify_block(fd);
 			break;
 		case KEY_RECV_ERROR:
+			log_error(logger, "[ESI] Socket %d: Error al recibir estado de la clave desde el Planificador!", fd);
 			return false;
 		}
 	} else {
@@ -129,6 +135,7 @@ static struct esi_operation_t *esi_recv_operation(int fd)
 		log_info(logger, "[ESI] Socket %d: Se recibio correctamente los argumentos de la operacion.", fd);
 		return operation;
 	} else {
+		free(operation);
 		return NULL;
 	}
 }
@@ -217,4 +224,22 @@ bool esi_send_illegal_operation(int fd)
 {
 	int msg = PROTOCOL_CE_ILLEGAL_OPERATION;
 	return CHECK_SEND(fd, &msg);
+}
+
+static void esi_operation_destroy(struct esi_operation_t *victim)
+{
+	switch (victim->type) {
+	case ESI_GET:
+		free(victim->get.key);
+		break;
+	case ESI_SET:
+		free(victim->set.key);
+		free(victim->set.value);
+		break;
+	case ESI_STORE:
+		free(victim->store.key);
+		break;
+	}
+
+	free(victim);
 }
