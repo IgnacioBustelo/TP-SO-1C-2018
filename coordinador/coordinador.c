@@ -107,7 +107,7 @@ static void *handle_connection(void *arg)
 		case SCHEDULER:
 			log_info(logger, "Socket %d identificado como Planificador", fd);
 			handle_scheduler_connection(fd);
-			break;
+			return NULL;
 		case ESI:
 			log_info(logger, "Socket %d identificado como ESI", fd);
 			handle_esi_connection(fd);

@@ -7,6 +7,7 @@
 #include "../defines.h"
 #include "../logger.h"
 #include "../config.h"
+#include "../connection/esi-connection.h"
 #include "../instance-list/instance-list.h"
 #include "../instance-list/instance-request-list.h"
 
@@ -72,13 +73,30 @@ void handle_instance_connection(int fd)
 		}
 
 		if (!send_success) {
+			/* TODO: Bloquear ESI por la desconexion de la instancia. */
 			log_error(logger, "[Instancia %s] Error al enviar instruccion!", name);
+			esi_send_notify_block(request->requesting_esi_fd);
 			break;
 		}
 
 		int status;
 		if (!instance_recv_execution_status(fd, &status)) {
 			log_error(logger, "[Instancia %s] Error al recibir resultado de ejecucion!", name);
+			esi_send_notify_block(request->requesting_esi_fd);
+			break;
+		}
+
+		/* status:
+		 *   (1) success.
+		 *   (0) failure.
+		 */
+		if (status == 1) {
+			esi_send_execution_success(request->requesting_esi_fd);
+		} else if (status == 0) {
+			esi_send_notify_block(request->requesting_esi_fd);
+			break;
+		} else {
+			esi_send_notify_block(request->requesting_esi_fd);
 			break;
 		}
 	}
