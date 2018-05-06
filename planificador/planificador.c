@@ -184,6 +184,9 @@ int main(void) {
 				case PROTOCOL_CP_IS_THIS_KEY_BLOCKED:
 
 					last_key_inquired = receive_inquired_key(fd);
+
+					log_info(logger, "El coordinador preguntó si la clave %s está bloqueada", last_key_inquired);
+
 					response = determine_if_key_is_blocked(last_key_inquired);
                     if(response) {
 
@@ -202,10 +205,12 @@ int main(void) {
 					if(response) {
 
 						send_protocol_answer(fd, PROTOCOL_PC_KEY_BLOCKED_BY_EXECUTING_ESI);
+						log_info(logger, "La clave %s que fue solicitada fue bloqueada por el ESI en ejecución");
 					}
 					else {
 
 						send_protocol_answer(fd, PROTOCOL_PC_KEY_NOT_BLOCKED_BY_EXECUTING_ESI);
+						log_info(logger, "La clave %s que fue solicitada no fue bloqueada por el ESI en ejecución");
 					}
 					break;
 
