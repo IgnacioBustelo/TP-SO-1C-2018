@@ -105,6 +105,7 @@ int main(void) {
 	pthread_create(&tid, &attrs, init_console, parasite);
 
 	int esi_numeric_arrival_order = 1;
+	int executing_esi = -1;
 
 	while (1) {
 
@@ -116,8 +117,7 @@ int main(void) {
 		}
 
 		int fd;
-		char* last_key_inquired;
-		int old_executing_esi = -1;
+		char* last_key_inquired; //Hay que ver dónde hacer el free cuando termina de usarla -- TODO
 
 		for (fd = 0; fd <= max_fd; fd++) {
 
@@ -191,10 +191,12 @@ int main(void) {
                     if(response) {
 
                     	send_protocol_answer(fd, PROTOCOL_PC_KEY_IS_BLOCKED);
+                    	log_info(logger, "La clave solicitada estaba bloqueada");
                     }
                     else {
 
                     	send_protocol_answer(fd, PROTOCOL_PC_KEY_IS_NOT_BLOCKED);
+                    	log_info(logger, "La clave solicitada no estaba bloqueada");
                     }
                     break;
 
@@ -230,7 +232,7 @@ int main(void) {
 					break;
 				}
 
-			} else if (fd == *(int*) g_execution_queue->head->data) {
+			} else if (fd == executing_esi) {
 
 				int confirmation = receive_execution_result(fd);
 
@@ -246,7 +248,11 @@ int main(void) {
 					if(script_end == PROTOCOL_EP_FINISHED_SCRIPT) {
 
 						esi_finished(&finished_esi_flag);
+
+						if(!list_is_empty(g_ready_queue)) {
+
 						we_must_reschedule(&reschedule_flag);
+						}
 					}
 					break;
 
@@ -254,7 +260,11 @@ int main(void) {
 					list_add(g_esis_sexpecting_keys, (void*)create_esi_sexpecting_key(fd, last_key_inquired));
 					move_esi_from_and_to_queue(g_execution_queue, g_blocked_queue, fd);
 					update_esi_information_next_estimated_burst(fd);
-					we_must_reschedule(&reschedule_flag);
+
+					if (!list_is_empty(g_ready_queue)) {
+
+						we_must_reschedule(&reschedule_flag);
+					}
 
 					log_info(logger,"El ESI %i se encuentra bloqueado esperando la clave %s", obtain_esi_information_by_id(fd)->esi_numeric_name, last_key_inquired);
 					break;
@@ -271,6 +281,7 @@ int main(void) {
 					log_info(logger,"El ESI %i finalizó la ejecución de su script correctamente", obtain_esi_information_by_id(fd)->esi_numeric_name);
 					release_resources(*(int*)g_execution_queue->head->data, &update_blocked_esi_queue_flag);
 					move_esi_from_and_to_queue(g_execution_queue, g_finished_queue, *(int*)g_execution_queue->head->data);
+					executing_esi = -1;
 					finished_esi_flag = 0;
 				} else {
 
@@ -295,7 +306,7 @@ int main(void) {
 
 				if (reschedule_flag == 1){
 
-					reschedule(&reschedule_flag, &old_executing_esi);
+					reschedule(&reschedule_flag, &executing_esi);
 				}
 				else if (!list_is_empty(g_execution_queue)) {
 
@@ -305,7 +316,7 @@ int main(void) {
 			}
 		}
 
-		if(list_is_empty(g_execution_queue) && !list_is_empty(g_new_queue)) {
+		if(list_is_empty(g_execution_queue) && !list_is_empty(g_new_queue) && scheduler_paused_flag != 1) {
 
 			if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(last_key_inquired, &update_blocked_esi_queue_flag);
 
@@ -313,11 +324,7 @@ int main(void) {
 
 			if (block_esi_by_console_flag == 1) block_by_console_procedure();
 
-			if(scheduler_paused_flag != 1) {
-
-				reschedule(&reschedule_flag, &old_executing_esi);
-			}
-
+			reschedule(&reschedule_flag, &executing_esi);
 		}
 
 	}
@@ -327,17 +334,17 @@ int main(void) {
 
 key_blocker* create_key_blocker(char* key, int esi_id){
 
-    key_blocker* key_blocker = malloc(sizeof(key_blocker));
-    key_blocker->key = key;
-    key_blocker->esi_id = esi_id;
-    return key_blocker;
+    key_blocker* key_blocker_ = malloc(sizeof(key_blocker));
+    key_blocker_->key = strdup(key);
+    key_blocker_->esi_id = esi_id;
+    return key_blocker_;
 }
 
 esi_sexpecting_key* create_esi_sexpecting_key(int esi_fd, char* key) {
 
 	esi_sexpecting_key* new_esi_blocked = malloc(sizeof(esi_sexpecting_key));
 	new_esi_blocked->esi_fd = esi_fd;
-	new_esi_blocked->key = key;
+	new_esi_blocked->key = strdup(key);
 	return new_esi_blocked;
 }
 
@@ -653,7 +660,9 @@ void update_new_esi_queue(int* new_esi_flag) {
 
 void release_resources(int esi_fd, int* update_blocked_esi_queue_flag) {
 
-	log_info(logger,"Liberando recursos del ESI %i...", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
+	int esi_numeric_order = obtain_esi_information_by_id(esi_fd)->esi_numeric_name;
+
+	log_info(logger,"Liberando recursos del ESI %i...", esi_numeric_order);
 
 	bool condition(void* key_locker_) {
 
@@ -690,7 +699,7 @@ void release_resources(int esi_fd, int* update_blocked_esi_queue_flag) {
 
 	list_remove_and_destroy_by_condition(g_esi_bursts, condition2, destroy_esi_information);
 
-	log_info(logger,"Los recursos del ESI %i fueron liberados correctamente", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
+	log_info(logger,"Los recursos del ESI %i fueron liberados correctamente", esi_numeric_order);
 
 }
 
@@ -795,12 +804,7 @@ static char* receive_inquired_key(int coordinator_fd) {
 
 static void add_new_key_blocker(char* blocked_key) {
 
-	key_blocker* key_blocker_ = malloc(sizeof(key_blocker));
-	memcpy(key_blocker_->key, blocked_key, strlen(blocked_key));
-	memcpy(&(key_blocker_->esi_id), (int*)g_execution_queue->head->data, sizeof(int));
-
-	free(blocked_key);
-	list_add(g_locked_keys, (void*)key_blocker_);
+	list_add(g_locked_keys, (void*) create_key_blocker(blocked_key,*(int*)g_execution_queue->head->data));
 }
 
 static void send_protocol_answer(int coordinator_fd, protocol_id protocol) {
