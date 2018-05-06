@@ -101,7 +101,7 @@ static struct esi_operation_t *esi_recv_operation(int fd)
 	log_info(logger, "[ESI] Socket %d: Esperando una operacion de ESI...", fd);
 
 	int op_id;
-	if (CHECK_RECV(fd, &op_id)) {
+	if (!CHECK_RECV(fd, &op_id)) {
 		log_error(logger, "[ESI] Socket %d: Error al recibir operacion!", fd);
 		return NULL;
 	}
@@ -143,13 +143,13 @@ static struct esi_operation_t *esi_recv_operation(int fd)
 static bool esi_recv_get_args(int fd, struct esi_operation_t *operation)
 {
 	size_t key_size;
-	if (CHECK_RECV(fd, &key_size)) {
+	if (!CHECK_RECV(fd, &key_size)) {
 		log_error(logger, "[ESI] Socket %d: Error al recibir tamanio de la clave!", fd);
 		return false;
 	}
 
 	operation->get.key = malloc(key_size);
-	if (CHECK_RECV_WITH_SIZE(fd, operation->get.key, key_size)) {
+	if (!CHECK_RECV_WITH_SIZE(fd, operation->get.key, key_size)) {
 		log_error(logger, "[ESI] Socket %d: Error al recibir la clave!", fd);
 		free(operation->get.key);
 		return false;
@@ -161,26 +161,26 @@ static bool esi_recv_get_args(int fd, struct esi_operation_t *operation)
 static bool esi_recv_set_args(int fd, struct esi_operation_t *operation)
 {
 	size_t key_size;
-	if (CHECK_RECV(fd, &key_size)) {
+	if (!CHECK_RECV(fd, &key_size)) {
 		log_error(logger, "[ESI] Socket %d: Error al recibir tamanio de la clave!", fd);
 		return false;
 	}
 
 	operation->set.key = malloc(key_size);
-	if (CHECK_RECV_WITH_SIZE(fd, operation->set.key, key_size)) {
+	if (!CHECK_RECV_WITH_SIZE(fd, operation->set.key, key_size)) {
 		log_error(logger, "[ESI] Socket %d: Error al recibir la clave!", fd);
 		free(operation->set.key);
 		return false;
 	}
 
 	size_t value_size;
-	if (CHECK_RECV(fd, &value_size)) {
+	if (!CHECK_RECV(fd, &value_size)) {
 		log_error(logger, "[ESI] Socket %d: Error al recibir tamanio del valor!", fd);
 		return false;
 	}
 
 	operation->set.value = malloc(value_size);
-	if (CHECK_RECV_WITH_SIZE(fd, operation->set.value, value_size)) {
+	if (!CHECK_RECV_WITH_SIZE(fd, operation->set.value, value_size)) {
 		log_error(logger, "[ESI] Socket %d: Error al recibir el valor!", fd);
 		free(operation->set.key);
 		free(operation->set.value);
@@ -193,13 +193,13 @@ static bool esi_recv_set_args(int fd, struct esi_operation_t *operation)
 static bool esi_recv_store_args(int fd, struct esi_operation_t *operation)
 {
 	size_t key_size;
-	if (CHECK_RECV(fd, &key_size)) {
+	if (!CHECK_RECV(fd, &key_size)) {
 		log_error(logger, "[ESI] Socket %d: Error al recibir tamanio de la clave!", fd);
 		return false;
 	}
 
 	operation->store.key = malloc(key_size);
-	if (CHECK_RECV_WITH_SIZE(fd, operation->store.key, key_size)) {
+	if (!CHECK_RECV_WITH_SIZE(fd, operation->store.key, key_size)) {
 		log_error(logger, "[ESI] Socket %d: Error al recibir la clave!", fd);
 		free(operation->store.key);
 		return false;
