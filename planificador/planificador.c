@@ -43,7 +43,7 @@ t_list* g_blocked_queue;
 t_list* g_blocked_queue_by_console;
 t_list* g_finished_queue;
 
-int pause_flag = 0;
+int scheduler_paused_flag = 0;
 
 int main(void) {
 
@@ -285,13 +285,29 @@ int main(void) {
 
 				if (reschedule_flag == 1){
 
-					if (pause_flag==1) pause_now();
 					reschedule(&reschedule_flag, &old_executing_esi);
 				}
-				else authorize_esi_execution(*(int*)g_execution_queue->head->data);
+				else if (!list_is_empty(g_execution_queue)) {
+
+					authorize_esi_execution(*(int*)g_execution_queue->head->data);
+				}
 
 			}
 		}
+
+		if(list_is_empty(g_execution_queue) && !list_is_empty(g_new_queue)) {
+
+			if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(last_key_inquired, &update_blocked_esi_queue_flag);
+
+			if (new_esi_flag == 1) update_new_esi_queue(&new_esi_flag);
+
+			if(scheduler_paused_flag != 1) {
+
+				reschedule(&reschedule_flag, &old_executing_esi);
+			}
+
+		}
+
 	}
 
 	return EXIT_SUCCESS;
@@ -377,7 +393,10 @@ void destroy_administrative_structures() {
 
 void put_new_esi_on_new_queue(int new_client_fd) {
 
-	list_add(g_new_queue,(void*)&new_client_fd);
+	int* client_fd = malloc(sizeof(int));
+	*client_fd = new_client_fd;
+
+	list_add(g_new_queue,(void*)client_fd);
 }
 
 void authorize_esi_execution(int esi_fd) {
@@ -439,7 +458,9 @@ void update_waiting_time_of_ready_esis() {
 void move_esi_from_and_to_queue(t_list* from_queue, t_list* to_queue, int esi_fd) {
 
 	take_esi_away_from_queue(from_queue, esi_fd);
-	list_add(to_queue, (void*)esi_fd);
+	int* esi = malloc(sizeof(int));
+	*esi = esi_fd;
+	list_add(to_queue, (void*)esi);
 }
 
 int schedule_esis() {
@@ -656,13 +677,6 @@ void release_resources(int esi_fd, int* update_blocked_esi_queue_flag) {
 
 }
 
-void pause_now() {
-
-	//Leproso, revisar
-	getchar();
-	getchar();
-}
-
 void exit_gracefully(int status) {
 
 	log_info(logger, "La ejecución del planificador terminó");
@@ -687,7 +701,7 @@ static bool algorithm_is_preemptive() {
 	int algorithm_type = setup.scheduling_algorithm;
 	switch (algorithm_type) {
 
-	case 0:
+	case 1:
 		return true;
 		break;
 	default:
