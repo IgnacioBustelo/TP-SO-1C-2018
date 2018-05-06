@@ -624,12 +624,7 @@ void update_new_esi_queue(int* new_esi_flag) {
 
 	list_add_all(g_ready_queue, g_new_queue);
 
-	void int_destroyer(void* esi_fd) {
-
-		free((int*) esi_fd);
-	}
-
-	list_clean_and_destroy_elements(g_new_queue, int_destroyer);
+	list_clean(g_new_queue);
 
 	*new_esi_flag = 0;
 }
