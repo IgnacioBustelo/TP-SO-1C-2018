@@ -33,12 +33,10 @@ void entry_table_update( key_value_t* key_value){
 			}
 }
 
-int entry_table_GET_fit(key_value_t* key_value) {
+int entry_table_next_entry(key_value_t* key_value) {
 	if (entry_table_entries_fit(key_value->size))
-	{
-		entry_table_update(key_value);
-		entry_table_insert(0,key_value);
-	}
+		return dictionary_size(entry_table);
+return ENTRY_LIMIT_ERROR;
 }
 
 static int entries_needed(size_t size){
@@ -57,6 +55,4 @@ static bool entry_table_entries_fit(int entris_number){
 	return (dictionary_size(entry_table)+entris_number)>=storage_setup.total_entries;
 }
 
-void entry_table_delete(char* key){
 
-}

@@ -8,6 +8,10 @@
 
 // Estructuras de datos
 
+enum{
+	ENTRY_LIMIT_ERROR = -1
+};
+
 typedef struct{
 	size_t	number;
 	size_t	size;
