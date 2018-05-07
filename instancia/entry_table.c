@@ -7,17 +7,10 @@ void entry_table_init() {
 	entry_table = dictionary_create();
 }
 
-void entry_table_insert(int next_entry, key_value_t* key_value) {
+
+
+int entry_table_update(int next_entry, key_value_t* key_value){
 	entry_t* entry = malloc(sizeof(entry_t));
-
-	entry->number = next_entry;
-	entry->size = key_value->size;
-
-	dictionary_put(entry_table, key_value->key, (void*) entry);
-}
-
-
-void entry_table_update( key_value_t* key_value){
 	if(dictionary_has_key(entry_table,key_value->key))
 			{
 				entry_t* entry = malloc(sizeof(entry_t));
@@ -30,7 +23,18 @@ void entry_table_update( key_value_t* key_value){
 				dictionary_remove(entry_table,key_value->key);
 
 				dictionary_put(entry_table, key_value->key, (void*) entry);
+				return ENTRY_UPDATE_OK;
+
 			}
+	else{
+
+			entry->number = next_entry;
+			entry->size = key_value->size;
+
+			dictionary_put(entry_table, key_value->key, (void*) entry);
+			return ENTRY_INSERT_OK;
+	}
+	return ENTRY_UPDATE_ERROR;
 }
 
 int entry_table_next_entry(key_value_t* key_value) {

@@ -9,7 +9,10 @@
 // Estructuras de datos
 
 enum{
-	ENTRY_LIMIT_ERROR = -1
+	ENTRY_LIMIT_ERROR = -1,
+	ENTRY_UPDATE_OK,
+	ENTRY_INSERT_OK,
+	ENTRY_UPDATE_ERROR
 };
 
 typedef struct{
