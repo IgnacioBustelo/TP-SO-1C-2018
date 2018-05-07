@@ -33,76 +33,91 @@ struct esi_operation_t {
 	};
 };
 
+struct esi_t {
+	int id;
+	int fd;
+};
+
 t_log *logger;
 struct instance_list_t *instance_list;
 
-static bool handle_esi_operation(int fd, struct esi_operation_t *operation);
-static struct esi_operation_t *esi_recv_operation(int fd);
-static bool esi_recv_get_args(int fd, struct esi_operation_t *operation);
-static bool esi_recv_set_args(int fd, struct esi_operation_t *operation);
-static bool esi_recv_store_args(int fd, struct esi_operation_t *operation);
+static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *operation);
+static struct esi_operation_t *esi_recv_operation(struct esi_t esi);
+static bool esi_recv_get_args(struct esi_t esi, struct esi_operation_t *operation);
+static bool esi_recv_set_args(struct esi_t esi, struct esi_operation_t *operation);
+static bool esi_recv_store_args(struct esi_t esi, struct esi_operation_t *operation);
 static void esi_operation_destroy(struct esi_operation_t *victim);
+static int esi_get_id(void);
 
 void handle_esi_connection(int fd)
 {
+	struct esi_t esi;
+	esi.fd = fd;
+	esi.id = esi_get_id();
+
+	log_info(logger, "[ESI] Socket %d: ID = %d", esi.fd, esi.id);
+
 	struct esi_operation_t *operation;
-	for (operation = esi_recv_operation(fd); operation != NULL; operation = esi_recv_operation(fd)) {
-		if (!handle_esi_operation(fd, operation)) {
+	for (operation = esi_recv_operation(esi); operation != NULL; operation = esi_recv_operation(esi)) {
+		if (!handle_esi_operation(esi, operation)) {
 			esi_operation_destroy(operation);
 			break;
 		}
 		esi_operation_destroy(operation);
 	}
 
-	log_error(logger, "[ESI] Socket %d: Cerrando conexion.", fd);
+	log_error(logger, "[ESI %d] Finalizando comunicacion...", esi.id);
 }
 
-static bool handle_esi_operation(int fd, struct esi_operation_t *operation)
+#define esi_log_info(logger, fmt, args...) log_info(logger, "[ESI %d] " fmt, esi.id, ##args)
+#define esi_log_error(logger, fmt, args...) log_error(logger, "[ESI %d] " fmt, esi.id, ##args)
+
+static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *operation)
 {
 	/* TODO: Log de operaciones. */
 	if (operation->type == ESI_GET) {
-		log_info(logger, "GET %s", operation->get.key);
+		esi_log_info(logger, "GET %s", operation->get.key);
 		switch (scheduler_recv_key_state(operation->get.key)) {
 		case KEY_UNBLOCKED:
 		case KEY_BLOCKED_BY_EXECUTING_ESI:
-			log_info(logger, "[ESI] Socket %d: Bloqueando la clave...", fd);
+			esi_log_info(logger, "Bloqueando la clave...");
 			scheduler_block_key();
-			esi_send_execution_success(fd);
+			esi_send_execution_success(esi.fd);
 			break;
 		case KEY_BLOCKED:
-			log_info(logger, "[ESI] Socket %d: Clave bloqueada.", fd);
-			esi_send_notify_block(fd);
+			esi_log_info(logger, "Clave bloqueada.");
+			esi_send_notify_block(esi.fd);
 			break;
 		case KEY_RECV_ERROR:
-			log_error(logger, "[ESI] Socket %d: Error al recibir estado de la clave desde el Planificador!", fd);
+			esi_log_error(logger, "Error al recibir estado de la clave desde el Planificador!");
 			return false;
 		}
 	} else {
 		struct instance_t *instance = equitative_load(instance_list);
 		if (instance == NULL) {
 			// TODO: HANDLE_ERROR
-			log_error(logger, "No hay instancias disponibles!");
+			esi_log_error(logger, "No hay instancias disponibles!");
 			return false;
 		}
 		if (operation->type == ESI_SET) {
-			log_info(logger, "SET %s \"%s\"", operation->set.key, operation->set.value);
-			request_list_push_set(instance->requests, fd, operation->set.key, operation->set.value);
+			esi_log_info(logger, "SET %s \"%s\"", operation->set.key, operation->set.value);
+			request_list_push_set(instance->requests, esi.fd, operation->set.key, operation->set.value);
 		} else /* operation->type == ESI_STORE */ {
-			log_info(logger, "STORE %s", operation->store.key);
-			request_list_push_store(instance->requests, fd, operation->store.key);
+			esi_log_info(logger, "STORE %s", operation->store.key);
+			request_list_push_store(instance->requests, esi.fd, operation->store.key);
 		}
 	}
 
 	return true;
 }
 
-static struct esi_operation_t *esi_recv_operation(int fd)
+static struct esi_operation_t *esi_recv_operation(struct esi_t esi)
 {
-	log_info(logger, "[ESI] Socket %d: Esperando una operacion de ESI...", fd);
+	esi_log_info(logger, "Esperando una operacion de ESI...");
 
 	int op_id;
-	if (!CHECK_RECV(fd, &op_id)) {
-		log_error(logger, "[ESI] Socket %d: Error al recibir operacion!", fd);
+	if (!CHECK_RECV(esi.fd, &op_id)) {
+		esi_log_error(logger, "Error al recibir operacion!");
 		return NULL;
 	}
 
@@ -112,27 +127,27 @@ static struct esi_operation_t *esi_recv_operation(int fd)
 	switch (op_id) {
 	case PROTOCOL_EC_GET:
 		operation->type = ESI_GET;
-		log_info(logger, "[ESI] Socket %d: Codigo de operacion GET recibida.", fd);
-		success = esi_recv_get_args(fd, operation);
+		esi_log_info(logger, "Codigo de operacion GET recibida.");
+		success = esi_recv_get_args(esi, operation);
 		break;
 	case PROTOCOL_EC_SET:
 		operation->type = ESI_SET;
-		log_info(logger, "[ESI] Socket %d: Codigo de operacion SET recibida.", fd);
-		success = esi_recv_set_args(fd, operation);
+		esi_log_info(logger, "Codigo de operacion SET recibida.");
+		success = esi_recv_set_args(esi, operation);
 		break;
 	case PROTOCOL_EC_STORE:
 		operation->type = ESI_STORE;
-		log_info(logger, "[ESI] Socket %d: Codigo de operacion recibida.", fd);
-		success = esi_recv_store_args(fd, operation);
+		esi_log_info(logger, "Codigo de operacion recibida.");
+		success = esi_recv_store_args(esi, operation);
 		break;
 	default:
-		log_error(logger, "[ESI] Socket %d: Operacion invalida!", fd);
+		esi_log_error(logger, "Operacion invalida!");
 		free(operation);
 		return NULL;
 	}
 
 	if (success) {
-		log_info(logger, "[ESI] Socket %d: Se recibio correctamente los argumentos de la operacion.", fd);
+		esi_log_info(logger, "Se recibio correctamente los argumentos de la operacion.");
 		return operation;
 	} else {
 		free(operation);
@@ -140,17 +155,17 @@ static struct esi_operation_t *esi_recv_operation(int fd)
 	}
 }
 
-static bool esi_recv_get_args(int fd, struct esi_operation_t *operation)
+static bool esi_recv_get_args(struct esi_t esi, struct esi_operation_t *operation)
 {
 	size_t key_size;
-	if (!CHECK_RECV(fd, &key_size)) {
-		log_error(logger, "[ESI] Socket %d: Error al recibir tamanio de la clave!", fd);
+	if (!CHECK_RECV(esi.fd, &key_size)) {
+		esi_log_error(logger, "Error al recibir tamanio de la clave!");
 		return false;
 	}
 
 	operation->get.key = malloc(key_size);
-	if (!CHECK_RECV_WITH_SIZE(fd, operation->get.key, key_size)) {
-		log_error(logger, "[ESI] Socket %d: Error al recibir la clave!", fd);
+	if (!CHECK_RECV_WITH_SIZE(esi.fd, operation->get.key, key_size)) {
+		esi_log_error(logger, "Error al recibir la clave!");
 		free(operation->get.key);
 		return false;
 	}
@@ -158,30 +173,30 @@ static bool esi_recv_get_args(int fd, struct esi_operation_t *operation)
 	return true;
 }
 
-static bool esi_recv_set_args(int fd, struct esi_operation_t *operation)
+static bool esi_recv_set_args(struct esi_t esi, struct esi_operation_t *operation)
 {
 	size_t key_size;
-	if (!CHECK_RECV(fd, &key_size)) {
-		log_error(logger, "[ESI] Socket %d: Error al recibir tamanio de la clave!", fd);
+	if (!CHECK_RECV(esi.fd, &key_size)) {
+		esi_log_error(logger, "Error al recibir tamanio de la clave!");
 		return false;
 	}
 
 	operation->set.key = malloc(key_size);
-	if (!CHECK_RECV_WITH_SIZE(fd, operation->set.key, key_size)) {
-		log_error(logger, "[ESI] Socket %d: Error al recibir la clave!", fd);
+	if (!CHECK_RECV_WITH_SIZE(esi.fd, operation->set.key, key_size)) {
+		esi_log_error(logger, "Error al recibir la clave!");
 		free(operation->set.key);
 		return false;
 	}
 
 	size_t value_size;
-	if (!CHECK_RECV(fd, &value_size)) {
-		log_error(logger, "[ESI] Socket %d: Error al recibir tamanio del valor!", fd);
+	if (!CHECK_RECV(esi.fd, &value_size)) {
+		esi_log_error(logger, "Error al recibir tamanio del valor!");
 		return false;
 	}
 
 	operation->set.value = malloc(value_size);
-	if (!CHECK_RECV_WITH_SIZE(fd, operation->set.value, value_size)) {
-		log_error(logger, "[ESI] Socket %d: Error al recibir el valor!", fd);
+	if (!CHECK_RECV_WITH_SIZE(esi.fd, operation->set.value, value_size)) {
+		esi_log_error(logger, "Error al recibir el valor!");
 		free(operation->set.key);
 		free(operation->set.value);
 		return false;
@@ -190,17 +205,17 @@ static bool esi_recv_set_args(int fd, struct esi_operation_t *operation)
 	return true;
 }
 
-static bool esi_recv_store_args(int fd, struct esi_operation_t *operation)
+static bool esi_recv_store_args(struct esi_t esi, struct esi_operation_t *operation)
 {
 	size_t key_size;
-	if (!CHECK_RECV(fd, &key_size)) {
-		log_error(logger, "[ESI] Socket %d: Error al recibir tamanio de la clave!", fd);
+	if (!CHECK_RECV(esi.fd, &key_size)) {
+		esi_log_error(logger, "Error al recibir tamanio de la clave!");
 		return false;
 	}
 
 	operation->store.key = malloc(key_size);
-	if (!CHECK_RECV_WITH_SIZE(fd, operation->store.key, key_size)) {
-		log_error(logger, "[ESI] Socket %d: Error al recibir la clave!", fd);
+	if (!CHECK_RECV_WITH_SIZE(esi.fd, operation->store.key, key_size)) {
+		esi_log_error(logger, "Error al recibir la clave!");
 		free(operation->store.key);
 		return false;
 	}
@@ -242,4 +257,18 @@ static void esi_operation_destroy(struct esi_operation_t *victim)
 	}
 
 	free(victim);
+}
+
+static int esi_get_id(void)
+{
+	static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+	static int current_id = 1;
+
+	int id;
+	synchronized(lock) {
+		id = current_id;
+		current_id++;
+	}
+
+	return id;
 }
