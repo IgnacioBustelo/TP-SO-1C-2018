@@ -9,6 +9,8 @@
 
 extern int scheduler_paused_flag;
 extern int block_esi_by_console_flag;
+extern int unlock_esi_by_console_flag;
+extern char* last_unlocked_key_by_console;
 extern t_list* g_esis_sexpecting_keys;
 extern t_list* g_new_blocked_by_console_esis;
 

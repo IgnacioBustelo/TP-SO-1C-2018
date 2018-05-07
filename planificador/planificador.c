@@ -14,6 +14,7 @@ static void take_esi_away_from_queue(t_list* queue, int esi_fd);
 static void we_must_reschedule(int* flag);
 static void remove_fd(int fd, fd_set *fdset);
 static void set_last_real_burst_to_zero(int esi_fd);
+static void set_waiting_time_to_zero(int esi_fd);
 static int receive_coordinator_opcode(int coordinator_fd);
 static char* receive_inquired_key(int coordinator_fd);
 static void add_new_key_blocker(char* blocked_key);
@@ -46,6 +47,8 @@ t_list* g_finished_queue;
 
 int scheduler_paused_flag = 0;
 int block_esi_by_console_flag = 0;
+int unlock_esi_by_console_flag = 0;
+char* last_unlocked_key_by_console;
 
 int main(void) {
 
@@ -299,6 +302,8 @@ int main(void) {
 
 						if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(last_key_inquired, &update_blocked_esi_queue_flag);
 
+						if (unlock_esi_by_console_flag == 1) update_blocked_by_console_esi_queue();
+
 						if (new_esi_flag == 1) update_new_esi_queue(&new_esi_flag);
 
 						if(block_esi_by_console_flag == 1) block_by_console_procedure();
@@ -322,6 +327,8 @@ int main(void) {
 		if(list_is_empty(g_execution_queue) && !list_is_empty(g_new_queue) && scheduler_paused_flag != 1) {
 
 			if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(last_key_inquired, &update_blocked_esi_queue_flag);
+
+			if (unlock_esi_by_console_flag == 1) update_blocked_by_console_esi_queue();
 
 			if (new_esi_flag == 1) update_new_esi_queue(&new_esi_flag);
 
@@ -599,7 +606,6 @@ t_list* unlock_esis(char* key_unlocked) {
 
     t_list* mapped_list = list_map(filtered_list, transformer);
 
-
     bool remove_condition(void* esi_sexpecting) {
 
     	bool condition(void* esi_fd) {
@@ -634,7 +640,45 @@ void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_q
 	list_add_all(g_ready_queue, unlocked_esis);
 	*update_blocked_esi_queue_flag = 0;
 
+	/*TODO -- Loggear qué esis se desbloquearon */
+
 	log_info(logger,"Clave %s liberada", last_key_inquired);
+}
+
+void update_blocked_by_console_esi_queue() {
+
+	bool find_first_blocked_esi(void* esi_sexpecting_key_) {
+
+		return strcmp(((esi_sexpecting_key*)esi_sexpecting_key_)->key, last_unlocked_key_by_console) == 0;
+	}
+
+	esi_sexpecting_key* esi_sexpecting_key_ = list_find(g_esis_sexpecting_keys, find_first_blocked_esi);
+
+	if(esi_sexpecting_key_ != NULL) {
+
+		/* TODO -- Suponendo que no permitimos doble bloqueo */
+		move_esi_from_and_to_queue(g_blocked_queue_by_console, g_ready_queue, esi_sexpecting_key_->esi_fd);
+
+		esi_information* esi_inf = obtain_esi_information_by_id(esi_sexpecting_key_->esi_fd);
+
+		log_info(logger, "El ESI %i fue desbloqueado por consola al desbloquear la clave %s", esi_inf->esi_numeric_name, last_unlocked_key_by_console);
+
+		bool remove_condition(void* esi_sexpecting_key2) {
+
+			bool condition1 = ((esi_sexpecting_key*)esi_sexpecting_key2)->esi_fd == esi_sexpecting_key_->esi_fd;
+			bool condition2 = strcmp(((esi_sexpecting_key*)esi_sexpecting_key2)->key, esi_sexpecting_key_->key) == 0;
+			return condition1 && condition2;
+		}
+
+		void destroy_esi_sexpecting_key(void* esi_sexpecting_key_) {
+
+			free(((esi_sexpecting_key*) esi_sexpecting_key_)->key);
+			free(esi_sexpecting_key_);
+		}
+
+		list_remove_and_destroy_by_condition(g_esis_sexpecting_keys, remove_condition, destroy_esi_sexpecting_key);
+	}
+	else log_info(logger, "Ningún ESI está bloqueado por consola esperando la clave %s", last_unlocked_key_by_console);
 }
 
 void reschedule(int* reschedule_flag, int* old_executing_esi) {
@@ -646,6 +690,8 @@ void reschedule(int* reschedule_flag, int* old_executing_esi) {
 
 		set_last_real_burst_to_zero(esi_fd_to_execute);
 	}
+
+	set_waiting_time_to_zero(esi_fd_to_execute);
 
 	authorize_esi_execution(esi_fd_to_execute);
 	*old_executing_esi = esi_fd_to_execute;
@@ -778,6 +824,12 @@ static void set_last_real_burst_to_zero(int esi_fd) {
 
 	esi_information* esi_inf = obtain_esi_information_by_id(esi_fd);
 	esi_inf->last_real_burst = 0;
+}
+
+static void set_waiting_time_to_zero(int esi_fd) {
+
+	esi_information* esi_inf = obtain_esi_information_by_id(esi_fd);
+	esi_inf->waited_bursts = 0;
 }
 
 static int receive_coordinator_opcode(int coordinator_fd) {
