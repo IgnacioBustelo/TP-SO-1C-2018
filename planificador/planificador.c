@@ -86,6 +86,9 @@ int main(void) {
 	FD_ZERO(&read_fds);
 	FD_SET(coordinator_fd, &connected_fds);
 	FD_SET(listener, &connected_fds);
+	struct timeval tv;
+	tv.tv_sec = 0;
+	tv.tv_usec = 0;
 
 	int max_fd = (listener > coordinator_fd) ? listener : coordinator_fd;
 	int finished_esi_flag = 0;
@@ -111,7 +114,7 @@ int main(void) {
 
 		read_fds = connected_fds;
 
-		if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) == -1) {
+		if (select(max_fd + 1, &read_fds, NULL, NULL, &tv) == -1) {
 			log_error(logger, "Error en select");
 			exit(EXIT_FAILURE);
 		}
