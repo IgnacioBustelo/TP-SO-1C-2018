@@ -123,10 +123,10 @@ bool esi_information_in_ready(esi_information* esi_inf);
 void update_executing_esi(int esi_fd);
 
 /*
- * Devuelve el resultado de la ejecución de parte de un ESI. Podría pasar que esté todo bien, que se haya bloqueado o que falle por alguna razón
+ * Devuelve el resultado de la ejecución de parte de un ESI. Podría pasar que salga bien, que se haya bloqueado o que falle por alguna razón
  */
 
-int receive_execution_result(int esi_fd);
+int receive_execution_result(int fd);
 
 /*
  * Dice si determinada clave ya fue tomada por un ESI (hizo un GET)
@@ -175,5 +175,17 @@ void update_new_esi_queue(int* new_esi_flag);
  */
 
 void release_resources(int esi_fd, int* update_blocked_esi_queue_flag);
+
+/*
+ * Mata al ESI liberando sus recursos, sacando de la cola en la que esté y cerrando el socket
+ */
+
+void sock_my_port(int esi_fd);
+
+/*
+ * Cierra la conexión con el coordinador y hace sock_my_port de todos los ESI's
+ */
+
+void kaboom_baby();
 
 #endif /* PLANIFICADOR_PLANIFICADOR_H_ */

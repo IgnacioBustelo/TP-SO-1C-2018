@@ -45,10 +45,19 @@ t_list* g_blocked_queue;
 t_list* g_blocked_queue_by_console;
 t_list* g_finished_queue;
 
+int finished_esi_flag = 0;
+int new_esi_flag = 0;
+int reschedule_flag = 0;
+int update_blocked_esi_queue_flag = 0;
+
 int scheduler_paused_flag = 0;
 int block_esi_by_console_flag = 0;
 int unlock_esi_by_console_flag = 0;
 char* last_unlocked_key_by_console;
+
+fd_set connected_fds;
+int max_fd;
+int g_coordinator_fd;
 
 int main(void) {
 
@@ -60,20 +69,20 @@ int main(void) {
 	int port_coordinator = setup.coordinator_port;
 	int server_port = setup.port;
 
-	int coordinator_fd = connect_to_server(host, port_coordinator);
+	g_coordinator_fd = connect_to_server(host, port_coordinator);
 	log_info(logger, "Conectando al coordinador");
 
-	if (send_handshake(coordinator_fd, SCHEDULER) != 1) {
+	if (send_handshake(g_coordinator_fd, SCHEDULER) != 1) {
 		log_error(logger, "Fallo en en el envío del handshake");
-		close(coordinator_fd);
+		close(g_coordinator_fd);
 		exit_gracefully(EXIT_FAILURE);
 	}
 
 	bool confirmation;
-	int received = receive_confirmation(coordinator_fd, &confirmation);
+	int received = receive_confirmation(g_coordinator_fd, &confirmation);
 	if (!received || !confirmation) {
 		log_error(logger, "Fallo en la confirmación de recepción del handshake");
-		close(coordinator_fd);
+		close(g_coordinator_fd);
 		exit_gracefully(EXIT_FAILURE);
 	}
 
@@ -82,22 +91,18 @@ int main(void) {
 	int listener = init_listener(server_port, MAXCONN);
 	log_info(logger, "Escuchando en el puerto %i...", server_port);
 
-	fd_set connected_fds;
 	fd_set read_fds;
 
 	FD_ZERO(&connected_fds);
 	FD_ZERO(&read_fds);
-	FD_SET(coordinator_fd, &connected_fds);
+	FD_SET(g_coordinator_fd, &connected_fds);
 	FD_SET(listener, &connected_fds);
 	struct timeval tv;
 	tv.tv_sec = 0;
 	tv.tv_usec = 0;
 
-	int max_fd = (listener > coordinator_fd) ? listener : coordinator_fd;
-	int finished_esi_flag = 0;
-	int new_esi_flag = 0;
-	int reschedule_flag = 0;
-	int update_blocked_esi_queue_flag = 0;
+	max_fd = (listener > g_coordinator_fd) ? listener : g_coordinator_fd;
+
 	we_must_reschedule(&reschedule_flag);
 
 	create_administrative_structures();
@@ -159,7 +164,6 @@ int main(void) {
 						remove_fd(new_client_fd, &connected_fds);
 						log_error(logger, "Fallo en el handshake con el socket %d",
 								new_client_fd);
-						close(new_client_fd);
 					} else {
 
 						client_confirmation = true;
@@ -179,7 +183,7 @@ int main(void) {
 					esi_numeric_arrival_order++;
 				}
 
-			} else if (fd == coordinator_fd) {
+			} else if (fd == g_coordinator_fd) {
 
 				int opcode = receive_coordinator_opcode(fd);
 
@@ -275,9 +279,17 @@ int main(void) {
 					log_info(logger,"El ESI %i se encuentra bloqueado esperando la clave %s", obtain_esi_information_by_id(fd)->esi_numeric_name, last_key_inquired);
 					break;
 
-				case PROTOCOL_EP_I_BROKE_THE_LAW: /* TODO */
+				case PROTOCOL_EP_I_BROKE_THE_LAW:
 
 					log_info(logger,"El ESI %i trató de ejecutar una sentencia invalida", obtain_esi_information_by_id(fd)->esi_numeric_name);
+					sock_my_port(fd);
+
+					esi_finished(&finished_esi_flag);
+
+					if (!list_is_empty(g_ready_queue)) {
+
+						we_must_reschedule(&reschedule_flag);
+					}
 					break;
 
 				}
@@ -321,7 +333,7 @@ int main(void) {
 					authorize_esi_execution(*(int*)g_execution_queue->head->data);
 				}
 
-			}
+			} else sock_my_port(fd);
 		}
 
 		if(list_is_empty(g_execution_queue) && !list_is_empty(g_new_queue) && scheduler_paused_flag != 1) {
@@ -444,6 +456,7 @@ void authorize_esi_execution(int esi_fd) {
 	if(send(esi_fd, &opcode, sizeof(opcode), 0) == -1) {
 
 		log_error(logger, "Fallo en la autorización del ESI a ejecutar");
+		sock_my_port(esi_fd);
 	}
 }
 
@@ -457,19 +470,13 @@ void update_executing_esi(int esi_fd) {
 int receive_execution_result(int fd) {
 
 	protocol_id opcode;
-	if (recv(fd, &opcode, sizeof(opcode), MSG_WAITALL) == -1) {
+	if (recv(fd, &opcode, sizeof(opcode), MSG_WAITALL) != sizeof(opcode)) {
 
 		log_error(logger, "Fallo en la confirmación de ejecución de parte del ESI");
-		// TODO -- no sabes hablar, sock my port -- matar esi --no hay tiempo para vos sorete esi
+		sock_my_port(fd);
 	}
 
 	return opcode;
-}
-
-void sock_my_port(int esi_fd) { /* TODO */
-
-
-
 }
 
 void update_waiting_time_of_ready_esis() {
@@ -752,6 +759,53 @@ void release_resources(int esi_fd, int* update_blocked_esi_queue_flag) {
 
 }
 
+void sock_my_port(int esi_fd) {
+
+	log_info(logger, "El ESI %i murió horrendamente", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
+
+	bool find_dead_esi(void* esi_fd_) {
+
+		return *(int*) esi_fd_ == esi_fd;
+	}
+
+	void bury_esi(t_list* list) {
+
+		release_resources(esi_fd, &update_blocked_esi_queue_flag);
+		move_esi_from_and_to_queue(list, g_finished_queue, esi_fd);
+	}
+
+	int* dead_esi;
+
+	dead_esi = list_find(g_new_queue, find_dead_esi);
+	if (dead_esi != NULL) bury_esi(g_new_queue);
+
+	dead_esi = list_find(g_ready_queue, find_dead_esi);
+	if (dead_esi != NULL) bury_esi(g_ready_queue);
+
+	dead_esi = list_find(g_execution_queue, find_dead_esi);
+	if (dead_esi != NULL) bury_esi(g_execution_queue);
+
+	dead_esi = list_find(g_blocked_queue, find_dead_esi);
+	if (dead_esi != NULL) bury_esi(g_blocked_queue);
+
+	dead_esi = list_find(g_blocked_queue_by_console, find_dead_esi);
+	if (dead_esi != NULL) bury_esi(g_blocked_queue_by_console);
+
+	remove_fd(esi_fd, &connected_fds);
+}
+
+void kaboom_baby() {
+
+	int fd;
+	for(fd = 0; max_fd + 1; fd++) {
+
+		if(FD_ISSET(fd, &connected_fds) == 0 && fd != g_coordinator_fd) sock_my_port(fd);
+		else if(FD_ISSET(fd, &connected_fds) == 0 && fd == g_coordinator_fd) remove_fd(fd, &connected_fds);
+	}
+
+	exit_gracefully(EXIT_FAILURE);
+}
+
 void exit_gracefully(int status) {
 
 	log_info(logger, "La ejecución del planificador terminó");
@@ -766,6 +820,7 @@ void exit_gracefully(int status) {
 /* ---------------------------------- PRIVATE FUNCTIONS ---------------------------------- */
 
 static void remove_fd(int fd, fd_set *fdset) {
+
 	FD_CLR(fd, fdset);
 	log_info(logger, "El socket %d fue echado", fd);
 	close(fd);
@@ -835,10 +890,10 @@ static void set_waiting_time_to_zero(int esi_fd) {
 static int receive_coordinator_opcode(int coordinator_fd) {
 
 	int opcode;
-	if(recv(coordinator_fd, &opcode, sizeof(int), MSG_WAITALL) == -1) {
+	if(recv(coordinator_fd, &opcode, sizeof(int), MSG_WAITALL) != sizeof(int)) {
 
 		log_error(logger, "Fallo en la comunicación con el coordinador al recibir el código de operación");
-	    exit_gracefully(EXIT_FAILURE); //TODO -- Si el coordinador murió horrendamente, qué hacemos?
+		kaboom_baby(coordinator_fd);
 	}
 	return opcode;
 }
@@ -851,7 +906,7 @@ static char* receive_inquired_key(int coordinator_fd) {
 	if(result == -2 || result == -3) {
 
 		log_error(logger, "Error al recibir la clave de parte del coordinador");
-		exit_gracefully(EXIT_FAILURE); //TODO -- Si el coordinador murió horrendamente, qué hacemos?
+		kaboom_baby(coordinator_fd);
 	}
 
 	return key;
