@@ -5,6 +5,10 @@
 
 #include "globals.h"
 
+enum{
+	STORAGE_ERROR=-1;
+};
+
 // Atributos
 
 t_dictionary* storage;
