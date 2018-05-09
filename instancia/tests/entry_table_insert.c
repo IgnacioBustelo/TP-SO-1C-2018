@@ -5,19 +5,24 @@
 #include <string.h>
 
 #include "../entry_table.h"
+#include "../globals.h"
 #include "utils.h"
+
+// Utilidades
+
+void entry_list_insert(key_value_t* key_value) {
+	int next_entry = entry_table_next_entry(key_value);
+
+	entry_table_insert(next_entry, key_value);
+}
 
 // Implementaciones mock
 
-int entry_table_update(key_value_t* key_value) {
-	return ET_INSERT_SUCCESS;
-}
-
-int storage_set(key_value_t* key_value) {
+int entry_table_next_entry(key_value_t* key_value) {
 	static int next_entry = 1, current_entry = 1;
 
 	current_entry = next_entry;
-	next_entry = current_entry + required_entries(key_value->size);
+	next_entry = current_entry + entry_table_required_entries(key_value->size);
 
 	return current_entry;
 }
@@ -27,16 +32,16 @@ int storage_set(key_value_t* key_value) {
 t_list* list_key_values;
 
 static void before(int argc, char *argv[]) {
-	entry_size = (argv[1] == NULL || atoi(argv[1]) < 1) ? 5 : (size_t) atoi(argv[1]);
+	storage_setup.entry_size = (argv[1] == NULL || atoi(argv[1]) < 1) ? 5 : (size_t) atoi(argv[1]);
 
 	list_key_values = list_create();
 
 	if(argc < 4) {
-		list_add(list_key_values, (void*) value_generator("A", 2));
-		list_add(list_key_values, (void*) value_generator("B", 5));
-		list_add(list_key_values, (void*) value_generator("C", 7));
-		list_add(list_key_values, (void*) value_generator("D", 13));
-		list_add(list_key_values, (void*) value_generator("E", 15));
+		list_add(list_key_values, (void*) key_value_generator("A", 2));
+		list_add(list_key_values, (void*) key_value_generator("B", 5));
+		list_add(list_key_values, (void*) key_value_generator("C", 7));
+		list_add(list_key_values, (void*) key_value_generator("D", 13));
+		list_add(list_key_values, (void*) key_value_generator("E", 15));
 	}
 
 	else {
@@ -55,15 +60,17 @@ static void after() {
 }
 
 int main(int argc, char *argv[]) {
+	printf("Prueba de Tabla De Entradas: Insercion\n\n");
+
 	before(argc, argv);
 
-	printf("Tamanio de entradas: %d\n", entry_size);
+	printf("Tamanio de entradas: %d\n", storage_setup.entry_size);
 
-	printf("Mostrar Claves-Valor:\n");
-	list_iterate(list_key_values, (void*) print_key_value);
+	printf("Mostrar Claves-Valor\n");
+	list_iterate(list_key_values, (void*) key_value_print);
 
-	printf("Ingresar claves en la tabla de entradas:\n");
-	list_iterate(list_key_values, (void*) entry_table_insert);
+	printf("Ingresar claves en la tabla de entradas\n");
+	list_iterate(list_key_values, (void*) entry_list_insert);
 
 	printf("Mostrar Tabla De Entradas:\n");
 	dictionary_iterator(entry_table, (void*) print_entry);

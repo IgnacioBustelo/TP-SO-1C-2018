@@ -1,15 +1,26 @@
 #ifndef INSTANCIA_COORDINATOR_API_H_
 #define INSTANCIA_COORDINATOR_API_H_
 
-#include "../protocolo/protocolo_coordinador_instancia.h"
-#include "instancia.h"
+#include "globals.h"
 
-int coordinator_handshake(); // Lo hace Nico
+// Estructuras de datos
 
-void coordinator_api_request(); // NUEVO: A discutir entre Nico y Santi
+typedef enum {
+	SET_SUCCESS
+} coordinator_api_status;
 
-key_value_t* coordinator_receive_set(); // Hablado con Fer
+// Atributos
 
-int coordinator_notify_status(int status); // Lo hace Santi
+int fd_instancia;
 
-#endif /* INSTANCIA_COORDINATOR_API_H_ */
+int fd_coordinador;
+
+// Interfaz
+
+void			coordinator_api_handshake(); // Lo hace Nico
+
+key_value_t*	coordinator_api_receive_set(); // Hablado con Fer
+
+void			coordinator_api_notify_status(int status); // Lo hace Santi
+
+#endif
