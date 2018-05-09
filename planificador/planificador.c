@@ -640,7 +640,7 @@ void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_q
 
 	if(unlocked_esis->elements_count == 0) {
 
-		log_info(logger, "Ningun esi estaba bloqueado por la clave %s", last_key_inquired);
+		log_info(logger, "Ningún ESI estaba bloqueado por la clave %s", last_key_inquired);
 	} else {
 
 	list_add_all(g_ready_queue, unlocked_esis);
@@ -764,7 +764,7 @@ void release_resources(int esi_fd, int* update_blocked_esi_queue_flag) {
 
 void sock_my_port(int esi_fd) {
 
-	log_info(logger, "El ESI %i murió horrendamente", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
+	log_error(logger, "El ESI %i murió horrendamente", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
 
 	bool find_dead_esi(void* esi_fd_) {
 
@@ -1065,7 +1065,7 @@ static void block_by_console_procedure() {
 
 	bool not_in_ready_nor_exec(void* esi_fd) {
 
-		return !is_executing(*(int*)esi_fd) && !is_in_ready(*(int*)esi_fd);
+		return !is_executing(esi_fd) && !is_in_ready(esi_fd);
 	}
 
 	t_list* esis_that_cant_be_blocked_by_console = list_filter(esis, not_in_ready_nor_exec);
