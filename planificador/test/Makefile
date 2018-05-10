@@ -11,6 +11,8 @@ all: $(TARGET)
 test-consola: LIB += -lcommons -lreadline
 test-consola: ../consola.c ../../libs/comando.c
 
+test-planificacion: LIB += -lcommons
+
 %: %.c
 	$(CC) $^ -o $@ $(LIB)
 

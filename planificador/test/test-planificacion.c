@@ -3,48 +3,50 @@
 #include <stdbool.h>
 #include "../planificador.h"
 
+typedef enum { FIFO, SJFCD, SJFSD, HRRN } t_scheduling_algorithm;
+
 /* Local functions */
 
-static esi_information* obtain_esi_information_by_id(int esi_fd, t_list* esi_bursts);
+static esi_information* obtain_esi_information_by_id_test(int esi_fd, t_list* esi_bursts);
 
-static esi_information* create_esi_information(int esi_id, int esi_numeric_name, double estimation);
+static esi_information* create_esi_information_test(int esi_id, int esi_numeric_name, double estimation);
 
-static schedule_esis(t_scheduling_algorithm algorithm, t_list* ready_queue, t_list* esi_bursts);
+static int schedule_esis_test(t_scheduling_algorithm algorithm, t_list* ready_queue, t_list* esi_bursts);
 
 int main() {
 
 	t_list* esi_bursts = list_create();
 
-	list_add(esi_bursts, (void*)create_esi_information(1, 1, 3));
-	list_add(esi_bursts, (void*)create_esi_information(2, 2, 3.5));
-	list_add(esi_bursts, (void*)create_esi_information(3, 3, 4.7));
-	list_add(esi_bursts, (void*)create_esi_information(4, 4, 1.2));
+	list_add(esi_bursts, (void*)create_esi_information_test(1, 1, 3));
+	list_add(esi_bursts, (void*)create_esi_information_test(2, 2, 3.5));
+	list_add(esi_bursts, (void*)create_esi_information_test(3, 3, 4.7));
+	list_add(esi_bursts, (void*)create_esi_information_test(4, 4, 1.2));
 
 	t_list* ready_queue = list_create();
 
 	int* esi_id1 = malloc(sizeof(int));
 	*esi_id1 = 1;
 	int* esi_id2 = malloc(sizeof(int));
-	*esi_id1 = 2;
+	*esi_id2 = 2;
 	int* esi_id3 = malloc(sizeof(int));
-	*esi_id1 = 3;
+	*esi_id3 = 3;
 	int* esi_id4 = malloc(sizeof(int));
-	*esi_id1 = 4;
+	*esi_id4 = 4;
 	list_add(ready_queue, (void*)esi_id1);
 	list_add(ready_queue, (void*)esi_id2);
 	list_add(ready_queue, (void*)esi_id3);
 	list_add(ready_queue, (void*)esi_id4);
 
-	schedule_esis(FIFO, ready_queue, esi_bursts);
-	schedule_esis(SJFCD, ready_queue, esi_bursts);
-	schedule_esis(SJFSD, ready_queue, esi_bursts);
-	schedule_esis(HRRN, ready_queue, esi_bursts);
+	schedule_esis_test(FIFO, ready_queue, esi_bursts);
+	schedule_esis_test(SJFCD, ready_queue, esi_bursts);
+	schedule_esis_test(SJFSD, ready_queue, esi_bursts);
+	schedule_esis_test(HRRN, ready_queue, esi_bursts);
 
 	return EXIT_SUCCESS;
 
 }
 
-static int schedule_esis(t_scheduling_algorithm algorithm, t_list* ready_queue, t_list* esi_bursts) {
+static int schedule_esis_test(t_scheduling_algorithm algorithm, t_list* ready_queue, t_list* esi_bursts) {
 
 	int* esi_fd;
 
@@ -59,7 +61,7 @@ static int schedule_esis(t_scheduling_algorithm algorithm, t_list* ready_queue, 
 
 		void* obtain_esi_information(void* esi_fd) {
 
-			return (void*)obtain_esi_information_by_id(*(int*)esi_fd, esi_bursts);
+			return (void*)obtain_esi_information_by_id_test(*(int*)esi_fd, esi_bursts);
 		}
 
 		bool comparator (void* esi_inf1, void* esi_inf2) {
@@ -83,7 +85,7 @@ static int schedule_esis(t_scheduling_algorithm algorithm, t_list* ready_queue, 
 
 		void* obtain_esi_information(void* esi_fd) {
 
-			return (void*)obtain_esi_information_by_id(*(int*)esi_fd, esi_bursts);
+			return (void*)obtain_esi_information_by_id_test(*(int*)esi_fd, esi_bursts);
 		}
 
 		bool comparator (void* esi_inf1, void* esi_inf2) {
@@ -103,14 +105,14 @@ static int schedule_esis(t_scheduling_algorithm algorithm, t_list* ready_queue, 
 
 	}
 
-	esi_information* esi_inf = obtain_esi_information_by_id(*esi_fd, esi_bursts);
+	esi_information* esi_inf = obtain_esi_information_by_id_test(*esi_fd, esi_bursts);
 
 	printf("El ESI seleccionado para ejecutar es el ESI %i\n", esi_inf->esi_numeric_name);
 
 	return *esi_fd;
 }
 
-static esi_information* obtain_esi_information_by_id(int esi_fd, t_list* esi_bursts){
+static esi_information* obtain_esi_information_by_id_test(int esi_fd, t_list* esi_bursts){
 
 	bool equal_condition(void* esi_inf) {
 
@@ -120,7 +122,7 @@ static esi_information* obtain_esi_information_by_id(int esi_fd, t_list* esi_bur
 	return list_find(esi_bursts, equal_condition);
  }
 
-static esi_information* create_esi_information(int esi_id, int esi_numeric_name, double estimation) {
+static esi_information* create_esi_information_test(int esi_id, int esi_numeric_name, double estimation) {
 
 	esi_information* esi_inf = malloc(sizeof(esi_information));
 	esi_inf->esi_id = esi_id;
