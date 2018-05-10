@@ -71,7 +71,7 @@ static void lock_process(char **args)
 
 		printf("Bloquear proceso ESI (clave = %s, id = %s)\n", key, pid);
 		block_esi_by_console_flag = 1;
-		list_add(g_new_blocked_by_console_esis, (void*)create_esi_sexpecting_key(*(int*)pid, key));
+		list_add(g_new_blocked_by_console_esis, (void*)create_esi_sexpecting_key(atoi(pid), key));
 
 	}
 	_lock_process(args[0], args[1]);
@@ -102,6 +102,8 @@ static void kill_process(char **args)
 {
 	void _kill_process(char *pid) {
 		printf("Finalizar proceso %s\n", pid);
+		killed_esi_flag = 1;
+		list_add(g_new_killed_esis, (void*)&atoi(pid));
 	}
 	_kill_process(args[0]);
 }

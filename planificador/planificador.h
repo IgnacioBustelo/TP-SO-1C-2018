@@ -141,10 +141,11 @@ bool determine_if_key_is_blocked(char* blocked_key);
 bool key_is_blocked_by_executing_esi(char* key);
 
 /*
- * Toma a los ESI's que estaban bloqueados por la clave desbloqueada de la lista de sexpectantes, los elimina de ella y devuelve sus respectivos file descriptors
+ * Toma a los ESI's que estaban bloqueados por la clave desbloqueada de la lista de sexpectantes, toma al primero para desbloquear, lo saca de la lista de esi sexpecting key y lo devuelve
+ * En caso de que ninguno se haya desbloqueado devuelve -1
  */
 
-t_list* unlock_esis(char* key_unlocked);
+int unlock_esis(char* key_unlocked);
 
 /*
  * Desbloquea a los ESI's bloqueados por la clave recientemente desbloqueada

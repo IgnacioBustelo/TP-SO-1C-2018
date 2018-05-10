@@ -37,6 +37,7 @@ t_list* g_locked_keys;
 t_list* g_esis_sexpecting_keys;
 t_list* g_esi_bursts;
 t_list* g_new_blocked_by_console_esis;
+t_list* g_new_killed_esis;
 
 t_list* g_new_queue;
 t_list* g_ready_queue;
@@ -49,7 +50,7 @@ int finished_esi_flag = 0;
 int new_esi_flag = 0;
 int reschedule_flag = 0;
 int update_blocked_esi_queue_flag = 0;
-
+int killed_esi_flag = 0;
 int scheduler_paused_flag = 0;
 int block_esi_by_console_flag = 0;
 int unlock_esi_by_console_flag = 0;
@@ -300,8 +301,11 @@ int main(void) {
 					release_resources(*(int*)g_execution_queue->head->data, &update_blocked_esi_queue_flag);
 					move_esi_from_and_to_queue(g_execution_queue, g_finished_queue, *(int*)g_execution_queue->head->data);
 					executing_esi = -1;
+					//Matar proceso si no era el que estaba ejecutando y terminó el script
 					finished_esi_flag = 0;
 				} else {
+
+					//Matar a quien deba ripear sin importar si estaba en ejecucion o no
 
 					if (update_blocked_esi_queue_flag == 1 || new_esi_flag == 1) {
 
