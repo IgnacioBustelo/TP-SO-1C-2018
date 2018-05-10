@@ -557,7 +557,7 @@ int schedule_esis() {
 			int last_estimated_burst1 = ((esi_information*)esi_inf1)->last_estimated_burst;
 			int last_estimated_burst2 = ((esi_information*)esi_inf2)->last_estimated_burst;
 
-			return last_estimated_burst1 <= last_estimated_burst2;
+			return last_estimated_burst1 >= last_estimated_burst2;
 
 		}
 
@@ -597,7 +597,7 @@ bool key_is_blocked_by_executing_esi(char* key) {
 	return list_any_satisfy(g_locked_keys, condition);
 }
 
-t_list* unlock_esis(char* unlocked_key) {
+int unlock_esis(char* unlocked_key) {
 
 	bool unlock_condition(void* esi_sexpecting) {
 
@@ -613,14 +613,16 @@ t_list* unlock_esis(char* unlocked_key) {
 
     t_list* mapped_list = list_map(filtered_list, transformer);
 
+    int esi_fd_to_unlock = -1;
+
+    if(mapped_list->elements_count != 0) {
+
+        esi_fd_to_unlock = *(int*)mapped_list->head->data;
+    }
+
     bool remove_condition(void* esi_sexpecting) {
 
-    	bool condition(void* esi_fd) {
-
-    		return ((esi_sexpecting_key*)esi_sexpecting)->esi_fd == *(int*)esi_fd;
-    	}
-
-    	return list_any_satisfy(mapped_list, condition);
+    	return ((esi_sexpecting_key*)esi_sexpecting)->esi_fd == esi_fd_to_unlock;
     }
 
     void esi_sexpecting_destroyer(void* esi_sexpecting_key_) {
@@ -631,26 +633,21 @@ t_list* unlock_esis(char* unlocked_key) {
 
     list_remove_and_destroy_by_condition(g_esis_sexpecting_keys, remove_condition, esi_sexpecting_destroyer);
 
-	return mapped_list;
+	return esi_fd_to_unlock;
 }
 
 void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag) {
 
-	t_list* unlocked_esis = unlock_esis(last_key_inquired);
+	int esi_unlocked = unlock_esis(last_key_inquired);
 
-	if(unlocked_esis->elements_count == 0) {
+	if( esi_unlocked == -1) {
 
 		log_info(logger, "Ningún ESI estaba bloqueado por la clave %s", last_key_inquired);
 	} else {
 
-	list_add_all(g_ready_queue, unlocked_esis);
+	list_add(g_ready_queue, (void*)&esi_unlocked);
 
-	void show_unlocked_esi(void* esi_fd) {
-
-		log_info(logger, "El ESI %i se ha desbloqueado", obtain_esi_information_by_id(*(int*)esi_fd)->esi_numeric_name);
-	}
-
-	list_iterate(unlocked_esis, show_unlocked_esi);
+	log_info(logger, "El ESI %i se ha desbloqueado", obtain_esi_information_by_id(esi_unlocked)->esi_numeric_name);
 	}
 
 	*update_blocked_esi_queue_flag = 0;
@@ -960,9 +957,9 @@ static double next_estimated_burst_sjf(double alpha, int last_real_burst, double
 
 }
 
-static double next_estimated_burst_hrrn(int waited_time, int last_real_burst) {
+static double next_estimated_burst_hrrn(int waited_time, int next_service_time) {
 
-	return waited_time/last_real_burst;
+	return waited_time/next_service_time;
 }
 
 static void update_esi_information_next_estimated_burst(int esi_fd) {
@@ -978,7 +975,7 @@ static void update_esi_information_next_estimated_burst(int esi_fd) {
 
 	if(setup.scheduling_algorithm == HRRN) {
 
-		esi_inf->last_estimated_burst = next_estimated_burst_hrrn(esi_inf->waited_bursts, esi_inf->last_real_burst);
+		esi_inf->last_estimated_burst = next_estimated_burst_hrrn(esi_inf->waited_bursts, next_estimated_burst_sjf(setup.alpha, esi_inf->last_real_burst, esi_inf->last_estimated_burst));
 		esi_inf->last_real_burst = 0;
 		esi_inf->waited_bursts = 0;
 	}

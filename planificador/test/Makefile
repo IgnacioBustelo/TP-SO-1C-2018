@@ -3,6 +3,8 @@ RM = rm -f
 
 SRC = $(wildcard *.c)
 TARGET = $(SRC:%.c=%)
+OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c))
+CFLAGS = -g -Wall
 
 all: $(TARGET)
 
