@@ -184,6 +184,12 @@ void release_resources(int esi_fd, int* update_blocked_esi_queue_flag);
 void sock_my_port(int esi_fd);
 
 /*
+ * Se encarga de encarga de liberar los recursos de los esis que fueron matados por consola, a excepción del caso de que se haya matado al esi que justo terminó su script
+ */
+
+void burn_esi_corpses(int executing_esi);
+
+/*
  * Cierra la conexión con el coordinador y hace sock_my_port de todos los ESI's
  */
 

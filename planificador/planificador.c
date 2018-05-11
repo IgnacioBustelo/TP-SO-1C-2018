@@ -836,6 +836,8 @@ void burn_esi_corpses(int executing_esi) {
 
 	list_iterate(mapped_esis, apply_sock_my_port);
 
+	list_clean_and_destroy_elements(g_new_killed_esis, destroy_int);
+
 	killed_esi_flag = 0;
 }
 
