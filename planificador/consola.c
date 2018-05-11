@@ -6,7 +6,7 @@ static void lock_process(char **args);
 static void unlock_process(char **args);
 static void list_locked_process(char **args);
 static void kill_process(char **args);
-static void instance_status(char **args);
+static void key_status(char **args);
 static void check_deadlock(char **_);
 
 #define COMMANDS_SIZE (sizeof(commands) / sizeof(*commands))
@@ -19,7 +19,7 @@ static struct command_t commands[] = {
 	DEF_COMMAND("desbloquear", 1, unlock_process),
 	DEF_COMMAND("listar",      1, list_locked_process),
 	DEF_COMMAND("kill",        1, kill_process),
-	DEF_COMMAND("status",      1, instance_status),
+	DEF_COMMAND("status",      1, key_status),
 	DEF_COMMAND("deadlock",    0, check_deadlock)
 };
 
@@ -109,12 +109,18 @@ static void kill_process(char **args)
 	_kill_process(args[0]);
 }
 
-static void instance_status(char **args)
+static void key_status(char **args)
 {
-	void _instance_status(char *key) {
-		printf("Informar estado de la instancia %s\n", key);
+	void _key_status(char *key) {
+		printf("Informar estado de la clave %s\n", key);
+
+		/* Probablemente se necesite un mutex para sincronizar la comunicación con el coordinador y que no explote TODO horrendamente */
+
+		/* Hay que comunicarse con el coordinador para obtener los datos de la clave respecto de las instancias */
+
+		show_blocked_process(key);
 	}
-	_instance_status(args[0]);
+	_key_status(args[0]);
 }
 
 static void check_deadlock(char **_)
@@ -128,7 +134,8 @@ void show_blocked_process(char* resource) {
 
 		if (strcmp(((esi_sexpecting_key*)resource2)->key, resource) == 0) {
 
-			printf("El proceso %i se encuentra bloqueado por la clave %s\n", ((esi_sexpecting_key*)resource2)->esi_fd, resource);
+			esi_information* esi_inf = obtain_esi_information_by_id(((esi_sexpecting_key*)resource2)->esi_fd);
+			printf("El ESI %i se encuentra bloqueado por la clave %s\n", esi_inf->esi_numeric_name, resource);
 		}
 	}
 

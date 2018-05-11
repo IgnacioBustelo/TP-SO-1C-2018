@@ -323,9 +323,6 @@ int main(void) {
 					}
 
 				}
-
-
-
 				if (reschedule_flag == 1){
 
 					reschedule(&reschedule_flag, &executing_esi);
