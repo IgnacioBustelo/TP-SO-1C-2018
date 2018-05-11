@@ -27,6 +27,7 @@ static double next_estimated_burst_sjf(double alpha, int last_real_burst, double
 static double next_estimated_burst_hrrn(int waited_time, int last_real_burst);
 static void update_esi_information_next_estimated_burst(int esi_fd);
 static void block_by_console_procedure();
+static int obtain_esi_fd_by_esi_pid(int esi_pid);
 
 /* -- Global variables -- */
 
@@ -292,27 +293,23 @@ int main(void) {
 						we_must_reschedule(&reschedule_flag);
 					}
 					break;
-
 				}
 
-				if(finished_esi_flag == 1) {
+				if(killed_esi_flag == 1) burn_esi_corpses(executing_esi);
 
+				if(finished_esi_flag == 1) {
 					log_info(logger,"El ESI %i finalizó la ejecución de su script correctamente", obtain_esi_information_by_id(fd)->esi_numeric_name);
 					release_resources(*(int*)g_execution_queue->head->data, &update_blocked_esi_queue_flag);
 					move_esi_from_and_to_queue(g_execution_queue, g_finished_queue, *(int*)g_execution_queue->head->data);
 					executing_esi = -1;
-					//Matar proceso si no era el que estaba ejecutando y terminó el script
 					finished_esi_flag = 0;
 				} else {
-
-					//Matar a quien deba ripear sin importar si estaba en ejecucion o no
 
 					if (update_blocked_esi_queue_flag == 1 || new_esi_flag == 1) {
 
 						if(algorithm_is_preemptive()) {
 
 							move_esi_from_and_to_queue(g_execution_queue, g_ready_queue, *(int*)g_execution_queue->head->data);
-
 							we_must_reschedule(&reschedule_flag);
 						}
 
@@ -322,11 +319,12 @@ int main(void) {
 
 						if (new_esi_flag == 1) update_new_esi_queue(&new_esi_flag);
 
-						if(block_esi_by_console_flag == 1) block_by_console_procedure();
-
+						if (block_esi_by_console_flag == 1) block_by_console_procedure();
 					}
 
 				}
+
+
 
 				if (reschedule_flag == 1){
 
@@ -341,6 +339,8 @@ int main(void) {
 		}
 
 		if(list_is_empty(g_execution_queue) && !list_is_empty(g_new_queue) && scheduler_paused_flag != 1) {
+
+			if(killed_esi_flag == 1) burn_esi_corpses(executing_esi);
 
 			if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(last_key_inquired, &update_blocked_esi_queue_flag);
 
@@ -798,6 +798,47 @@ void sock_my_port(int esi_fd) {
 	remove_fd(esi_fd, &connected_fds);
 }
 
+void burn_esi_corpses(int executing_esi) {
+
+	void* obtain_esi_id(void* esi_killed_pid) {
+
+		return obtain_esi_fd_by_esi_pid(*(int*)esi_killed_pid);
+	}
+
+	t_list* mapped_esis = list_map(g_new_killed_esis, obtain_esi_id);
+
+	bool esi_executing_killed_condition(void* killed_esi) {
+
+		return *(int*)killed_esi == executing_esi;
+	}
+
+	void destroy_int(void* esi_fd) {
+
+		free((int*)esi_fd);
+	}
+
+	if(list_any(mapped_esis, esi_executing_killed_condition) && finished_esi_flag == 1) {
+
+		bool remove_esi_executing(void* esi_fd) {
+
+			return *(int*)esi_fd == executing_esi;
+		}
+
+		log_info(logger, "El ESI %i justo acaba de terminar su script por lo que no tiene sentido matarlo", obtain_esi_information_by_id(executing_esi)->esi_numeric_name);
+
+		list_remove_and_destroy_by_condition(mapped_esis, remove_esi_executing, destroy_int);
+	}
+
+	void apply_sock_my_port(void* esi_fd) {
+
+		sock_my_port(*(int*)esi_fd);
+	}
+
+	list_iterate(mapped_esis, apply_sock_my_port);
+
+	killed_esi_flag = 0;
+}
+
 void kaboom_baby() {
 
 	int fd;
@@ -1089,4 +1130,18 @@ static void block_by_console_procedure() {
 	list_clean_and_destroy_elements(g_new_blocked_by_console_esis, destroy_esi_sexpecting_key);
 
 	block_esi_by_console_flag = 0;
+}
+
+static int obtain_esi_fd_by_esi_pid(int esi_pid) {
+
+	bool find_esi(void* esi_inf) {
+
+		return ((esi_information*)esi_inf)->esi_numeric_name == esi_pid;
+	}
+	esi_information* esi_inf = list_find(g_esi_bursts, find_esi);
+
+	if(esi_inf != NULL) {
+
+		return esi_inf->esi_id;
+	}else return -1;
 }

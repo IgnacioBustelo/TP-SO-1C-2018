@@ -103,7 +103,8 @@ static void kill_process(char **args)
 	void _kill_process(char *pid) {
 		printf("Finalizar proceso %s\n", pid);
 		killed_esi_flag = 1;
-		list_add(g_new_killed_esis, (void*)&atoi(pid));
+		int esi_id = atoi(pid);
+		list_add(g_new_killed_esis, (void*)&esi_id);
 	}
 	_kill_process(args[0]);
 }
