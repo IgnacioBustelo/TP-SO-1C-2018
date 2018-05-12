@@ -9,7 +9,7 @@ void entry_table_init() {
 
 
 
-int entry_table_update(int next_entry, key_value_t* key_value){
+void entry_table_update(int next_entry, key_value_t* key_value){
 	entry_t* entry = malloc(sizeof(entry_t));
 	if(dictionary_has_key(entry_table,key_value->key))
 			{
@@ -23,7 +23,6 @@ int entry_table_update(int next_entry, key_value_t* key_value){
 				dictionary_remove(entry_table,key_value->key);
 
 				dictionary_put(entry_table, key_value->key, (void*) entry);
-				return ENTRY_UPDATE_OK;
 
 			}
 	else{
@@ -32,9 +31,12 @@ int entry_table_update(int next_entry, key_value_t* key_value){
 			entry->size = key_value->size;
 
 			dictionary_put(entry_table, key_value->key, (void*) entry);
-			return ENTRY_INSERT_OK;
 	}
-	return ENTRY_UPDATE_ERROR;
+}
+
+static bool entry_table_entries_fit(int entris_number){
+
+	return (dictionary_size(entry_table)+entris_number)>=storage_setup.total_entries;
 }
 
 int entry_table_next_entry(key_value_t* key_value) {
@@ -52,11 +54,6 @@ static int entries_needed(size_t size){
 			total++;
 		}
 	return total++;
-}
-
-static bool entry_table_entries_fit(int entris_number){
-
-	return (dictionary_size(entry_table)+entris_number)>=storage_setup.total_entries;
 }
 
 

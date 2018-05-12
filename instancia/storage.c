@@ -72,6 +72,7 @@ int storage_next_entry(key_value_t* key_value){
 		{
 			return entry;
 		}
+
 	return STORAGE_ERROR;
 }
 

@@ -19,6 +19,8 @@ void	storage_init(); // Lo hace Santi
 
 void	storage_set(int next_entry, key_value_t* key_value); // Lo hace Santi
 
+void	storage_store(int entry, size_t value_size); // Lo hace Santi
+
 void	storage_destroy(); // Lo hace Nico
 
 #endif

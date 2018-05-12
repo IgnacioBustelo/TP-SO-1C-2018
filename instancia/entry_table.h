@@ -24,11 +24,15 @@ typedef struct{
 
 t_dictionary* entry_table;
 
+size_t entries_left;
+
 // Interfaz
 
 void	entry_table_init(); // Lo hace Santi
 
 int		entry_table_next_entry(key_value_t* key_value);
+
+bool	entry_table_have_entries(key_value_t* key_value); // Lo hace Nico
 
 void	entry_table_insert(int next_entry, key_value_t* key_value); // Lo hace Santi
 

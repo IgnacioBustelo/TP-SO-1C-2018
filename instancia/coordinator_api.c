@@ -3,6 +3,7 @@
 #include <unistd.h>
 
 #include "../protocolo/protocolo_coordinador_instancia.h"
+#include "../libs/conector.h"
 #include "../libs/deserializador.h"
 #include "../libs/serializador.h"
 #include "../libs/serializador_v2.h"
@@ -10,30 +11,27 @@
 #include "globals.h"
 
 
-int coordinator_api_handshake(){
+void coordinator_api_handshake(char* ip, int port, char* instance_name){
+	fd_coordinador = connect_to_server(ip, port);
+
 	chunk_t *data;
 
 
 	send_handshake(fd_coordinador,INSTANCE);
 
-	data = chunk_create();
-	chunk_add(data,strlen((setup->instance_name)),sizeof(size_t)));
-	chunk_build(data);
-	send_serialized_package(fd_coordinador,data,sizeof(data));
-	chunk_destroy(data);
+
 
 	data = chunk_create();
-	chunk_add_variable(data,setup->instance_name,sizeof(setup->instance_name));
+	chunk_add_variable(data, instance_name, strlen(instance_name)+1);
 	chunk_build(data);
 	send_serialized_package(fd_coordinador,data,sizeof(data));
 	chunk_destroy(data);
 
 	if (receive_handshake(fd_coordinador)){
 
-		recv_package(fd_coordinador,storage_setup.entry_size,sizeof(size_t));
-		recv_package(fd_coordinador,storage_setup.total_entries,sizeof(size_t));
+		recv_package(fd_coordinador,&storage_setup.entry_size,sizeof(size_t));
+		recv_package(fd_coordinador,&storage_setup.total_entries,sizeof(size_t));
 	}
-	return HANDSHAKE_SUCCES;
 }
 key_value_t* coordinator_api_receive_set() {
 	char *key, *value;
