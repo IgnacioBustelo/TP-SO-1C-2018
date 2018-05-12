@@ -18,7 +18,7 @@ int fd_coordinador;
 
 // Interfaz
 
-void			coordinator_api_handshake(); // Lo hace Nico
+void			coordinator_api_handshake(char* instance_name); // Lo hace Nico
 
 key_value_t*	coordinator_api_receive_set(); // Hablado con Fer
 

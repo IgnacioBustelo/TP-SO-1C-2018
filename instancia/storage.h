@@ -6,7 +6,7 @@
 #include "globals.h"
 
 enum{
-	STORAGE_ERROR=-1;
+	STORAGE_ERROR=-1
 };
 
 // Atributos

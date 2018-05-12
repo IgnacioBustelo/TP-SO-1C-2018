@@ -20,6 +20,12 @@ st_init: storage_init.c $(ST_SRC) $(DEPS)
 st_set: storage_set.c $(ST_SRC) $(DEPS)
 	gcc $< $(ST_SRC) -o $@ $(LIBS)
 	
+api_handshake_instancia: api_handshake_instancia.c $(API_SRC) $(DEPS)
+	gcc $< $(API_SRC) -o $@ $(LIBS)
+	
+api_handshake_coordinador: api_handshake_coordinador.c ../../libs/conector.c ../../libs/deserializador.c ../../libs/conector.h ../../libs/deserializador.h
+	gcc api_handshake_coordinador.c ../../libs/conector.c ../../libs/deserializador.c -o api_handshake_coordinador
+	
 api_set_instancia: api_set_instancia.c $(API_SRC) $(DEPS)
 	gcc $< $(API_SRC) -o $@ $(LIBS)
 	

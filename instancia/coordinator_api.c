@@ -11,10 +11,9 @@
 #include "globals.h"
 
 
-void coordinator_api_handshake(char* ip, int port, char* instance_name){
-	fd_coordinador = connect_to_server(ip, port);
-
+void coordinator_api_handshake(char* instance_name){
 	chunk_t *data;
+	void* message;
 
 
 	send_handshake(fd_coordinador,INSTANCE);
@@ -23,9 +22,10 @@ void coordinator_api_handshake(char* ip, int port, char* instance_name){
 
 	data = chunk_create();
 	chunk_add_variable(data, instance_name, strlen(instance_name)+1);
-	chunk_build(data);
-	send_serialized_package(fd_coordinador,data,sizeof(data));
+	message = chunk_build(data);
+	send_serialized_package(fd_coordinador,message,data->current_size);
 	chunk_destroy(data);
+	free(message);
 
 	if (receive_handshake(fd_coordinador)){
 
