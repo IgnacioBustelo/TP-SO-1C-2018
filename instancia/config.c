@@ -8,6 +8,9 @@
 #include "../libs/conector.h"
 #include "instancia.h"
 
+t_config* config;
+setup_t setup;
+
 static void check_config(t_config* config, char* key, t_log* logger) {
 	if(!config_has_property(config, key)) {
 		log_error(logger, "No existe la clave '%s' en el archivo de configuracion.", key);
@@ -42,8 +45,8 @@ t_log* init_log() {
 }
 
 setup_t init_config(t_log* logger) {
-	t_config* config;
-	setup_t setup;
+
+
 
 	char* keys[6] = {"IP_COORDINADOR", "PUERTO_COORDINADOR", "ALGORITMO_REEMPLAZO", "PUNTO_MONTAJE", "NOMBRE_INSTANCIA", "INTERVALO_DUMP"};
 

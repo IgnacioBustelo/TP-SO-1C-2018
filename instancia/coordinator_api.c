@@ -9,6 +9,32 @@
 #include "coordinator_api.h"
 #include "globals.h"
 
+
+int coordinator_api_handshake(){
+	chunk_t *data;
+
+
+	send_handshake(fd_coordinador,INSTANCE);
+
+	data = chunk_create();
+	chunk_add(data,strlen((setup->instance_name)),sizeof(size_t)));
+	chunk_build(data);
+	send_serialized_package(fd_coordinador,data,sizeof(data));
+	chunk_destroy(data);
+
+	data = chunk_create();
+	chunk_add_variable(data,setup->instance_name,sizeof(setup->instance_name));
+	chunk_build(data);
+	send_serialized_package(fd_coordinador,data,sizeof(data));
+	chunk_destroy(data);
+
+	if (receive_handshake(fd_coordinador)){
+
+		recv_package(fd_coordinador,storage_setup.entry_size,sizeof(size_t));
+		recv_package(fd_coordinador,storage_setup.total_entries,sizeof(size_t));
+	}
+	return HANDSHAKE_SUCCES;
+}
 key_value_t* coordinator_api_receive_set() {
 	char *key, *value;
 

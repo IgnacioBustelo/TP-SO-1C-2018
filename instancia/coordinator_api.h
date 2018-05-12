@@ -6,7 +6,8 @@
 // Estructuras de datos
 
 typedef enum {
-	SET_SUCCESS
+	SET_SUCCESS,
+	HANDSHAKE_SUCCES
 } coordinator_api_status;
 
 // Atributos
