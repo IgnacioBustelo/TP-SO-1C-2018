@@ -1,9 +1,9 @@
 #ifndef INSTANCIA_ENTRY_TABLE_H_
 #define INSTANCIA_ENTRY_TABLE_H_
 
-#include <commons/collections/dictionary.h>
+#include <commons/collections/list.h>
 #include <stdlib.h>
-
+#include <string.h>
 #include "globals.h"
 
 // Estructuras de datos
@@ -22,7 +22,8 @@ typedef struct{
 
 // Atributos
 
-t_dictionary* entry_table;
+
+t_list * entry_table;
 
 size_t entries_left;
 
@@ -41,5 +42,7 @@ void	entry_table_update(int next_entry, key_value_t* key_value); // Lo hace Nico
 void	entry_table_delete(char* key); // Lo hace Nico
 
 void	entry_table_destroy();
+
+int     entry_table_entries_needed(key_value_t * key_value);
 
 #endif

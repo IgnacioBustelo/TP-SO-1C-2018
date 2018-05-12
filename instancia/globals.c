@@ -16,3 +16,12 @@ void key_value_destroy(key_value_t* key_value) {
 	free(key_value->value);
 	free(key_value);
 }
+
+int get_total_entries()
+{
+	return storage_setup.total_entries;
+}
+
+int get_entry_size(){
+	return storage_setup.entry_size;
+}

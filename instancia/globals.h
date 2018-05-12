@@ -27,4 +27,8 @@ key_value_t* key_value_create(char* key, char* value);
 
 void key_value_destroy(key_value_t* key_value);
 
+int get_total_entries();
+
+int get_entry_size();
+
 #endif

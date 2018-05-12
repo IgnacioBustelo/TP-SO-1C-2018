@@ -4,56 +4,73 @@
 #include "globals.h"
 
 void entry_table_init() {
-	entry_table = dictionary_create();
+	entry_table= list_create();
+	entries_left = get_total_entries();
 }
 
-
-
-void entry_table_update(int next_entry, key_value_t* key_value){
-	entry_t* entry = malloc(sizeof(entry_t));
-	if(dictionary_has_key(entry_table,key_value->key))
-			{
-				entry_t* entry = malloc(sizeof(entry_t));
-
-				entry_t* entry_old = dictionary_get(entry_table, key_value->key);
-
-				entry->number=entry_old->number;
-				entry->size = key_value->size;
-
-				dictionary_remove(entry_table,key_value->key);
-
-				dictionary_put(entry_table, key_value->key, (void*) entry);
-
-			}
-	else{
-
-			entry->number = next_entry;
-			entry->size = key_value->size;
-
-			dictionary_put(entry_table, key_value->key, (void*) entry);
+void entry_table_insert(int next_entry, key_value_t* key_value)//Solo guarda para un bloque!!!
+{
+	if (entries_left-->0)
+	{
+		list_add(entry_table,key_value);
 	}
+
+	//SORT DE LA LISTA
 }
 
-static bool entry_table_entries_fit(int entris_number){
+int entry_table_next_entry(key_value_t* key_value){
 
-	return (dictionary_size(entry_table)+entris_number)>=storage_setup.total_entries;
+	size_t in_beetwen_entry_space=0;
+	int entries_used=list_size(entry_table);
+	int entries_needed=entry_table_entries_needed(key_value);
+
+	entry_t* e1;
+	entry_t* e2;
+
+    if(entry_table_have_entries(key_value))
+    {
+    	if (entry_table!=NULL)
+    	{
+			for (int i=0;i+1<entries_used;i++)
+			{
+				node_to_entry(e1,list_get(entry_table,i));
+				node_to_entry(e2,list_get(entry_table,i+1));
+
+				in_beetwen_entry_space = e2->number-e1->number;
+
+				if (in_beetwen_entry_space>=entries_needed)
+				{
+					return i;
+				}
+			}
+    	}
+    }
+
+    return -1;
 }
 
-int entry_table_next_entry(key_value_t* key_value) {
-	if (entry_table_entries_fit(key_value->size))
-		return dictionary_size(entry_table);
-return ENTRY_LIMIT_ERROR;
+bool entry_table_have_entries(key_value_t* key_value)
+{
+	return entry_table_entries_needed(key_value)<=entries_left?true:false;
 }
 
-static int entries_needed(size_t size){
+int entry_table_entries_needed(key_value_t *key_value)
+{
 
 	int total=0;
+	int size=key_value->size;
 
-	while (size - storage_setup.entry_size > 0)
+	while (size - get_entry_size() > 0)
 		{
 			total++;
 		}
 	return total++;
+}
+
+void node_to_entry(entry_t * entry,void * node)
+{
+	entry = malloc(sizeof(entry_t));
+	memcpy(&(entry),node,sizeof(entry_t));
 }
 
 
