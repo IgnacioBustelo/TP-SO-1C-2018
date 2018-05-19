@@ -195,4 +195,6 @@ void burn_esi_corpses(int executing_esi);
 
 void kaboom_baby();
 
+esi_information* obtain_esi_information_by_id(int esi_fd);
+
 #endif /* PLANIFICADOR_PLANIFICADOR_H_ */

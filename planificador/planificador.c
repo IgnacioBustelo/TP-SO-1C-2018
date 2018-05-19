@@ -1,3 +1,5 @@
+#include <commons/collections/list.h>
+
 #include "../libs/conector.h"
 #include "planificador.h"
 #include "../protocolo/protocolo.h"
@@ -9,7 +11,6 @@
 /* -- Local function prototypes -- */
 
 static bool algorithm_is_preemptive();
-static esi_information* obtain_esi_information_by_id(int esi_fd);
 static void take_esi_away_from_queue(t_list* queue, int esi_fd);
 static void we_must_reschedule(int* flag);
 static void remove_fd(int fd, fd_set *fdset);
@@ -799,7 +800,7 @@ void burn_esi_corpses(int executing_esi) {
 
 	void* obtain_esi_id(void* esi_killed_pid) {
 
-		return obtain_esi_fd_by_esi_pid(*(int*)esi_killed_pid);
+		return (void *)obtain_esi_fd_by_esi_pid(*(int*)esi_killed_pid);
 	}
 
 	t_list* mapped_esis = list_map(g_new_killed_esis, obtain_esi_id);
@@ -814,7 +815,7 @@ void burn_esi_corpses(int executing_esi) {
 		free((int*)esi_fd);
 	}
 
-	if(list_any(mapped_esis, esi_executing_killed_condition) && finished_esi_flag == 1) {
+	if(list_any_satisfy(mapped_esis, esi_executing_killed_condition) && finished_esi_flag == 1) {
 
 		bool remove_esi_executing(void* esi_fd) {
 
@@ -884,7 +885,7 @@ static bool algorithm_is_preemptive() {
 	}
 }
 
-static esi_information* obtain_esi_information_by_id(int esi_fd){
+esi_information* obtain_esi_information_by_id(int esi_fd){
 
 	bool equal_condition(void* esi_inf) {
 
