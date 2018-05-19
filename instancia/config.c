@@ -6,16 +6,16 @@
 #include "config.h"
 
 #include "../libs/conector.h"
-#include "../libs/handshaker.h"
 #include "instancia.h"
+
+t_config* config;
+setup_t setup;
 
 static void check_config(t_config* config, char* key, t_log* logger) {
 	if(!config_has_property(config, key)) {
 		log_error(logger, "No existe la clave '%s' en el archivo de configuracion.", key);
 
 		config_destroy(config);
-
-		exit_gracefully(EXIT_FAILURE);
 	}
 }
 
@@ -32,7 +32,6 @@ static void set_distribution(page_replacement_algorithm_t* algorithm, char* algo
 	}
 	else {
 		log_error(logger, "Se intento asignar un algoritmo inexistente llamado %s.", algorithm_name);
-		exit_gracefully(EXIT_FAILURE);
 	}
 }
 
@@ -46,8 +45,8 @@ t_log* init_log() {
 }
 
 setup_t init_config(t_log* logger) {
-	t_config* config;
-	setup_t setup;
+
+
 
 	char* keys[6] = {"IP_COORDINADOR", "PUERTO_COORDINADOR", "ALGORITMO_REEMPLAZO", "PUNTO_MONTAJE", "NOMBRE_INSTANCIA", "INTERVALO_DUMP"};
 
@@ -83,14 +82,4 @@ setup_t init_config(t_log* logger) {
 	config_destroy(config);
 
 	return setup;
-}
-
-void handshake_coordinador(int coordinador_fd, t_log* logger) {
-	int status;
-
-	status = handshake_client(coordinador_fd, "Coordinador", INSTANCE, logger);
-
-	if(status != EXIT_SUCCESS) {
-		exit_gracefully(status);
-	}
 }

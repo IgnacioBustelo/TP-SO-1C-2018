@@ -1,36 +1,48 @@
 #ifndef INSTANCIA_ENTRY_TABLE_H_
 #define INSTANCIA_ENTRY_TABLE_H_
 
+#include <commons/collections/list.h>
 #include <stdlib.h>
-
-#include "instancia.h"
+#include <string.h>
+#include "globals.h"
 
 // Estructuras de datos
 
-// Entrada para la tabla de entradas
+enum{
+	ENTRY_LIMIT_ERROR = -1,
+	ENTRY_UPDATE_OK,
+	ENTRY_INSERT_OK,
+	ENTRY_UPDATE_ERROR
+};
 
 typedef struct{
 	size_t	number;
 	size_t	size;
 } entry_t;
 
-// Códigos de éxito para las operaciones sobre la tabla de entradas
+// Atributos
 
-typedef enum {
-	ET_INIT_SUCCESS,
-	ET_INIT_ERROR,
-	ET_INSERT_SUCCESS,
-	ET_UPDATE_SUCCESS,
-	ET_UPDATE_ERROR
 
-} entry_status;
+t_list * entry_table;
 
-int entry_table_init(); // Lo hace Santi
+size_t entries_left;
 
-int entry_table_insert(key_value_t* key_value); // Lo hace Santi
+// Interfaz
 
-int entry_table_update(key_value_t* key_value); // Lo hace Nico
+void	entry_table_init(); // Lo hace Santi
 
-int entry_table_delete(char* key); // Lo hace Nico
+int		entry_table_next_entry(key_value_t* key_value);
+
+bool	entry_table_have_entries(key_value_t* key_value); // Lo hace Nico
+
+void	entry_table_insert(int next_entry, key_value_t* key_value); // Lo hace Santi
+
+void	entry_table_update(int next_entry, key_value_t* key_value); // Lo hace Nico
+
+void	entry_table_delete(char* key); // Lo hace Nico
+
+void	entry_table_destroy();
+
+int     entry_table_entries_needed(key_value_t * key_value);
 
 #endif

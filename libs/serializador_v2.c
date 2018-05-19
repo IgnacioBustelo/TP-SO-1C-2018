@@ -6,6 +6,7 @@
 chunk_t* chunk_create() {
 	chunk_t* chunk = malloc(sizeof(chunk_t));
 
+	chunk->bytes = malloc(0);
 	chunk->current_size = 0;
 
 	return chunk;

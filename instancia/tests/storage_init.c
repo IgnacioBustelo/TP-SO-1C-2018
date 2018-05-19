@@ -5,16 +5,10 @@
 #include "../storage.h"
 #include "utils.h"
 
-// Implementaciones mock
-
-int storage_next_entry(size_t key_size) {
-	return 1;
-}
-
 int main(int argc, char* argv[]) {
-	total_entries = (argc < 2) ? 10 : (size_t) atoi(argv[1]);
+	storage_setup.total_entries = (argc < 2) ? 10 : (size_t) atoi(argv[1]);
 
-	printf("Cantidad de entradas: %d\n", total_entries);
+	printf("Cantidad de entradas: %d\n", storage_setup.total_entries);
 
 	storage_init();
 

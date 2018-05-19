@@ -1,54 +1,76 @@
 #include <stdlib.h>
 
 #include "entry_table.h"
-#include "instancia.h"
-#include "storage.h"
+#include "globals.h"
 
-int entry_table_init() {
-	entry_table = dictionary_create();
-
-	if (entry_table != NULL) {
-		return ET_INIT_SUCCESS;
-	}
-
-	else {
-		return ET_INIT_ERROR;
-	}
+void entry_table_init() {
+	entry_table= list_create();
+	entries_left = get_total_entries();
 }
 
-int entry_table_insert(key_value_t* key_value) {
-	entry_t* entry = malloc(sizeof(entry_t));
+void entry_table_insert(int next_entry, key_value_t* key_value)//Solo guarda para un bloque!!!
+{
+	if (entries_left-->0)
+	{
+		list_add(entry_table,key_value);
+	}
 
-	entry->number = storage_set(key_value);
-	entry->size = key_value->size;
-
-	dictionary_put(entry_table, key_value->key, (void*) entry);
-
-	return ET_INSERT_SUCCESS;
+	//SORT DE LA LISTA
 }
 
+int entry_table_next_entry(key_value_t* key_value){
 
-int entry_table_update(key_value_t* key_value){
-	if(dictionary_has_key(entry_table,key_value->key))
+	size_t in_beetwen_entry_space=0;
+	int entries_used=list_size(entry_table);
+	int entries_needed=entry_table_entries_needed(key_value);
+
+	entry_t* e1;
+	entry_t* e2;
+
+    if(entry_table_have_entries(key_value))
+    {
+    	if (entry_table!=NULL)
+    	{
+			for (int i=0;i+1<entries_used;i++)
 			{
-				entry_t* entry = malloc(sizeof(entry_t));
+				node_to_entry(e1,list_get(entry_table,i));
+				node_to_entry(e2,list_get(entry_table,i+1));
 
-				entry_t* entry_old = dictionary_get(entry_table,key_value);
+				in_beetwen_entry_space = e2->number-e1->number;
 
-				entry->number=entry_old->number;
-				entry->size = key_value->size;
-
-				dictionary_remove(entry_table,key_value->key);
-
-				dictionary_put(entry_table, key_value->key, (void*) entry);
-
-				storage_update(key_value);
-
-				return ET_UPDATE_SUCCESS;
+				if (in_beetwen_entry_space>=entries_needed)
+				{
+					return i;
+				}
 			}
-	return ET_UPDATE_ERROR;
+    	}
+    }
+
+    return -1;
 }
 
-int entry_table_delete(char* key){
-	return 1;
+bool entry_table_have_entries(key_value_t* key_value)
+{
+	return entry_table_entries_needed(key_value)<=entries_left?true:false;
 }
+
+int entry_table_entries_needed(key_value_t *key_value)
+{
+
+	int total=0;
+	int size=key_value->size;
+
+	while (size - get_entry_size() > 0)
+		{
+			total++;
+		}
+	return total++;
+}
+
+void node_to_entry(entry_t * entry,void * node)
+{
+	entry = malloc(sizeof(entry_t));
+	memcpy(&(entry),node,sizeof(entry_t));
+}
+
+

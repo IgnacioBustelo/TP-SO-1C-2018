@@ -1,24 +1,26 @@
 #ifndef INSTANCIA_STORAGE_H_
 #define INSTANCIA_STORAGE_H_
 
-#include <stdlib.h>
+#include <commons/collections/dictionary.h>
 
-#include "instancia.h"
+#include "globals.h"
 
-typedef enum {
-	STRG_INIT_SUCCESS,
-	STRG_INIT_CREATE_ERROR
-} storage_status;
+enum{
+	STORAGE_ERROR=-1
+};
 
-int storage_init(); // Lo hace Santi
+// Atributos
 
-int storage_next_entry(size_t key_size); // Lo hace Nico
+t_dictionary* storage;
 
-int storage_set(key_value_t* key_value); // Lo hace Santi
+// Interfaz
 
-int storage_update(key_value_t* key_value); //Nico
+void	storage_init(); // Lo hace Santi
 
-void storage_destroy(); // Lo hace Nico
+void	storage_set(int next_entry, key_value_t* key_value); // Lo hace Santi
 
+void	storage_store(int entry, size_t value_size); // Lo hace Santi
 
-#endif /* INSTANCIA_STORAGE_H_ */
+void	storage_destroy(); // Lo hace Nico
+
+#endif

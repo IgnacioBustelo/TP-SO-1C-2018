@@ -3,7 +3,7 @@ RM = rm -f
 
 TARGET = instancia
 SRC = $(wildcard *.c)
-SRC += ../libs/conector.c ../libs/handshaker.c ../libs/serializador.c
+SRC += ../libs/conector.c ../libs/serializador.c ../libs/serializador_v2.c ../libs/deserializador.c
 OBJ = $(SRC:.c=.o)
 HEADER = $(SRC:.c=.h)
 

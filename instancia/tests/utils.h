@@ -5,22 +5,20 @@
 #include <stdlib.h>
 
 #include "../entry_table.h"
-#include "../instancia.h"
+#include "../globals.h"
 
-key_value_t* key_value_create(char* key, char* value);
+// Utilidades para Key Values
 
-void key_value_input(t_list* key_value_list, int from, int argc, char* argv[]);
+void			key_value_input(t_list* key_value_list, int from, int argc, char* argv[]);
 
-void key_value_destroy(key_value_t* key_value);
+key_value_t*	key_value_generator(char key[40], size_t size);
 
-key_value_t* value_generator(char key[40], size_t size);
+size_t			entry_table_required_entries(size_t size);
 
-size_t required_entries(size_t size);
+void			key_value_print(key_value_t* key_value);
 
-void print_key_value(key_value_t* key_value);
+void			print_entry(char* key, entry_t* entry);
 
-void print_entry(char* key, entry_t* entry);
-
-void print_ordered_stored_values();
+void			print_ordered_stored_values();
 
 #endif

@@ -20,10 +20,10 @@ int main(void) {
 
 	printf("Instancia: Coordinador aceptado\n");
 
-	key_value_t* key_value = coordinator_receive_set();
+	key_value_t* key_value = coordinator_api_receive_set();
 
 	printf("Instancia: Clave obtenida: ");
-	print_key_value(key_value);
+	key_value_print(key_value);
 
 	key_value_destroy(key_value);
 
