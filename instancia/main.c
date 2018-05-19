@@ -30,6 +30,8 @@ int main(void) {
 			}
 		}
 
+		// Prueba
+
 		coordinator_api_notify_status(status);
 	}
 }
