@@ -2,6 +2,7 @@
 #define INSTANCIA_CONFIG_H_
 
 #include <commons/config.h>
+#include <stdlib.h>
 
 #include "messenger.h"
 
