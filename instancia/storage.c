@@ -49,10 +49,21 @@ void storage_set(int next_entry, key_value_t* key_value) {
 	storage_set_non_atomic(next_entry, key_value->value, key_value->size);
 }
 
+static int required_entries(size_t size){
+
+	int total=0;
+
+	while (size - storage_setup.entry_size > 0)
+		{
+			total++;
+		}
+	return total++;
+}
+
 int storage_next_entry(key_value_t* key_value){
 	int fits=0;
 	int entry;
-	int entries_needed=entries_needed(key_value->size);
+	int entries_needed = required_entries(key_value->size);
 	for(int i = 0; i < storage_setup.total_entries; i++ || fits==entries_needed)
 	{
 		if (dictionary_get(storage,string_itoa(i))=="NULL")
@@ -74,15 +85,4 @@ int storage_next_entry(key_value_t* key_value){
 		}
 
 	return STORAGE_ERROR;
-}
-
-static int entries_needed(size_t size){
-
-	int total=0;
-
-	while (size - storage_setup.entry_size > 0)
-		{
-			total++;
-		}
-	return total++;
 }

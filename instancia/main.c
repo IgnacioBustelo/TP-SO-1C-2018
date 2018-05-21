@@ -1,16 +1,21 @@
 #include "instancia.h"
+#include "cfg_instancia.h"
 #include "coordinator_api.h"
 
+#define IP		cfg_instancia_get_coordinador_ip()
+#define HOST	cfg_instancia_get_coordinador_port()
+#define NAME	cfg_instancia_get_instance_name()
+
 int main(void) {
-	coordinator_api_handshake();
+	coordinator_api_connect(IP, HOST);
+
+	coordinator_api_handshake(NAME);
 
 	for(;;) {
-		request_coordinador header;
+
 		int status;
 
-		recv_package(fd_coordinador, &header, sizeof(request_coordinador));
-
-		switch(header) {
+		switch(coordinator_api_receive_header()) {
 			case PROTOCOL_CI_SET: {
 				key_value_t* key_value = coordinator_api_receive_set();
 

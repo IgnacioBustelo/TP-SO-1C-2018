@@ -1,8 +1,6 @@
-#include "cfg_instancia.h"
-
 #include <commons/string.h>
-
 #include "../libs/configurator.h"
+#include "cfg_instancia.h"
 
 #define FIELD(X) (char*) list_get(config_field_list, X)
 
