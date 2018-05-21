@@ -1,43 +1,70 @@
 #include <commons/string.h>
+#include <stdlib.h>
 
 #include "logger.h"
 
-void messenger_log(char* message, char* level) {
-	if(string_equals(level, "TRACE")) {
+static char logger_level_check(char* level) {
+	if(string_equals_ignore_case(level, "TRACE")) {
 
-		log_trace(logger, message);
+		return 'T'; // Nivel de log: TRACE
 
-	} else if(string_equals(level, "DEBUG")) {
+	} else if(string_equals_ignore_case(level, "DEBUG")) {
 
-		log_debug(logger, message);
+		return 'D'; // Nivel de log: DEBUG
 
-	} else if(string_equals(level, "INFO")) {
+	} else if(string_equals_ignore_case(level, "INFO")) {
 
-		log_info(logger, message);
+		return 'I'; // Nivel de log: INFO
 
-	} else if(string_equals(level, "WARNING")) {
+	} else if(string_equals_ignore_case(level, "WARNING")) {
 
-		log_warning(level, message);
+		return 'W'; // Nivel de log: WARNING
 
-	} else if(string_equals(level, "ERROR")) {
+	} else if(string_equals_ignore_case(level, "ERROR")) {
 
-		log_error(logger, message);
+		return 'E'; // Nivel de log: ERROR
 
 	} else {
 
-		log_error(logger, "No se especifico el tipo de error");
+		return 'U'; // Nivel de log desconocido
+
+	}
+}
+
+void messenger_log(char* message, char* level) {
+	switch(logger_level_check(level)) {
+
+		case 'T':	log_trace(logger, message);		break;
+
+		case 'D':	log_debug(logger, message);		break;
+
+		case 'I':	log_info(logger, message);		break;
+
+		case 'W':	log_warning(logger, message);	break;
+
+		case 'E':	log_error(logger, message);		break;
+
+		default:	log_error(logger, "Nivel de log no especificado"); break;
 
 	}
 }
 
 void logger_init(char* logger_route, char* process_name, char* log_level) {
-	char* message = string_from_format("Se iniciaron las operaciones de %s", process_name);
+	if(logger_level_check(log_level) != 'U') {
+		char* message = string_from_format("Se iniciaron las operaciones de %s", process_name);
 
-	logger = log_create(logger_route, process_name, true, log_level_from_string(log_level));
+		logger = log_create(logger_route, process_name, true, log_level_from_string(log_level));
 
-	messenger_log(message, "INFO");
+		messenger_log(message, "INFO");
 
-	free(message);
+		free(message);
+	}
+
+	else {
+		logger = log_create(logger_route, process_name, true, log_level_from_string("ERROR"));
+
+		/* TODO: Error por fallo en el nivel de log */
+	}
 }
 
 void logger_destroy() {

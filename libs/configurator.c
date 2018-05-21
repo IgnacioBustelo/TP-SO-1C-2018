@@ -1,85 +1,124 @@
+#include <commons/collections/list.h>
 #include <commons/config.h>
-#include <commons/log.h>
 #include <commons/string.h>
 #include <stdlib.h>
 
-#include "config.h"
+#include "messenger.h"
+#include "configurator.h"
 
-#include "../libs/conector.h"
-#include "instancia.h"
+static void configurator_message_log_field_names(t_list* list) {
+	char *buffer = string_duplicate("Los campos del archivo de configuracion son "), *names;
 
-t_config* config;
-setup_t setup;
+	void get_field_names(void* field) {
+		char *current_field = string_duplicate((char*) field), *separator = string_duplicate(", ");
 
-static void check_config(t_config* config, char* key, t_log* logger) {
-	if(!config_has_property(config, key)) {
-		log_error(logger, "No existe la clave '%s' en el archivo de configuracion.", key);
+		string_append(&buffer, current_field);
+		string_append(&buffer, separator);
 
-		config_destroy(config);
+		free(current_field);
+		free(separator);
+	}
+
+	list_iterate(list, get_field_names);
+
+	names = string_substring_until(buffer, string_length(buffer) - 2);
+
+	free(buffer);
+
+	messenger_log(names, "INFO");
+
+	free(names);
+}
+
+static void configurator_list_add_fields(t_list* list, char** fields, size_t fields_size) {
+	char* current_field;
+
+	bool field_is_not_equal(void* field) {
+		return !string_equals_ignore_case(current_field, (char*) field);
+	}
+
+	int i;
+	for(i = 0; i < fields_size; i++) {
+		current_field = fields[i];
+
+		if(list_all_satisfy(list, (void*) field_is_not_equal)) {
+			list_add(list, (void*) string_duplicate(current_field));
+		}
 	}
 }
 
-static void set_distribution(page_replacement_algorithm_t* algorithm, char* algorithm_name, t_log* logger) {
+static void configurator_list_message_field_value(void* field) {
+	char* message = string_from_format("El valor de %s es %s", field, config_get_string_value(config, (char*) field));
 
-	if(string_equals_ignore_case(algorithm_name, "CIRC")) {
-		*algorithm = CIRC;
+	messenger_log(message, "INFO");
+
+	free(message);
+}
+
+static void configurator_list_message_field_value_missing(void* field) {
+	char* message = string_from_format("Falta la configuracion de %s", (char*) field);
+
+	messenger_log(message, "WARNING");
+
+	free(message);
+}
+
+static bool configurator_list_exists_field(void* field) {
+	return config_has_property(config, (char*) field);
+}
+
+static bool configurator_list_not_exists_field(void* field) {
+	return !config_has_property(config, (char*) field);
+}
+
+void configurator_init(char* config_path, char** fields, size_t fields_size) {
+	t_list* config_field_list;
+
+	messenger_log("Iniciando el archivo de configruacion", "INFO");
+
+	config = config_create(config_path);
+
+	messenger_log("Abierto el archivo de configuracion", "INFO");
+
+	config_field_list = list_create();
+
+	configurator_list_add_fields(config_field_list, fields, fields_size);
+
+	configurator_message_log_field_names(config_field_list);
+
+	if(list_all_satisfy(config_field_list, (void*) configurator_list_exists_field)) {
+		messenger_log("El archivo de configuracion leyo correctamente los siguientes campos con sus respectivos valores", "INFO");
+
+		list_iterate(config_field_list, (void*) configurator_list_message_field_value);
 	}
-	else if(string_equals_ignore_case(algorithm_name, "LRU")) {
-		*algorithm = LRU;
-	}
-	else if(string_equals_ignore_case(algorithm_name, "BSU")){
-		*algorithm = BSU;
-	}
+
 	else {
-		log_error(logger, "Se intento asignar un algoritmo inexistente llamado %s.", algorithm_name);
+		t_list* existing_fields = list_filter(config_field_list, (void*) configurator_list_exists_field);
+
+		if(list_size(existing_fields) != 0) {
+			messenger_log("El archivo de configuracion leyo correctamente los siguientes campos con sus respectivos valores", "INFO");
+
+			list_iterate(existing_fields, (void*) configurator_list_message_field_value);
+		}
+
+		list_destroy(existing_fields);
+
+		messenger_log("El archivo de configuracion no pudo encontrar los valores de los siguientes campos", "WARNING");
+
+		t_list* non_existing_fields = list_filter(config_field_list, (void*) configurator_list_not_exists_field);
+
+		list_iterate(non_existing_fields, (void*) configurator_list_message_field_value_missing);
+
+		list_destroy(non_existing_fields);
 	}
+
+	messenger_log("Finalizo la lectura inicial del archivo de configuracion", "INFO");
+
+	list_destroy_and_destroy_elements(config_field_list, free);
 }
 
-t_log* init_log() {
-	t_log* logger;
-
-	logger = log_create("instancia.log", "Instancia", true, LOG_LEVEL_INFO);
-	log_info(logger, "Se inicio el logger");
-
-	return logger;
-}
-
-setup_t init_config(t_log* logger) {
-
-
-
-	char* keys[6] = {"IP_COORDINADOR", "PUERTO_COORDINADOR", "ALGORITMO_REEMPLAZO", "PUNTO_MONTAJE", "NOMBRE_INSTANCIA", "INTERVALO_DUMP"};
-
-	config = config_create("instancia.cfg");
-	log_info(logger, "Se abrio el archivo de configuracion.");
-
-	check_config(config, keys[0], logger);
-	setup.coordinator_ip = strdup(config_get_string_value(config, keys[0]));
-	log_info(logger, "Asignando direccion coordinador %s.", setup.coordinator_ip);
-
-	check_config(config, keys[1], logger);
-	setup.coordinator_port = config_get_int_value(config, keys[1]);
-	log_info(logger, "Asignando puerto coordinador %d.", setup.coordinator_port);
-
-	check_config(config, keys[2], logger);
-	set_distribution(&(setup.page_replacement_algorithm), config_get_string_value(config, keys[2]), logger);
-	log_info(logger, "Asignado algoritmo de reemplazo de paginas %s.", config_get_string_value(config, keys[2]));
-
-	check_config(config, keys[3], logger);
-	setup.mount_point = strdup(config_get_string_value(config, keys[3]));
-	log_info(logger, "Asignando punto de montaje %s.", setup.mount_point);
-
-	check_config(config, keys[4], logger);
-	setup.instance_name = strdup(config_get_string_value(config, keys[4]));
-	log_info(logger, "Asignando nombre de instancia %s.", setup.instance_name);
-
-	check_config(config, keys[5], logger);
-	setup.dump_interval = config_get_int_value(config, keys[5]);
-	log_info(logger, "Asignando intervalo de dump %d.", setup.dump_interval);
-
-	log_info(logger, "Se configuro la %s correctamente.", setup.instance_name);
+void configurator_destroy() {
+	messenger_log("Cerrado archivo de configuracion", "INFO");
 
 	config_destroy(config);
-
-	return setup;
 }

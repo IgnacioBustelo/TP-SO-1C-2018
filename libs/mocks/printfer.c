@@ -9,7 +9,7 @@
 void messenger_log(char* message, char* level) {
 	char* current_time = temporal_get_string_time();
 
-	printf("%-.13s-[%-.6s] %s\n", current_time, level, message);
+	printf("%-.13s-[%-.7s] %s\n", current_time, level, message);
 
 	free(current_time);
 }
