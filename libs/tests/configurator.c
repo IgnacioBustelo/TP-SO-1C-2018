@@ -19,6 +19,8 @@ int main(int argc, char* argv[]) {
 
 	configurator_init("config.cfg", fields, size);
 
+	configurator_read();
+
 	configurator_destroy();
 
 	for(i = 0; i < size; i++) {

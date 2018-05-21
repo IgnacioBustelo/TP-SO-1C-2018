@@ -1,10 +1,11 @@
-#include <commons/collections/list.h>
 #include <commons/config.h>
 #include <commons/string.h>
 #include <stdlib.h>
 
 #include "messenger.h"
 #include "configurator.h"
+
+t_list* config_field_list;
 
 static void configurator_message_log_field_names(t_list* list) {
 	char *buffer = string_duplicate("Los campos del archivo de configuracion son "), *names;
@@ -72,8 +73,6 @@ static bool configurator_list_not_exists_field(void* field) {
 }
 
 void configurator_init(char* config_path, char** fields, size_t fields_size) {
-	t_list* config_field_list;
-
 	messenger_log("Iniciando el archivo de configruacion", "INFO");
 
 	config = config_create(config_path);
@@ -86,6 +85,10 @@ void configurator_init(char* config_path, char** fields, size_t fields_size) {
 
 	configurator_message_log_field_names(config_field_list);
 
+	messenger_log("Finalizo la lectura inicial del archivo de configuracion", "INFO");
+}
+
+void configurator_read() {
 	if(list_all_satisfy(config_field_list, (void*) configurator_list_exists_field)) {
 		messenger_log("El archivo de configuracion leyo correctamente los siguientes campos con sus respectivos valores", "INFO");
 
@@ -111,14 +114,12 @@ void configurator_init(char* config_path, char** fields, size_t fields_size) {
 
 		list_destroy(non_existing_fields);
 	}
-
-	messenger_log("Finalizo la lectura inicial del archivo de configuracion", "INFO");
-
-	list_destroy_and_destroy_elements(config_field_list, free);
 }
 
 void configurator_destroy() {
 	messenger_log("Cerrado archivo de configuracion", "INFO");
+
+	list_destroy_and_destroy_elements(config_field_list, free);
 
 	config_destroy(config);
 }

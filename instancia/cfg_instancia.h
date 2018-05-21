@@ -1,6 +1,8 @@
 #ifndef INSTANCIA_CFG_INSTANCIA_H_
 #define INSTANCIA_CFG_INSTANCIA_H_
 
+#include "../libs/messenger.h"
+
 #define FIELDS 6
 
 void	cfg_instancia_init(char* config_path);

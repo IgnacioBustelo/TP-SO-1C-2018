@@ -4,6 +4,8 @@
 
 #include "../libs/configurator.h"
 
+#define FIELD(X) (char*) list_get(config_field_list, X)
+
 char* cfg_instancia_fields[FIELDS] = {
 	"IP_COORDINADOR",
 	"PUERTO_COORDINADOR",
@@ -14,7 +16,7 @@ char* cfg_instancia_fields[FIELDS] = {
 };
 
 static char cfg_instancia_choose_algorithm() {
-	char* algorithm = config_get_string_value(config, cfg_instancia_fields[2]);
+	char* algorithm = config_get_string_value(config, FIELD(2));
 
 	if(string_equals_ignore_case(algorithm, "CIRC")) {
 
@@ -39,22 +41,22 @@ void cfg_instancia_init(char* config_path) {
 }
 
 char* cfg_instancia_get_coordinador_ip() {
-	return config_get_string_value(config, cfg_instancia_fields[0]);
+	return config_get_string_value(config, FIELD(0));
 }
 
 int cfg_instancia_get_coordinador_port() {
-	return config_get_int_value(config, cfg_instancia_fields[1]);
+	return config_get_int_value(config, FIELD(1));
 }
 
 char* cfg_instancia_get_replacement_algorithm_name() {
 	switch (cfg_instancia_choose_algorithm()) {
-		case 'C':	return string_duplicate("Algoritmo Circular");			break;
+		case 'C':	return "Algoritmo Circular";	break;
 
-		case 'L':	return string_duplicate("Least Recently Used");			break;
+		case 'L':	return "Least Recently Used";	break;
 
-		case 'B':	return string_duplicate("Biggest Space Used");			break;
+		case 'B':	return "Biggest Space Used";	break;
 
-		default:	return string_duplicate("Desconocido");					break;
+		default:	return "Desconocido";			break;
 	}
 }
 
@@ -71,15 +73,15 @@ void cfg_instancia_invoke_replacement_algorithm() {
 }
 
 char* cfg_instancia_get_mount_point() {
-	return config_get_string_value(config, cfg_instancia_fields[3]);
+	return config_get_string_value(config, FIELD(3));
 }
 
 char* cfg_instancia_get_instance_name() {
-	return config_get_string_value(config, cfg_instancia_fields[4]);
+	return config_get_string_value(config, FIELD(4));
 }
 
 int cfg_instancia_get_dump_time() {
-	return config_get_int_value(config, cfg_instancia_fields[5]);
+	return config_get_int_value(config, FIELD(5));
 }
 
 void cfg_instancia_destroy() {
