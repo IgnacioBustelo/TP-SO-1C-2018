@@ -1,12 +1,20 @@
+#include "../libs/logger.h"
 #include "instancia.h"
 #include "cfg_instancia.h"
 #include "coordinator_api.h"
 
+#define PROCESS	"Instancia"
+#define LOGGER	"instancia.log"
+#define CFG		"instancia.cfg"
 #define IP		cfg_instancia_get_coordinador_ip()
 #define HOST	cfg_instancia_get_coordinador_port()
 #define NAME	cfg_instancia_get_instance_name()
 
-int main(void) {
+int main(int argc, char* argv[]) {
+	logger_init(LOGGER, PROCESS, (argc == 1) ? "INFO" : argv[1]);
+
+	cfg_instancia_init(CFG);
+
 	coordinator_api_connect(IP, HOST);
 
 	coordinator_api_handshake(NAME);
