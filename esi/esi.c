@@ -201,7 +201,7 @@ void* obtain_package_from_line(char* line, size_t* package_size) {
 void wait_for_execution_order(int scheduler_fd) {
 
     int execution_order;
-	if(recv(scheduler_fd, &execution_order, sizeof(execution_order), MSG_WAITALL) == -1) {
+	if(recv(scheduler_fd, &execution_order, sizeof(execution_order), MSG_WAITALL) == !sizeof(execution_order)) {
 
 		log_error(logger, "Fallo en el receive de la orden de ejecución");
 		exit_gracefully(EXIT_FAILURE);
@@ -217,7 +217,7 @@ void wait_for_execution_order(int scheduler_fd) {
 int wait_for_execution_result(int coordinador_fd_) {
 
 	int execution_result;
-	if (recv(coordinator_fd_, &execution_result, sizeof(execution_result), MSG_WAITALL) == -1) {
+	if (recv(coordinator_fd_, &execution_result, sizeof(execution_result), MSG_WAITALL) == !sizeof(execution_result)) {
 
 		log_error(logger, "Fallo en el receive del resultado de ejecución");
 		exit_gracefully(EXIT_FAILURE);

@@ -141,10 +141,11 @@ bool determine_if_key_is_blocked(char* blocked_key);
 bool key_is_blocked_by_executing_esi(char* key);
 
 /*
- * Toma a los ESI's que estaban bloqueados por la clave desbloqueada de la lista de sexpectantes, los elimina de ella y devuelve sus respectivos file descriptors
+ * Toma a los ESI's que estaban bloqueados por la clave desbloqueada de la lista de sexpectantes, toma al primero para desbloquear, lo saca de la lista de esi sexpecting key y lo devuelve
+ * En caso de que ninguno se haya desbloqueado devuelve -1
  */
 
-t_list* unlock_esis(char* key_unlocked);
+int unlock_esis(char* key_unlocked);
 
 /*
  * Desbloquea a los ESI's bloqueados por la clave recientemente desbloqueada
@@ -183,9 +184,17 @@ void release_resources(int esi_fd, int* update_blocked_esi_queue_flag);
 void sock_my_port(int esi_fd);
 
 /*
+ * Se encarga de encarga de liberar los recursos de los esis que fueron matados por consola, a excepción del caso de que se haya matado al esi que justo terminó su script
+ */
+
+void burn_esi_corpses(int executing_esi);
+
+/*
  * Cierra la conexión con el coordinador y hace sock_my_port de todos los ESI's
  */
 
 void kaboom_baby();
+
+esi_information* obtain_esi_information_by_id(int esi_fd);
 
 #endif /* PLANIFICADOR_PLANIFICADOR_H_ */

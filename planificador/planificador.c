@@ -1,3 +1,5 @@
+#include <commons/collections/list.h>
+
 #include "../libs/conector.h"
 #include "planificador.h"
 #include "../protocolo/protocolo.h"
@@ -9,7 +11,6 @@
 /* -- Local function prototypes -- */
 
 static bool algorithm_is_preemptive();
-static esi_information* obtain_esi_information_by_id(int esi_fd);
 static void take_esi_away_from_queue(t_list* queue, int esi_fd);
 static void we_must_reschedule(int* flag);
 static void remove_fd(int fd, fd_set *fdset);
@@ -27,6 +28,7 @@ static double next_estimated_burst_sjf(double alpha, int last_real_burst, double
 static double next_estimated_burst_hrrn(int waited_time, int last_real_burst);
 static void update_esi_information_next_estimated_burst(int esi_fd);
 static void block_by_console_procedure();
+static int obtain_esi_fd_by_esi_pid(int esi_pid);
 
 /* -- Global variables -- */
 
@@ -37,6 +39,7 @@ t_list* g_locked_keys;
 t_list* g_esis_sexpecting_keys;
 t_list* g_esi_bursts;
 t_list* g_new_blocked_by_console_esis;
+t_list* g_new_killed_esis;
 
 t_list* g_new_queue;
 t_list* g_ready_queue;
@@ -49,7 +52,7 @@ int finished_esi_flag = 0;
 int new_esi_flag = 0;
 int reschedule_flag = 0;
 int update_blocked_esi_queue_flag = 0;
-
+int killed_esi_flag = 0;
 int scheduler_paused_flag = 0;
 int block_esi_by_console_flag = 0;
 int unlock_esi_by_console_flag = 0;
@@ -291,11 +294,11 @@ int main(void) {
 						we_must_reschedule(&reschedule_flag);
 					}
 					break;
-
 				}
 
-				if(finished_esi_flag == 1) {
+				if(killed_esi_flag == 1) burn_esi_corpses(executing_esi);
 
+				if(finished_esi_flag == 1) {
 					log_info(logger,"El ESI %i finalizó la ejecución de su script correctamente", obtain_esi_information_by_id(fd)->esi_numeric_name);
 					release_resources(*(int*)g_execution_queue->head->data, &update_blocked_esi_queue_flag);
 					move_esi_from_and_to_queue(g_execution_queue, g_finished_queue, *(int*)g_execution_queue->head->data);
@@ -308,7 +311,6 @@ int main(void) {
 						if(algorithm_is_preemptive()) {
 
 							move_esi_from_and_to_queue(g_execution_queue, g_ready_queue, *(int*)g_execution_queue->head->data);
-
 							we_must_reschedule(&reschedule_flag);
 						}
 
@@ -318,12 +320,10 @@ int main(void) {
 
 						if (new_esi_flag == 1) update_new_esi_queue(&new_esi_flag);
 
-						if(block_esi_by_console_flag == 1) block_by_console_procedure();
-
+						if (block_esi_by_console_flag == 1) block_by_console_procedure();
 					}
 
 				}
-
 				if (reschedule_flag == 1){
 
 					reschedule(&reschedule_flag, &executing_esi);
@@ -337,6 +337,8 @@ int main(void) {
 		}
 
 		if(list_is_empty(g_execution_queue) && !list_is_empty(g_new_queue) && scheduler_paused_flag != 1) {
+
+			if(killed_esi_flag == 1) burn_esi_corpses(executing_esi);
 
 			if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(last_key_inquired, &update_blocked_esi_queue_flag);
 
@@ -557,7 +559,7 @@ int schedule_esis() {
 			int last_estimated_burst1 = ((esi_information*)esi_inf1)->last_estimated_burst;
 			int last_estimated_burst2 = ((esi_information*)esi_inf2)->last_estimated_burst;
 
-			return last_estimated_burst1 <= last_estimated_burst2;
+			return last_estimated_burst1 >= last_estimated_burst2;
 
 		}
 
@@ -597,7 +599,7 @@ bool key_is_blocked_by_executing_esi(char* key) {
 	return list_any_satisfy(g_locked_keys, condition);
 }
 
-t_list* unlock_esis(char* unlocked_key) {
+int unlock_esis(char* unlocked_key) {
 
 	bool unlock_condition(void* esi_sexpecting) {
 
@@ -613,14 +615,16 @@ t_list* unlock_esis(char* unlocked_key) {
 
     t_list* mapped_list = list_map(filtered_list, transformer);
 
+    int esi_fd_to_unlock = -1;
+
+    if(mapped_list->elements_count != 0) {
+
+        esi_fd_to_unlock = *(int*)mapped_list->head->data;
+    }
+
     bool remove_condition(void* esi_sexpecting) {
 
-    	bool condition(void* esi_fd) {
-
-    		return ((esi_sexpecting_key*)esi_sexpecting)->esi_fd == *(int*)esi_fd;
-    	}
-
-    	return list_any_satisfy(mapped_list, condition);
+    	return ((esi_sexpecting_key*)esi_sexpecting)->esi_fd == esi_fd_to_unlock;
     }
 
     void esi_sexpecting_destroyer(void* esi_sexpecting_key_) {
@@ -631,26 +635,21 @@ t_list* unlock_esis(char* unlocked_key) {
 
     list_remove_and_destroy_by_condition(g_esis_sexpecting_keys, remove_condition, esi_sexpecting_destroyer);
 
-	return mapped_list;
+	return esi_fd_to_unlock;
 }
 
 void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag) {
 
-	t_list* unlocked_esis = unlock_esis(last_key_inquired);
+	int esi_unlocked = unlock_esis(last_key_inquired);
 
-	if(unlocked_esis->elements_count == 0) {
+	if( esi_unlocked == -1) {
 
-		log_info(logger, "Ningun esi estaba bloqueado por la clave %s", last_key_inquired);
+		log_info(logger, "Ningún ESI estaba bloqueado por la clave %s", last_key_inquired);
 	} else {
 
-	list_add_all(g_ready_queue, unlocked_esis);
+	list_add(g_ready_queue, (void*)&esi_unlocked);
 
-	void show_unlocked_esi(void* esi_fd) {
-
-		log_info(logger, "El ESI %i se ha desbloqueado", obtain_esi_information_by_id(*(int*)esi_fd)->esi_numeric_name);
-	}
-
-	list_iterate(unlocked_esis, show_unlocked_esi);
+	log_info(logger, "El ESI %i se ha desbloqueado", obtain_esi_information_by_id(esi_unlocked)->esi_numeric_name);
 	}
 
 	*update_blocked_esi_queue_flag = 0;
@@ -764,7 +763,7 @@ void release_resources(int esi_fd, int* update_blocked_esi_queue_flag) {
 
 void sock_my_port(int esi_fd) {
 
-	log_info(logger, "El ESI %i murió horrendamente", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
+	log_error(logger, "El ESI %i murió horrendamente", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
 
 	bool find_dead_esi(void* esi_fd_) {
 
@@ -795,6 +794,49 @@ void sock_my_port(int esi_fd) {
 	if (dead_esi != NULL) bury_esi(g_blocked_queue_by_console);
 
 	remove_fd(esi_fd, &connected_fds);
+}
+
+void burn_esi_corpses(int executing_esi) {
+
+	void* obtain_esi_id(void* esi_killed_pid) {
+
+		return (void *)obtain_esi_fd_by_esi_pid(*(int*)esi_killed_pid);
+	}
+
+	t_list* mapped_esis = list_map(g_new_killed_esis, obtain_esi_id);
+
+	bool esi_executing_killed_condition(void* killed_esi) {
+
+		return *(int*)killed_esi == executing_esi;
+	}
+
+	void destroy_int(void* esi_fd) {
+
+		free((int*)esi_fd);
+	}
+
+	if(list_any_satisfy(mapped_esis, esi_executing_killed_condition) && finished_esi_flag == 1) {
+
+		bool remove_esi_executing(void* esi_fd) {
+
+			return *(int*)esi_fd == executing_esi;
+		}
+
+		log_info(logger, "El ESI %i justo acaba de terminar su script por lo que no tiene sentido matarlo", obtain_esi_information_by_id(executing_esi)->esi_numeric_name);
+
+		list_remove_and_destroy_by_condition(mapped_esis, remove_esi_executing, destroy_int);
+	}
+
+	void apply_sock_my_port(void* esi_fd) {
+
+		sock_my_port(*(int*)esi_fd);
+	}
+
+	list_iterate(mapped_esis, apply_sock_my_port);
+
+	list_clean_and_destroy_elements(g_new_killed_esis, destroy_int);
+
+	killed_esi_flag = 0;
 }
 
 void kaboom_baby() {
@@ -843,7 +885,7 @@ static bool algorithm_is_preemptive() {
 	}
 }
 
-static esi_information* obtain_esi_information_by_id(int esi_fd){
+esi_information* obtain_esi_information_by_id(int esi_fd){
 
 	bool equal_condition(void* esi_inf) {
 
@@ -960,9 +1002,9 @@ static double next_estimated_burst_sjf(double alpha, int last_real_burst, double
 
 }
 
-static double next_estimated_burst_hrrn(int waited_time, int last_real_burst) {
+static double next_estimated_burst_hrrn(int waited_time, int next_service_time) {
 
-	return waited_time/last_real_burst;
+	return waited_time/next_service_time;
 }
 
 static void update_esi_information_next_estimated_burst(int esi_fd) {
@@ -978,7 +1020,7 @@ static void update_esi_information_next_estimated_burst(int esi_fd) {
 
 	if(setup.scheduling_algorithm == HRRN) {
 
-		esi_inf->last_estimated_burst = next_estimated_burst_hrrn(esi_inf->waited_bursts, esi_inf->last_real_burst);
+		esi_inf->last_estimated_burst = next_estimated_burst_hrrn(esi_inf->waited_bursts, next_estimated_burst_sjf(setup.alpha, esi_inf->last_real_burst, esi_inf->last_estimated_burst));
 		esi_inf->last_real_burst = 0;
 		esi_inf->waited_bursts = 0;
 	}
@@ -1065,7 +1107,7 @@ static void block_by_console_procedure() {
 
 	bool not_in_ready_nor_exec(void* esi_fd) {
 
-		return !is_executing(*(int*)esi_fd) && !is_in_ready(*(int*)esi_fd);
+		return !is_executing(esi_fd) && !is_in_ready(esi_fd);
 	}
 
 	t_list* esis_that_cant_be_blocked_by_console = list_filter(esis, not_in_ready_nor_exec);
@@ -1088,4 +1130,18 @@ static void block_by_console_procedure() {
 	list_clean_and_destroy_elements(g_new_blocked_by_console_esis, destroy_esi_sexpecting_key);
 
 	block_esi_by_console_flag = 0;
+}
+
+static int obtain_esi_fd_by_esi_pid(int esi_pid) {
+
+	bool find_esi(void* esi_inf) {
+
+		return ((esi_information*)esi_inf)->esi_numeric_name == esi_pid;
+	}
+	esi_information* esi_inf = list_find(g_esi_bursts, find_esi);
+
+	if(esi_inf != NULL) {
+
+		return esi_inf->esi_id;
+	}else return -1;
 }

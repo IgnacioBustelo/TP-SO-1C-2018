@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "../protocolo/protocolo_coordinador_instancia.h"
 #include "../libs/conector.h"
 #include "../libs/deserializador.h"
 #include "../libs/serializador.h"
@@ -10,29 +9,45 @@
 #include "coordinator_api.h"
 #include "globals.h"
 
+void coordinator_api_connect(char* host, int port) {
+	fd_coordinador = connect_to_server(host, port);
+}
 
 void coordinator_api_handshake(char* instance_name){
 	chunk_t *data;
 	void* message;
 
-
 	send_handshake(fd_coordinador,INSTANCE);
 
-
-
 	data = chunk_create();
+
 	chunk_add_variable(data, instance_name, strlen(instance_name)+1);
+
 	message = chunk_build(data);
+
 	send_serialized_package(fd_coordinador,message,data->current_size);
+
 	chunk_destroy(data);
+
 	free(message);
 
 	if (receive_handshake(fd_coordinador)){
 
 		recv_package(fd_coordinador,&storage_setup.entry_size,sizeof(size_t));
+
 		recv_package(fd_coordinador,&storage_setup.total_entries,sizeof(size_t));
 	}
+
 }
+
+request_coordinador coordinator_api_receive_header() {
+	request_coordinador header;
+
+	recv_package(fd_coordinador, &header, sizeof(request_coordinador));
+
+	return header;
+}
+
 key_value_t* coordinator_api_receive_set() {
 	char *key, *value;
 

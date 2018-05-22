@@ -3,6 +3,12 @@
 #include "entry_table.h"
 #include "globals.h"
 
+void node_to_entry(entry_t * entry,void * node)
+{
+	entry = malloc(sizeof(entry_t));
+	memcpy(&(entry),node,sizeof(entry_t));
+}
+
 void entry_table_init() {
 	entry_table= list_create();
 	entries_left = get_total_entries();
@@ -49,6 +55,10 @@ int entry_table_next_entry(key_value_t* key_value){
     return -1;
 }
 
+void entry_table_update(int next_entry, key_value_t* key_value) {
+	// TODO: Implementar
+}
+
 bool entry_table_have_entries(key_value_t* key_value)
 {
 	return entry_table_entries_needed(key_value)<=entries_left?true:false;
@@ -66,11 +76,3 @@ int entry_table_entries_needed(key_value_t *key_value)
 		}
 	return total++;
 }
-
-void node_to_entry(entry_t * entry,void * node)
-{
-	entry = malloc(sizeof(entry_t));
-	memcpy(&(entry),node,sizeof(entry_t));
-}
-
-
