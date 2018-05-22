@@ -15,6 +15,6 @@ int main(int argc, char* argv[]) {
 
 	printf("Instancia: Se realizo el Handshake correctamente");
 
-	//free(instance_name);
+	free(instance_name);
 	close(fd_coordinador);
 }

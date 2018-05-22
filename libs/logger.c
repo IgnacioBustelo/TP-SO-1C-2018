@@ -26,11 +26,30 @@ static char logger_level_check(char* level) {
 
 	} else {
 
-		return 'U'; // Nivel de log desconocido
+		return 'U'; // Nivel de log desconocido - posiblemente erroneo
 
 	}
 }
 
+void messenger_show_method(char* log_level, char* message) {
+	switch(logger_level_check(log_level)) {
+
+		case 'T':	log_trace(logger, message);		break;
+
+		case 'D':	log_debug(logger, message);		break;
+
+		case 'I':	log_info(logger, message);		break;
+
+		case 'W':	log_warning(logger, message);	break;
+
+		case 'E':	log_error(logger, message);		break;
+
+		default:	log_error(logger, "Nivel de log no especificado"); break;
+
+	}
+}
+
+// TODO: Leer referencia de messenger_log en messenger.h
 void messenger_log(char* message, char* level) {
 	switch(logger_level_check(level)) {
 

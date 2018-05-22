@@ -1,88 +1,66 @@
 #include <commons/string.h>
 #include <stdlib.h>
+#include <string.h>
 
+#include "../libs/logger.h"
 #include "globals.h"
 #include "storage.h"
 
-void storage_init() {
-	storage = dictionary_create();
+void storage_init(size_t frames, size_t frame_size) {
+	messenger_show("DEBUG", "Inicio del Storage");
 
-	int i;
-	for(i = 0; i < storage_setup.total_entries; i++) {
-		char* key = string_itoa(i);
+	storage = malloc(sizeof(storage_t));
 
-		dictionary_put(storage, key, string_from_format("NULL"));
+	storage->data = calloc(frames, frame_size);
+	storage->frames = frames;
+	storage->frame_size = frame_size;
 
-		free(key);
-	}
+	messenger_show("DEBUG", "Inicio exitoso del Storage");
 }
 
-static void storage_set_atomic(int next_entry, char* new_value) {
-	char* key = string_itoa(next_entry);
+void storage_set(int next_entry, char* value, size_t size) {
+	if(size <= storage->frame_size) {
+		memcpy(storage->data[next_entry], value, size);
 
-	dictionary_remove_and_destroy(storage, key, free);
-
-	dictionary_put(storage, key, string_duplicate(new_value));
-
-	free(key);
-}
-
-static void storage_set_non_atomic(int next_entry, char* new_value, size_t size) {
-	if(size <= storage_setup.entry_size) {
-		storage_set_atomic(next_entry, new_value);
+		messenger_show("DEBUG", "Insercion de valor atomico %s en la entrada %d", value, next_entry);
 	}
 
 	else {
-		char* new_value_current = string_substring_until(new_value, storage_setup.entry_size);
-		char* new_value_next = string_substring_from(new_value, storage_setup.entry_size);
+		char* fitting_value = string_substring_until(value, storage->frame_size);
+		char* remainder_value = string_substring_from(value, storage->frame_size);
 
-		storage_set_atomic(next_entry, new_value_current);
+		memcpy(storage->data[next_entry], fitting_value, storage->frame_size);
 
-		storage_set_non_atomic(++next_entry, new_value_next, size -= storage_setup.entry_size);
+		messenger_show("DEBUG", "Insercion de valor no atomico %s en la entrada %d", fitting_value, next_entry);
 
-		free(new_value_current);
-		free(new_value_next);
+		storage_set(++next_entry, remainder_value, size -= storage->frame_size);
+
+		free(fitting_value);
+		free(remainder_value);
 	}
 }
 
-void storage_set(int next_entry, key_value_t* key_value) {
-	storage_set_non_atomic(next_entry, key_value->value, key_value->size);
-}
+void storage_show() {
+	messenger_show("INFO", "Muestra de valores almacenados en el Storage");
 
-static int required_entries(size_t size){
+	int i;
 
-	int total=0;
-
-	while (size - storage_setup.entry_size > 0)
-		{
-			total++;
-		}
-	return total++;
-}
-
-int storage_next_entry(key_value_t* key_value){
-	int fits=0;
-	int entry;
-	int entries_needed = required_entries(key_value->size);
-	for(int i = 0; i < storage_setup.total_entries; i++ || fits==entries_needed)
-	{
-		if (dictionary_get(storage,string_itoa(i))=="NULL")
-			{
-				if (fits==0)
-				{
-					entry = i;
-				}
-				fits++;
-			}
-		else
-			{
-				fits=0;
-			}
+	for(i = 0; i < storage->frames; i++) {
+		messenger_show("INFO", "Entrada %d : %s", i, storage[i]);
 	}
-	if (fits==entries_needed)
-		{
-			return entry;
-		}
+}
 
-	return STORAGE_ERROR;
+void storage_destroy() {
+	messenger_show("DEBUG", "Liberacion del Storage");
+
+	int i;
+
+	for(i = 0; i < storage->frames; i++) {
+		free(storage->data[i]);
+	}
+
+	free(storage->data);
+	free(storage);
+
+	messenger_show("DEBUG", "Liberacion exitosa del Storage");
 }
