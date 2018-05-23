@@ -13,7 +13,7 @@ void messenger_show(char* log_level, const char* format,...) {
 
 	messenger_show_method(log_level, message);
 
-	va_end(args);
-
 	free(message);
+
+	va_end(args);
 }
