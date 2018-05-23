@@ -40,7 +40,7 @@ static void esi_finished(int* flag);
 
 static double next_estimated_burst_sjf(double alpha, int last_real_burst, double last_estimated_burst);
 
-static double next_estimated_burst_hrrn(int waited_time, int last_real_burst);
+static double next_estimated_burst_hrrn(int waited_time, double service_time);
 
 static void update_esi_information_next_estimated_burst(int esi_fd);
 
@@ -119,7 +119,7 @@ int main(void) {
 	FD_SET(g_coordinator_fd, &connected_fds);
 	FD_SET(listener, &connected_fds);
 	struct timeval tv;
-	tv.tv_sec = 1;
+	tv.tv_sec = 0;
 	tv.tv_usec = 0;
 
 	max_fd = (listener > g_coordinator_fd) ? listener : g_coordinator_fd;
@@ -142,6 +142,8 @@ int main(void) {
 	while (1) {
 
 		read_fds = connected_fds;
+
+		sleep(1);
 
 		if (select(max_fd + 1, &read_fds, NULL, NULL, &tv) == -1) {
 			log_error(logger, "Error en select");

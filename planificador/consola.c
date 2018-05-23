@@ -126,6 +126,7 @@ static void key_status(char **args)
 static void check_deadlock(char **_)
 {
 	printf("Detectar deadlock\n");
+	detect_and_show_all_deadlocks();
 }
 
 void show_blocked_process(char* resource) {
@@ -141,4 +142,10 @@ void show_blocked_process(char* resource) {
 
 	list_iterate(g_esis_sexpecting_keys, show_esi_from_resource);
 }
+
+void detect_and_show_all_deadlocks() {
+
+
+}
+
 
