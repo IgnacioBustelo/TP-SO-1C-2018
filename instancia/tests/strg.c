@@ -10,29 +10,44 @@ static int required_entries(int size) {
 		return 1;
 	}
 
-	int required_entries = size/storage->entry_size;
+	else {
+		int required = size/storage->entry_size;
 
-	return size % storage->entry_size == 0 ? required_entries : ++required_entries;
+		return (size % storage->entry_size == 0) ? required : ++required;
+	}
 }
 
 int main(int argc, char* argv[]) {
-	int i, next_entry = 0, current_entry = 0;
-
 	storage_init(16, 4);
 
-	for(i = 1; next_entry < storage->entries && i < argc; i++) {
-		int length = string_length(argv[i]) + 1;
+	char* a = string_duplicate("Hello");
+	char* b = string_duplicate("A");
 
-		current_entry = next_entry;
+	storage_set(1, a, string_length(a));
+	storage_set(14, b, string_length(b));
 
-		next_entry = current_entry + required_entries(length);
+	free(a);
+	free(b);
 
-		messenger_show("INFO", "El valor '%s' de tamanio %d ocupa %d %s", argv[i], length, next_entry - current_entry, (next_entry - current_entry == 1) ? "entrada" : "entradas");
+	int i, next_entry = 0, entries_left = storage->entry_size;
 
-		if(next_entry < storage->entries) {
-			storage_set(current_entry, argv[i], length);
+	for(i = 1; i < argc; i++) {
+		int length = string_length(argv[i]);
+		int required = required_entries(length);
+
+		if(entries_left >= required) {
+			messenger_show("INFO", "El valor '%s' de tamanio %d ocupa %d %s", argv[i], length, required, (required == 1) ? "entrada" : "entradas");
+
+			storage_set(next_entry, argv[i], length);
+
+			next_entry += required;
+
+			entries_left -= required;
 		}
 
+		else {
+			messenger_show("INFO", "El valor '%s' de tamanio %d no entra en el storage");
+		}
 	}
 
 	storage_show();
