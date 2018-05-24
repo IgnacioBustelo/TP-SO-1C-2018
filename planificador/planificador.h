@@ -8,6 +8,7 @@
 #include <commons/collections/list.h>
 #include <commons/string.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #define MAXCONN 20
 
@@ -194,6 +195,10 @@ void burn_esi_corpses(int executing_esi);
  */
 
 void kaboom_baby();
+
+/*
+ * Obtiene el nodo de ESI_INFORMATION correspondiente al fd de un ESI
+ */
 
 esi_information* obtain_esi_information_by_id(int esi_fd);
 

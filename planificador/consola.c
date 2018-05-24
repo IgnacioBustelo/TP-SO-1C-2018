@@ -126,6 +126,7 @@ static void key_status(char **args)
 static void check_deadlock(char **_)
 {
 	printf("Detectar deadlock\n");
+	detect_and_show_all_deadlocks();
 }
 
 void show_blocked_process(char* resource) {
@@ -141,4 +142,60 @@ void show_blocked_process(char* resource) {
 
 	list_iterate(g_esis_sexpecting_keys, show_esi_from_resource);
 }
+
+void detect_and_show_all_deadlocks() {
+
+	typedef struct esi_in_deadlock {
+
+		int esi_number;
+		int esi_state;
+	}esi_in_deadlock;
+
+	esi_in_deadlock* create_esi_in_deadlock(int esi_number_) {
+
+		esi_in_deadlock* esi = malloc(sizeof(esi_in_deadlock));
+		esi->esi_number = esi_number_;
+		esi->esi_state = -1;
+		return esi;
+	}
+
+	t_list* all_esis_in_system = list_create();
+	t_list* current_esi_cycle = list_create();
+
+	int deadlock_number = 0;
+
+	void add_all_esi_numbers(void* esi_inf) {
+
+		int esi_number = ((esi_information*)esi_inf)->esi_numeric_name;
+        esi_in_deadlock* esi = create_esi_in_deadlock(esi_number);
+
+		list_add(all_esis_in_system, (void*)esi_number);
+	}
+
+	list_iterate(g_esi_bursts, add_all_esi_numbers);
+
+	void put_a_zero_to_esis_that_are_not_holding_keys(void* esi) {
+
+		bool esi_holding_a_key(int esi_number_) {
+
+			bool holding_a_key(void* key_blocker_) {
+
+			int esi_found_number = obtain_esi_information_by_id(((key_blocker*)key_blocker_)->esi_id);
+			return esi_found_number == esi_number_;
+			}
+
+			return list_any_satisfy(g_locked_keys, holding_a_key);
+		}
+
+		if(!esi_holding_a_key(((esi_in_deadlock*)esi)->esi_number)){
+
+			((esi_in_deadlock*)esi)->esi_state = 0;
+		}
+	}
+
+	list_iterate(all_esis_in_system, put_a_zero_to_esis_that_are_not_holding_keys);
+
+	/* TODO Continuar con el paso 2 del algoritmo Bustervas */
+}
+
 
