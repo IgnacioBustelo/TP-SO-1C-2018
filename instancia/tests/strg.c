@@ -18,37 +18,44 @@ static int required_entries(int size) {
 }
 
 int main(int argc, char* argv[]) {
-	storage_init(16, 4);
+	messenger_show("INFO", "Comienzo de la prueba de insercion en el Storage");
 
-	char* a = string_duplicate("Hello");
-	char* b = string_duplicate("A");
+	storage_init(8, 2);
 
-	storage_set(1, a, string_length(a));
-	storage_set(14, b, string_length(b));
+	char* random_value = "TEST";
 
-	free(a);
-	free(b);
+	storage_set(0, random_value, string_length(random_value));
 
-	int i, next_entry = 0, entries_left = storage->entry_size;
+	messenger_show("INFO", "Estado inicial del Storage");
+
+	storage_show();
+
+	int i, next_entry = 0, entries_left = storage->entries;
+
+	messenger_show("INFO", "Insercion de valores insertados como argumentos en el Storage");
 
 	for(i = 1; i < argc; i++) {
 		int length = string_length(argv[i]);
 		int required = required_entries(length);
 
 		if(entries_left >= required) {
-			messenger_show("INFO", "El valor '%s' de tamanio %d ocupa %d %s", argv[i], length, required, (required == 1) ? "entrada" : "entradas");
+			messenger_show("INFO", "El valor '%s' de tamanio %d ocupa %d entrada/s y puede insertarse en el Storage", argv[i], length, required);
 
 			storage_set(next_entry, argv[i], length);
 
 			next_entry += required;
 
 			entries_left -= required;
+
+			messenger_show("INFO", "Queda/n %d entrada/s libre/s y el proximo valor se insertara en la entrada %d", entries_left, next_entry);
 		}
 
 		else {
-			messenger_show("INFO", "El valor '%s' de tamanio %d no entra en el storage");
+			messenger_show("WARNING", "El valor '%s' de tamanio %d no entra en el Storage porque ocupa %d entradas y quedan %d", argv[i], length, required, entries_left);
 		}
 	}
+
+	messenger_show("INFO", "Fin de la prueba de insercion en el Storage");
 
 	storage_show();
 

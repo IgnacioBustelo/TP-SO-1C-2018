@@ -35,12 +35,12 @@ void storage_init(size_t entries, size_t entry_size) {
 	storage->data = calloc(storage->entries, sizeof(void*));
 
 	int i;
-	for(i = 0; i < entries; i++) {
+	for(i = 0; i < storage->entries; i++) {
 		storage->data[i] = malloc(storage->entry_size);
 		memset(storage->data[i], 0, storage->entry_size);
 	}
 
-	messenger_show("DEBUG", "Inicio exitoso del Storage con %d frames de tamano %d", entries, entry_size);
+	messenger_show("DEBUG", "Inicio exitoso del Storage con %d entradas de tamano %d", entries, entry_size);
 }
 
 void storage_set(int next_entry, void* value, size_t size) {
@@ -73,7 +73,11 @@ void storage_show() {
 	for(i = 0; i < storage->entries; i++) {
 		char* value = value_to_string(storage->data[i], storage->entry_size);
 
-		messenger_show("INFO", "Entrada %d : %s", i, value);
+		char* message = string_duplicate("Entrada %d : %s");
+
+		messenger_show("INFO", message, i,  value);
+
+		free(message);
 
 		free(value);
 	}
