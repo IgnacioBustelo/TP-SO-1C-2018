@@ -180,7 +180,7 @@ void detect_and_show_all_deadlocks() {
 
 			bool holding_a_key(void* key_blocker_) {
 
-			int esi_found_number = obtain_esi_information_by_id(((key_blocker*)key_blocker_)->esi_id);
+			int esi_found_number = obtain_esi_information_by_id(((key_blocker*)key_blocker_)->esi_id)->esi_numeric_name;
 			return esi_found_number == esi_number_;
 			}
 

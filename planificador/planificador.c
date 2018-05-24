@@ -482,6 +482,8 @@ void authorize_esi_execution(int esi_fd) {
 		log_error(logger, "Fallo en la autorización del ESI a ejecutar");
 		sock_my_port(esi_fd);
 	}
+
+	log_info(logger, "Se autorizó la ejecución del ESI %i", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
 }
 
 void update_executing_esi(int esi_fd) {
