@@ -11,7 +11,7 @@ SRC = $(DEPS:.h=.c)
 all: $(TARGET)
 
 %: %.c $(DEPS) $(SRC)
-	$(CC) $< $(SRC) $(SHARED:.h=.c) -o $@ $(LIBS)
+	$(CC) $< $(SRC) -o $@ $(LIBS)
 
 cfg: DEPS += ../cfg_instancia.h ../../libs/configurator.h
 
