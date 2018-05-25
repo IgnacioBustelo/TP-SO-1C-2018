@@ -2,6 +2,7 @@
 #include "instancia.h"
 #include "cfg_instancia.h"
 #include "coordinator_api.h"
+#include "globals.h"
 
 #define PROCESS	"Instancia"
 #define LOGGER	"instancia.log"
@@ -17,7 +18,7 @@ int main(int argc, char* argv[]) {
 
 	coordinator_api_connect(IP, HOST);
 
-	coordinator_api_handshake(NAME);
+	coordinator_api_handshake(NAME, storage_setup);
 
 	for(;;) {
 
