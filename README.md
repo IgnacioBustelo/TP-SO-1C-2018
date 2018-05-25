@@ -1,5 +1,9 @@
-# tp-2018-1c-Sock-My-Port
+# TP 2018 1C - Sock My Port
 
-# https://trello.com/b/GiT8qVOI
+Repositorio del trabajo práctico de Sistemas Operativos del equipo Sock My Port.
 
-# https://drive.google.com/drive/folders/1zNPq6ibIXYqPDXGSwnkD7oQ_BR0a2rKA
+### Documentación
+https://drive.google.com/drive/folders/1zNPq6ibIXYqPDXGSwnkD7oQ_BR0a2rKA
+
+### División de tareas
+https://trello.com/b/GiT8qVOI
