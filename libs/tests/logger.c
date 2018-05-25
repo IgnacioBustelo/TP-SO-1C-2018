@@ -20,7 +20,7 @@ static char* get_level(int i) {
 }
 
 int main(int argc, char* argv[]) {
-	char* log_level = (argc < 2) ? "UNKNOWN" : argv[1];
+	char* log_level = (argc < 2) ? "WTF" : argv[1];
 
 	logger_init("logger.log", "Logger", log_level);
 

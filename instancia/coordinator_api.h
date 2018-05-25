@@ -13,15 +13,13 @@ typedef enum {
 
 // Atributos
 
-int fd_instancia;
-
 int fd_coordinador;
 
 // Interfaz
 
 void				coordinator_api_connect(char* host, int port);
 
-void				coordinator_api_handshake(char* instance_name); // Lo hace Nico
+void				coordinator_api_handshake(char* instance_name, storage_setup_t* setup); // Lo hace Nico
 
 request_coordinador	coordinator_api_receive_header();
 

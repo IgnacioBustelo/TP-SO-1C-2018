@@ -19,16 +19,16 @@ typedef struct {
 
 // Variables globales
 
-storage_setup_t storage_setup;
+storage_setup_t* storage_setup;
 
 // Funciones auxiliares
 
-key_value_t* key_value_create(char* key, char* value);
+key_value_t*	key_value_create(char* key, char* value);
 
-void key_value_destroy(key_value_t* key_value);
+void			key_value_destroy(key_value_t* key_value);
 
-int get_total_entries();
+void			storage_setup_init(size_t total_entries, size_t entry_size);
 
-int get_entry_size();
+void			storage_setup_destroy();
 
 #endif

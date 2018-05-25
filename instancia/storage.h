@@ -4,9 +4,9 @@
 #include "globals.h"
 
 typedef struct {
-	char** data;
-	size_t frames;
-	size_t frame_size;
+	size_t	entries;
+	size_t	entry_size;
+	void**	data;
 } storage_t;
 
 enum{
@@ -19,9 +19,9 @@ storage_t* storage;
 
 // Interfaz
 
-void	storage_init(size_t frames, size_t size); // Lo hace Santi
+void	storage_init(size_t entries, size_t entry_size); // Lo hace Santi
 
-void	storage_set(int next_entry, char* value, size_t size); // Lo hace Santi
+void	storage_set(int next_entry, void* value, size_t size); // Lo hace Santi
 
 void	storage_store(int entry, size_t value_size); // Lo hace Santi
 

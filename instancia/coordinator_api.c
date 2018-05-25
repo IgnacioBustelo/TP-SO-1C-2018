@@ -2,40 +2,64 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "../libs/chunker.h"
 #include "../libs/conector.h"
-#include "../libs/deserializador.h"
-#include "../libs/serializador.h"
-#include "../libs/serializador_v2.h"
+#include "../libs/messenger.h"
 #include "coordinator_api.h"
 #include "globals.h"
 
 void coordinator_api_connect(char* host, int port) {
+	// TODO: Manejar error cuando no encuentra al Coordinador
+
 	fd_coordinador = connect_to_server(host, port);
 }
 
-void coordinator_api_handshake(char* instance_name){
-	chunk_t *data;
-	void* message;
+void coordinator_api_handshake(char* instance_name, storage_setup_t* setup){
+	chunk_t* chunk;
+	void* serialized_chunk;
+	bool is_confirmed;
 
-	send_handshake(fd_coordinador,INSTANCE);
+	messenger_show("INFO", "Enviada la solicitud de handshake con el Coordinador");
 
-	data = chunk_create();
+	messenger_show("INFO", "Esperando confirmacion de handshake");
 
-	chunk_add_variable(data, instance_name, strlen(instance_name)+1);
+	send_handshake(fd_coordinador, INSTANCE);
 
-	message = chunk_build(data);
+	receive_confirmation(fd_coordinador, &is_confirmed);
 
-	send_serialized_package(fd_coordinador,message,data->current_size);
+	messenger_show("INFO", "Recibida la confirmacion de handshake");
 
-	chunk_destroy(data);
+	if (is_confirmed){
 
-	free(message);
+		messenger_show("INFO", "El Coordinador acepto la solicitud de handshake");
 
-	if (receive_handshake(fd_coordinador)){
+		messenger_show("INFO", "Se prepara el envio del nombre de la instancia (%s)", instance_name);
 
-		recv_package(fd_coordinador,&storage_setup.entry_size,sizeof(size_t));
+		chunk = chunk_create();
 
-		recv_package(fd_coordinador,&storage_setup.total_entries,sizeof(size_t));
+		chunk_add_variable(chunk, instance_name, string_length(instance_name) + 1);
+
+		serialized_chunk = chunk_build(chunk);
+
+		chunk_send(fd_coordinador, serialized_chunk, chunk->current_size);
+
+		chunk_recv(fd_coordinador, &setup->entry_size, sizeof(size_t));
+
+		chunk_recv(fd_coordinador, &setup->total_entries, sizeof(size_t));
+
+		messenger_show("INFO", "Se asigno una dimension de %d entradas de tamano %d para el Storage", setup->total_entries, setup->entry_size);
+
+		chunk_destroy(chunk);
+
+		free(serialized_chunk);
+	}
+
+	else {
+
+		messenger_show("ERROR", "El Coordinador rechazo la solicitud de handshake");
+
+		// TODO: Manejar error
+
 	}
 
 }
@@ -43,7 +67,7 @@ void coordinator_api_handshake(char* instance_name){
 request_coordinador coordinator_api_receive_header() {
 	request_coordinador header;
 
-	recv_package(fd_coordinador, &header, sizeof(request_coordinador));
+	chunk_recv(fd_coordinador, &header, sizeof(request_coordinador));
 
 	return header;
 }
@@ -51,8 +75,8 @@ request_coordinador coordinator_api_receive_header() {
 key_value_t* coordinator_api_receive_set() {
 	char *key, *value;
 
-	recv_package_variable(fd_coordinador, (void**) &key);
-	recv_package_variable(fd_coordinador, (void**) &value);
+	chunk_recv_variable(fd_coordinador, (void**) &key);
+	chunk_recv_variable(fd_coordinador, (void**) &value);
 
 	key_value_t* key_value = key_value_create(key, value);
 
@@ -71,7 +95,7 @@ void coordinator_api_notify_status(int status) {
 
 	void* status_message = chunk_build(chunk);
 
-	send_serialized_package(fd_coordinador, &status_message, chunk->current_size);
+	chunk_send(fd_coordinador, &status_message, chunk->current_size);
 
 	free(status_message);
 	chunk_destroy(chunk);

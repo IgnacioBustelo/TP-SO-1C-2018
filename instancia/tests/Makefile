@@ -1,22 +1,23 @@
 CC = gcc -Wall
 
-TARGET = cfg storage
-LIBS = -lcommons
+TARGET = cfg strg handshake
+LIBS = -lcommons -lpthread
 
-SHARED = ../../libs/messenger.h ../../libs/mocks/printfer.h
-DEPS = 
-SRC = $(DEPS:.h=.c) $(SHARED:.h=.c)
+DEPS = ../../libs/messenger.h ../../libs/mocks/printfer.h
+SRC = $(DEPS:.h=.c)
 
 .PHONY = clean $(TARGET)
 
 all: $(TARGET)
 
-%: %.c $(SRC) $(DEPS) $(SHARED)
+cfg: DEPS += ../cfg_instancia.h ../../libs/configurator.h
+
+strg: DEPS += ../storage.h
+
+handshake: DEPS += ../coordinator_api.h ../globals.h ../../libs/chunker.h ../../libs/conector.h ../../libs/mocks/client_server.h ../../protocolo/protocolo_coordinador_instancia.h
+
+%: %.c $(DEPS) $(SRC)
 	$(CC) $< $(SRC) -o $@ $(LIBS)
-
-cfg: DEPS = ../cfg_instancia.h ../../libs/configurator.h 
-
-storage: DEPS = ../storage.h
 
 clean:
 	rm -f *.o $(TARGET)

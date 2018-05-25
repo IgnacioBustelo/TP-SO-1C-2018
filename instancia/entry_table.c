@@ -11,7 +11,7 @@ void node_to_entry(entry_t * entry,void * node)
 
 void entry_table_init() {
 	entry_table= list_create();
-	entries_left = get_total_entries();
+	entries_left = storage_setup->total_entries;
 }
 
 void entry_table_insert(int next_entry, key_value_t* key_value)//Solo guarda para un bloque!!!
@@ -70,7 +70,7 @@ int entry_table_entries_needed(key_value_t *key_value)
 	int total=0;
 	int size=key_value->size;
 
-	while (size - get_entry_size() > 0)
+	while (size - storage_setup->entry_size > 0)
 		{
 			total++;
 		}

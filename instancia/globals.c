@@ -1,4 +1,6 @@
 #include <commons/string.h>
+#include <stdlib.h>
+
 #include "globals.h"
 
 key_value_t* key_value_create(char* key, char* value) {
@@ -17,11 +19,13 @@ void key_value_destroy(key_value_t* key_value) {
 	free(key_value);
 }
 
-int get_total_entries()
-{
-	return storage_setup.total_entries;
+void storage_setup_init(size_t total_entries, size_t entry_size) {
+	storage_setup = malloc(sizeof(storage_setup_t));
+
+	storage_setup->total_entries = total_entries;
+	storage_setup->entry_size = entry_size;
 }
 
-int get_entry_size(){
-	return storage_setup.entry_size;
+void storage_setup_destroy() {
+	free(storage_setup);
 }
