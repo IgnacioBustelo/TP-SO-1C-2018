@@ -10,14 +10,14 @@ SRC = $(DEPS:.h=.c)
 
 all: $(TARGET)
 
-%: %.c $(DEPS) $(SRC)
-	$(CC) $< $(SRC) -o $@ $(LIBS)
-
 logger: DEPS = ../../libs/messenger.h ../logger.h
 
 configurator: DEPS += ../configurator.h
 
 client_server: DEPS += ../mocks/client_server.h ../conector.h
+
+%: %.c $(DEPS) $(SRC)
+	$(CC) $< $(SRC) -o $@ $(LIBS)
 
 clean:
 	rm -f *.o $(TARGET)
