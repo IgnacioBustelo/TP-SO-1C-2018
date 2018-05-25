@@ -1,7 +1,7 @@
 CC = gcc -Wall
 
-TARGET = cfg strg
-LIBS = -lcommons
+TARGET = cfg strg handshake
+LIBS = -lcommons -lpthread
 
 DEPS = ../../libs/messenger.h ../../libs/mocks/printfer.h
 SRC = $(DEPS:.h=.c)
@@ -10,12 +10,14 @@ SRC = $(DEPS:.h=.c)
 
 all: $(TARGET)
 
-%: %.c $(DEPS) $(SRC)
-	$(CC) $< $(SRC) -o $@ $(LIBS)
-
 cfg: DEPS += ../cfg_instancia.h ../../libs/configurator.h
 
 strg: DEPS += ../storage.h
+
+handshake: DEPS += ../coordinator_api.h ../globals.h ../../libs/chunker.h ../../libs/conector.h ../../libs/mocks/client_server.h ../../protocolo/protocolo_coordinador_instancia.h
+
+%: %.c $(DEPS) $(SRC)
+	$(CC) $< $(SRC) -o $@ $(LIBS)
 
 clean:
 	rm -f *.o $(TARGET)

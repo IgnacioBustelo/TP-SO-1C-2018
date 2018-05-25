@@ -1,6 +1,6 @@
 #include <commons/string.h>
 #include <stdarg.h>
-#include <stdlib.h>
+#include <string.h>
 
 #include "messenger.h"
 
@@ -16,4 +16,14 @@ void messenger_show(char* log_level, const char* format,...) {
 	free(message);
 
 	va_end(args);
+}
+
+char* messenger_bytes_to_string(void* data, size_t size) {
+	char* chunk_string = malloc(size + 1);
+
+	memset(chunk_string, 0, size + 1);
+
+	memcpy(chunk_string, data, size);
+
+	return chunk_string;
 }
