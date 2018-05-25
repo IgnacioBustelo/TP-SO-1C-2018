@@ -125,8 +125,8 @@ static void key_status(char **args)
 
 static void check_deadlock(char **_)
 {
-	printf("Detectar deadlock\n");
-	detect_and_show_all_deadlocks();
+	printf("Detectar deadlocks\n");
+	detect_and_show_all_deadlocks(g_locked_keys, g_esis_sexpecting_keys, g_esi_bursts);
 }
 
 void show_blocked_process(char* resource) {
@@ -143,7 +143,7 @@ void show_blocked_process(char* resource) {
 	list_iterate(g_esis_sexpecting_keys, show_esi_from_resource);
 }
 
-void detect_and_show_all_deadlocks() {
+void detect_and_show_all_deadlocks(t_list* locked_keys, t_list* esi_requests, t_list* esis_in_system) {
 
 	typedef struct esi_in_deadlock {
 
@@ -159,6 +159,11 @@ void detect_and_show_all_deadlocks() {
 		return esi;
 	}
 
+	void destroy_esi_in_deadlock(void* esi) {
+
+		free((esi_in_deadlock*)esi);
+	}
+
 	t_list* all_esis_in_system = list_create();
 	t_list* current_esi_cycle = list_create();
 
@@ -172,7 +177,7 @@ void detect_and_show_all_deadlocks() {
 		list_add(all_esis_in_system, (void*)esi);
 	}
 
-	list_iterate(g_esi_bursts, add_all_esi_numbers);
+	list_iterate(esis_in_system, add_all_esi_numbers);
 
 	void put_a_zero_to_esis_that_are_not_holding_keys(void* esi) {
 
@@ -184,7 +189,7 @@ void detect_and_show_all_deadlocks() {
 			return esi_found_number == esi_id_;
 			}
 
-			return list_any_satisfy(g_locked_keys, holding_a_key);
+			return list_any_satisfy(locked_keys, holding_a_key);
 		}
 
 		if(!esi_holding_a_key(((esi_in_deadlock*)esi)->esi_id)){
@@ -195,8 +200,6 @@ void detect_and_show_all_deadlocks() {
 
 	list_iterate(all_esis_in_system, put_a_zero_to_esis_that_are_not_holding_keys);
 
-	/* STEP TWO */
-
 	bool esi_not_analized(void* esi) {
 
 		return ((esi_in_deadlock*)esi)->esi_state == -1;
@@ -206,17 +209,17 @@ void detect_and_show_all_deadlocks() {
 
 		esi_in_deadlock* esi = list_find(all_esis_in_system, esi_not_analized);
 
-		bool esi_is_asking_for_a_key(int esi_id_) {
+		bool esi_asks_for_a_key(int esi_id_) {
 
 			bool condition(void* esi_sexpecting) {
 
 				return ((esi_sexpecting_key*)esi_sexpecting)->esi_fd == esi_id_;
 			}
 
-			return list_any_satisfy(g_esis_sexpecting_keys, condition);
+			return list_any_satisfy(esi_requests, condition);
 		}
 
-		if(!esi_is_asking_for_a_key(esi->esi_id)) {
+		if(!esi_asks_for_a_key(esi->esi_id)) {
 
 			esi->esi_state = 0;
 		} else {
@@ -228,53 +231,116 @@ void detect_and_show_all_deadlocks() {
 				return ((esi_sexpecting_key*)esi_sexpecting)->esi_fd == esi->esi_id;
 			}
 
-			esi_sexpecting_key* esi_sexpecting = list_find(g_esis_sexpecting_keys, find_request);
-			char* requested_key = esi_sexpecting->key;
+			esi_sexpecting_key* esi_sexpecting = list_find(esi_requests, find_request);
+			int esi_id;
 
-			int step_three(char* requested_key_) {
+			int obtain_key_owner(char* requested_key_) {
 
 				bool esi_owner(void* key_locked) {
 
 					return strcmp(((key_blocker*) key_locked)->key, requested_key_) == 0;
 				}
 
-				key_blocker* key_locked = list_find(g_locked_keys, esi_owner);
+				key_blocker* key_locked = list_find(locked_keys, esi_owner);
 				return key_locked->esi_id;
 			}
 
-			/* STEP THREE */
+			esi_id = obtain_key_owner(esi_sexpecting->key);
 
-			int esi_id = step_three(requested_key);
-
-			/* ---------------------*/
-
-			void step_four(int esi_id) {
+			esi_sexpecting_key* obtain_esi_request(int esi_id) {
 
 				bool find_request(void* esi_sexpecting) {
 
 					return ((esi_sexpecting_key*) esi_sexpecting)->esi_fd == esi_id;
 				}
 
-				esi_sexpecting_key* esi_sexpecting = list_find(g_locked_keys, find_request);
-
-				if(esi_sexpecting == NULL) {
-
-					/* TODO */
-				} else {
-
-					list_add(current_esi_cycle, (void*)&esi_id);
-					requested_key = esi_sexpecting->key;
-				}
+				return list_find(esi_requests, find_request);
 			}
 
-			step_four(esi_id);
+			bool esi_requests_matches_first_esi_in_cycle_assigned_key(int esi_id) {
 
-			/* STEP FIVE */
-			step_three(requested_key);
+				int first_esi = *(int*)list_get(current_esi_cycle, 0);
+				esi_sexpecting_key* esi_sexpecting = obtain_esi_request(esi_id);
 
-			/* ---------------*/
-		}
+				if(esi_sexpecting == NULL) return false;
+
+				bool esi_owner(void* esi_blocker) {
+
+					return ((key_blocker*)esi_blocker)->esi_id == first_esi;
+				}
+
+				key_blocker* esi_blocker = list_find(locked_keys, esi_owner);
+
+				return strcmp(esi_sexpecting->key, esi_blocker->key) == 0;
+			}
+
+			list_add(current_esi_cycle, (void*) &esi_id);
+
+			while(esi_asks_for_a_key(esi_id) && !esi_requests_matches_first_esi_in_cycle_assigned_key(esi_id)) {
+
+				esi_sexpecting = obtain_esi_request(esi_id);
+				esi_id = obtain_key_owner(esi_sexpecting->key);
+				list_add(current_esi_cycle, (void*)&esi_id);
+			}
+
+			if(!esi_asks_for_a_key(esi_id)) {
+
+				void apply_a_zero(void* esi) {
+
+					bool find_condition(void* esi_in_deadlock_) {
+
+						return ((esi_in_deadlock*) esi_in_deadlock_)->esi_id == *(int*) esi;
+					}
+
+					esi_in_deadlock* esi_ = list_find(all_esis_in_system, find_condition);
+					esi_->esi_state = 0;
+				}
+
+				list_iterate(current_esi_cycle, apply_a_zero);
+
+				list_clean(current_esi_cycle);
+
+			} else {
+
+				deadlock_number++;
+
+				void apply_deadlock_id(void* esi) {
+
+					bool find_condition(void* esi_in_deadlock_) {
+
+						return ((esi_in_deadlock*) esi_in_deadlock_)->esi_id == *(int*) esi;
+					}
+
+					esi_in_deadlock* deadlocked_esi = list_find(all_esis_in_system, find_condition);
+					deadlocked_esi->esi_state = deadlock_number;
+				}
+
+				list_iterate(current_esi_cycle, apply_deadlock_id);
+
+				list_clean(current_esi_cycle);
+			}
 	}
+}
+	int i;
+	for(i = 1; i <= deadlock_number; i++) {
+
+		printf("Deadlock %i\n", i);
+
+		void is_in_deadlock_i(void* esi_in_deadlock_) {
+
+			if(((esi_in_deadlock*)esi_in_deadlock_)->esi_state == i) {
+
+				int esi_number = obtain_esi_information_by_id(((esi_in_deadlock*)esi_in_deadlock_)->esi_id)->esi_numeric_name;
+				printf("ESI %i\n", esi_number);
+			}
+		}
+
+		list_iterate(all_esis_in_system, is_in_deadlock_i);
+
+		printf("\n");
+	}
+
+	list_clean_and_destroy_elements(all_esis_in_system, destroy_esi_in_deadlock);
 }
 
 
