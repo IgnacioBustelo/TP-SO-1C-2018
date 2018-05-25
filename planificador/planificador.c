@@ -119,8 +119,6 @@ int main(void) {
 	FD_SET(g_coordinator_fd, &connected_fds);
 	FD_SET(listener, &connected_fds);
 	struct timeval tv;
-	tv.tv_sec = 0;
-	tv.tv_usec = 0;
 
 	max_fd = (listener > g_coordinator_fd) ? listener : g_coordinator_fd;
 
@@ -143,7 +141,8 @@ int main(void) {
 
 		read_fds = connected_fds;
 
-		sleep(1);
+		tv.tv_sec = 1;
+		tv.tv_usec = 0;
 
 		if (select(max_fd + 1, &read_fds, NULL, NULL, &tv) == -1) {
 			log_error(logger, "Error en select");
@@ -185,8 +184,7 @@ int main(void) {
 
 						send_confirmation(new_client_fd, confirmation);
 						remove_fd(new_client_fd, &connected_fds);
-						log_error(logger, "Fallo en el handshake con el socket %d",
-								new_client_fd);
+						log_error(logger, "Fallo en el handshake con el socket %d", new_client_fd);
 					} else {
 
 						client_confirmation = true;
