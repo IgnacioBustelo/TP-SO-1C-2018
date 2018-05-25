@@ -1,16 +1,19 @@
 #include <pthread.h>
+#include <semaphore.h>
 #include <stdio.h>
 
 #include "../messenger.h"
 #include "../conector.h"
 #include "client_server.h"
 
+sem_t server_sem, client_sem;
+
 static void set_server(void* args) {
 	sem_wait(&server_sem);
 
 	int fd_server = init_listener(PORT, 1);
 
-	messenger_show("INFO", "%s: Se levanto el servidor", server_name);
+	messenger_show("INFO", "[SERVER]: Se inicio el servidor %s", server_name);
 
 	sem_post(&client_sem);
 
@@ -21,46 +24,32 @@ static void set_server(void* args) {
 
 	int fd_client = accept(fd_server, (struct sockaddr *) &client_info, &addrlen);
 
-	messenger_show("INFO", "%s: Se acepto a %s", server_name, client_name);
-
-	sem_post(&server_sem);
-
-	client_server_show_semaphores();
-
-	client_server_execute_server(fd_client);
-
-	sem_wait(&server_sem);
-
-	messenger_show("INFO", "%s: Se termino la conexion con %s", server_name, client_name);
+	messenger_show("INFO", "[SERVER]: Se acepto al cliente %s", client_name);
 
 	sem_post(&client_sem);
 
+	client_server_execute_server(fd_client);
+
 	close(fd_server);
 	close(fd_client);
-
-	pthread_exit(NULL);
 }
 
-static void set_client() {
+static void set_client(void* args) {
 	sem_wait(&client_sem);
+
+	messenger_show("INFO", "[CLIENT]: Se inicio el cliente %s", client_name);
 
 	int fd_server = connect_to_server(HOST, PORT);
 
-	messenger_show("INFO", "%s: Se conecto a %s", client_name, server_name);
+	messenger_show("INFO", "[CLIENT]: Se conecto al servidor %s", server_name);
 
 	sem_post(&server_sem);
-
-	client_server_execute_client(fd_server);
 
 	sem_wait(&client_sem);
 
-	messenger_show("INFO", "%s: Se termino la conexion con %s", client_name, server_name);
-
-	sem_post(&server_sem);
+	client_server_execute_client(fd_server);
 
 	close(fd_server);
-
-	pthread_exit(NULL);
 }
 
 void client_server_run() {
@@ -69,25 +58,16 @@ void client_server_run() {
 
 	pthread_t server_thread, client_thread;
 
-	client_server_show_semaphores();
-
 	pthread_create(&server_thread, NULL, (void*) set_server, NULL);
 	pthread_create(&client_thread, NULL, (void*) set_client, NULL);
 
 	pthread_join(server_thread, NULL);
-	pthread_join(server_thread, NULL);
+	pthread_join(client_thread, NULL);
 
-	client_server_show_semaphores();
+	messenger_show("INFO", "[SERVER]: Se termino la conexion con %s", client_name);
+
+	messenger_show("INFO", "[CLIENT]: Se termino la conexion con %s", server_name);
 
 	sem_destroy(&server_sem);
 	sem_destroy(&client_sem);
-}
-
-void client_server_show_semaphores() {
-	int server_sem_value, client_sem_value;
-
-	sem_getvalue(&server_sem, &server_sem_value);
-	sem_getvalue(&client_sem, &client_sem_value);
-
-	messenger_show("DEBUG", "General: Estado de semaforos: Servidor = %d ; Cliente = %d", server_sem_value, client_sem_value);
 }
