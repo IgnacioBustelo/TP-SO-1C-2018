@@ -24,6 +24,8 @@ void		chunk_destroy(chunk_t* chunk);
 
 void		chunk_send(int fd, void* serialized_chunk, size_t chunk_size);
 
+void		chunk_send_and_destroy(int fd, chunk_t* chunk);
+
 void		chunk_recv(int fd, void* receiver, size_t size);
 
 void		chunk_recv_variable(int fd, void** receiver);

@@ -46,9 +46,16 @@ void* chunk_build(chunk_t* chunk) {
 
 	memcpy(serialized_chunk, chunk->bytes, chunk->current_size);
 
-	messenger_show("DEBUG", "Se creo un paquete serializado de tamanio %d", chunk->current_size);
+	messenger_show("DEBUG", "Se genero un cacho de memoria serializado de tamanio %d", chunk->current_size);
 
 	return serialized_chunk;
+}
+
+void chunk_destroy(chunk_t* chunk) {
+	messenger_show("DEBUG", "Se libero un paquete de tamano %d para serializar", chunk->current_size);
+
+	free(chunk->bytes);
+	free(chunk);
 }
 
 void chunk_send(int fd, void* serialized_chunk, size_t chunk_size) {
@@ -61,25 +68,33 @@ void chunk_send(int fd, void* serialized_chunk, size_t chunk_size) {
 	}
 }
 
+void chunk_send_and_destroy(int fd, chunk_t* chunk) {
+	size_t size = chunk->current_size;
+	void* serialized_chunk = chunk_build(chunk);
+
+	chunk_destroy(chunk);
+
+	chunk_send(fd, serialized_chunk, size);
+
+	free(serialized_chunk);
+}
+
 void chunk_recv(int fd, void* receiver, size_t size) {
 	recv(fd, receiver, size, MSG_WAITALL);
 
-	messenger_show("DEBUG", "Se recibio un dato de tamano %d", size);
+	messenger_show("DEBUG", "Se recibio un cacho serializado de memoria de tamano %d", size);
 }
 
 void chunk_recv_variable(int fd, void** receiver) {
-	size_t chunk_size;
+	size_t size;
 
-	chunk_recv(fd, &chunk_size, sizeof(size_t));
+	messenger_show("DEBUG", "Se va a recibir un cacho serializado de memoria de tamano variable");
 
-	*receiver = malloc(chunk_size);
+	recv(fd, &size, sizeof(size), MSG_WAITALL);
 
-	chunk_recv(fd, *receiver, chunk_size);
-}
+	*receiver = malloc(size);
 
-void chunk_destroy(chunk_t* chunk) {
-	free(chunk->bytes);
-	free(chunk);
+	recv(fd, *receiver, size, MSG_WAITALL);
 
-	messenger_show("DEBUG", "Se termino una serializacion");
+	messenger_show("DEBUG", "Se recibio un cacho variable serializado de memoria de tamano %d", size);
 }

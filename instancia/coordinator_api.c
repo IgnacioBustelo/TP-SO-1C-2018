@@ -16,7 +16,6 @@ void coordinator_api_connect(char* host, int port) {
 
 void coordinator_api_handshake(char* instance_name, storage_setup_t* setup){
 	chunk_t* chunk;
-	void* serialized_chunk;
 	bool is_confirmed;
 
 	messenger_show("INFO", "Enviada la solicitud de handshake con el Coordinador");
@@ -39,9 +38,7 @@ void coordinator_api_handshake(char* instance_name, storage_setup_t* setup){
 
 		chunk_add_variable(chunk, instance_name, string_length(instance_name) + 1);
 
-		serialized_chunk = chunk_build(chunk);
-
-		chunk_send(fd_coordinador, serialized_chunk, chunk->current_size);
+		chunk_send_and_destroy(fd_coordinador, chunk);
 
 		chunk_recv(fd_coordinador, &setup->entry_size, sizeof(size_t));
 
@@ -49,9 +46,6 @@ void coordinator_api_handshake(char* instance_name, storage_setup_t* setup){
 
 		messenger_show("INFO", "Se asigno una dimension de %d entradas de tamano %d para el Storage", setup->total_entries, setup->entry_size);
 
-		chunk_destroy(chunk);
-
-		free(serialized_chunk);
 	}
 
 	else {

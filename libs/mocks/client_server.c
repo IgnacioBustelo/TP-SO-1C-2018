@@ -13,7 +13,7 @@ static void set_server(void* args) {
 
 	int fd_server = init_listener(PORT, 1);
 
-	messenger_show("INFO", "[SERVER]: Se inicio el servidor %s", server_name);
+	messenger_show("INFO", "Se inicio el servidor %s", server_name);
 
 	sem_post(&client_sem);
 
@@ -24,7 +24,7 @@ static void set_server(void* args) {
 
 	int fd_client = accept(fd_server, (struct sockaddr *) &client_info, &addrlen);
 
-	messenger_show("INFO", "[SERVER]: Se acepto al cliente %s", client_name);
+	messenger_show("INFO", "Se acepto al cliente %s", client_name);
 
 	sem_post(&client_sem);
 
@@ -37,11 +37,11 @@ static void set_server(void* args) {
 static void set_client(void* args) {
 	sem_wait(&client_sem);
 
-	messenger_show("INFO", "[CLIENT]: Se inicio el cliente %s", client_name);
+	messenger_show("INFO", "Se inicio el cliente %s", client_name);
 
 	int fd_server = connect_to_server(HOST, PORT);
 
-	messenger_show("INFO", "[CLIENT]: Se conecto al servidor %s", server_name);
+	messenger_show("INFO", "Se conecto al servidor %s", server_name);
 
 	sem_post(&server_sem);
 
@@ -64,9 +64,9 @@ void client_server_run() {
 	pthread_join(server_thread, NULL);
 	pthread_join(client_thread, NULL);
 
-	messenger_show("INFO", "[SERVER]: Se termino la conexion con %s", client_name);
+	messenger_show("INFO", "%sSe termino la conexion con %s", COLOR_RESET, client_name);
 
-	messenger_show("INFO", "[CLIENT]: Se termino la conexion con %s", server_name);
+	messenger_show("INFO", "%sSe termino la conexion con %s", COLOR_RESET, server_name);
 
 	sem_destroy(&server_sem);
 	sem_destroy(&client_sem);

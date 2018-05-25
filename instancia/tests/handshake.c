@@ -10,11 +10,11 @@ int total_entries, entry_size;
 void client_server_execute_server(int fd_client) {
 	receive_handshake(fd_client);
 
-	messenger_show("INFO", "[COORDINADOR]: Se recibio una solicitud de handshake de una instancia");
+	messenger_show("INFO", "%sSe recibio una solicitud de handshake de una instancia", COLOR_SERVER);
 
-	messenger_show("INFO", "[COORDINADOR]: Se envio confirmacion de handshake");
+	messenger_show("INFO", "Se envio confirmacion de handshake");
 
-	messenger_show("INFO", "[COORDINADOR]: Esperando recibir el nombre de la instancia");
+	messenger_show("INFO", "Esperando recibir el nombre de la instancia%s", COLOR_CLIENT);
 
 	send_confirmation(fd_client, true);
 
@@ -22,27 +22,21 @@ void client_server_execute_server(int fd_client) {
 
 	chunk_recv_variable(fd_client, (void**) &received_name);
 
-	messenger_show("INFO", "[COORDINADOR]: Se recibio el nombre de la instancia, que se llama %s", received_name);
-
-	free(received_name);
-
-	chunk_t* chunk = chunk_create();
+	messenger_show("INFO", "%sSe recibio el nombre de la instancia, que se llama %s", COLOR_SERVER, received_name);
 
 	storage_setup_t setup = {.total_entries = total_entries, .entry_size = entry_size};
 
-	messenger_show("INFO", "[COORDINADOR]: Se va a enviar el tamano del storage de %d entradas de tamano %d", setup.total_entries, setup.entry_size);
+	chunk_t* chunk = chunk_create();
 
 	chunk_add(chunk, &setup.entry_size, sizeof(size_t));
 
 	chunk_add(chunk, &setup.total_entries, sizeof(size_t));
 
-	void* serialized_chunk = chunk_build(chunk);
+	messenger_show("INFO", "Se va a enviar el tamano del storage de %d entradas de tamano %d a %s%s", setup.total_entries, setup.entry_size, received_name, COLOR_CLIENT);
 
-	chunk_send(fd_client, serialized_chunk, chunk->current_size);
+	chunk_send_and_destroy(fd_client, chunk);
 
-	chunk_destroy(chunk);
-
-	free(serialized_chunk);
+	free(received_name);
 }
 
 void client_server_execute_client(int fd_server) {

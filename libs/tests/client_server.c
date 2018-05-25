@@ -8,7 +8,7 @@ sem_t execute_server, execute_client;
 void client_server_execute_server(int fd_client) {
 	sem_wait(&execute_server);
 
-	messenger_show("INFO", "[SERVER]: Soy el servidor %s", server_name);
+	messenger_show("INFO", "%sSoy el servidor %s%s", COLOR_SERVER, server_name, COLOR_RESET);
 
 	sem_post(&execute_client);
 }
@@ -16,7 +16,7 @@ void client_server_execute_server(int fd_client) {
 void client_server_execute_client(int fd_server) {
 	sem_wait(&execute_client);
 
-	messenger_show("INFO", "[CLIENT]: Soy el cliente %s", client_name);
+	messenger_show("INFO", "%sSoy el cliente %s%s", COLOR_CLIENT, client_name, COLOR_RESET);
 
 	sem_post(&execute_server);
 }
