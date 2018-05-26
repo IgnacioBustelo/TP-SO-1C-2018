@@ -3,6 +3,8 @@
 
 #include "globals.h"
 
-void instance_set(key_value_t* key_value);
+void	instance_set(key_value_t* key_value);
+
+int		instance_entries_used();
 
 #endif

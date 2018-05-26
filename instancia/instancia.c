@@ -9,3 +9,11 @@ void instance_set(key_value_t* key_value) {
 
 	entry_table_insert(next_entry, key_value);
 }
+
+int instance_entries_used() {
+	int entries_used = 0;
+
+	// TODO: Logica para obtener cantidad de entradas usadas.
+
+	return entries_used;
+}

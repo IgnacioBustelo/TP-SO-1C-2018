@@ -11,23 +11,41 @@
 /* -- Local function prototypes -- */
 
 static bool algorithm_is_preemptive();
+
 static void take_esi_away_from_queue(t_list* queue, int esi_fd);
+
 static void we_must_reschedule(int* flag);
+
 static void remove_fd(int fd, fd_set *fdset);
+
 static void set_last_real_burst_to_zero(int esi_fd);
+
 static void set_waiting_time_to_zero(int esi_fd);
+
 static int receive_coordinator_opcode(int coordinator_fd);
+
 static char* receive_inquired_key(int coordinator_fd);
+
 static void add_new_key_blocker(char* blocked_key);
+
 static void send_protocol_answer(int coordinator_fd, protocol_id protocol);
+
 static void update_blocked_esis(int* blocked_queue_flag);
+
 static void new_esi_detected(int* new_esi_flag);
+
 static void remove_blocked_key_from_list(char* unlocked_key);
+
 static void esi_finished(int* flag);
+
 static double next_estimated_burst_sjf(double alpha, int last_real_burst, double last_estimated_burst);
-static double next_estimated_burst_hrrn(int waited_time, int last_real_burst);
+
+static double next_estimated_burst_hrrn(int waited_time, double service_time);
+
 static void update_esi_information_next_estimated_burst(int esi_fd);
+
 static void block_by_console_procedure();
+
 static int obtain_esi_fd_by_esi_pid(int esi_pid);
 
 /* -- Global variables -- */
@@ -101,8 +119,6 @@ int main(void) {
 	FD_SET(g_coordinator_fd, &connected_fds);
 	FD_SET(listener, &connected_fds);
 	struct timeval tv;
-	tv.tv_sec = 0;
-	tv.tv_usec = 0;
 
 	max_fd = (listener > g_coordinator_fd) ? listener : g_coordinator_fd;
 
@@ -125,13 +141,16 @@ int main(void) {
 
 		read_fds = connected_fds;
 
+		tv.tv_sec = 1;
+		tv.tv_usec = 0;
+
 		if (select(max_fd + 1, &read_fds, NULL, NULL, &tv) == -1) {
 			log_error(logger, "Error en select");
 			exit(EXIT_FAILURE);
 		}
 
 		int fd;
-		char* last_key_inquired; //Hay que ver dónde hacer el free cuando termina de usarla -- TODO
+		char* last_key_inquired;
 
 		for (fd = 0; fd <= max_fd; fd++) {
 
@@ -165,8 +184,7 @@ int main(void) {
 
 						send_confirmation(new_client_fd, confirmation);
 						remove_fd(new_client_fd, &connected_fds);
-						log_error(logger, "Fallo en el handshake con el socket %d",
-								new_client_fd);
+						log_error(logger, "Fallo en el handshake con el socket %d", new_client_fd);
 					} else {
 
 						client_confirmation = true;
@@ -321,9 +339,11 @@ int main(void) {
 						if (new_esi_flag == 1) update_new_esi_queue(&new_esi_flag);
 
 						if (block_esi_by_console_flag == 1) block_by_console_procedure();
-					}
 
+						free(last_key_inquired);
+					}
 				}
+
 				if (reschedule_flag == 1){
 
 					reschedule(&reschedule_flag, &executing_esi);
@@ -338,7 +358,7 @@ int main(void) {
 
 		if(list_is_empty(g_execution_queue) && !list_is_empty(g_new_queue) && scheduler_paused_flag != 1) {
 
-			if(killed_esi_flag == 1) burn_esi_corpses(executing_esi);
+			if (killed_esi_flag == 1) burn_esi_corpses(executing_esi);
 
 			if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(last_key_inquired, &update_blocked_esi_queue_flag);
 
@@ -460,6 +480,8 @@ void authorize_esi_execution(int esi_fd) {
 		log_error(logger, "Fallo en la autorización del ESI a ejecutar");
 		sock_my_port(esi_fd);
 	}
+
+	log_info(logger, "Se autorizó la ejecución del ESI %i", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
 }
 
 void update_executing_esi(int esi_fd) {
@@ -1002,7 +1024,7 @@ static double next_estimated_burst_sjf(double alpha, int last_real_burst, double
 
 }
 
-static double next_estimated_burst_hrrn(int waited_time, int next_service_time) {
+static double next_estimated_burst_hrrn(int waited_time, double next_service_time) {
 
 	return waited_time/next_service_time;
 }

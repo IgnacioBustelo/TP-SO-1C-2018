@@ -24,9 +24,9 @@ static void configurator_message_log_field_names(t_list* list) {
 
 	names = string_substring_until(buffer, string_length(buffer) - 2);
 
-	free(buffer);
+	messenger_show("INFO", "Los campos del archivo de configuracion son %s", names);
 
-	messenger_log(names, "INFO");
+	free(buffer);
 
 	free(names);
 }
@@ -49,19 +49,11 @@ static void configurator_list_add_fields(t_list* list, char** fields, size_t fie
 }
 
 static void configurator_list_message_field_value(void* field) {
-	char* message = string_from_format("El valor de %s es %s", field, config_get_string_value(config, (char*) field));
-
-	messenger_log(message, "INFO");
-
-	free(message);
+	messenger_show("INFO", "El valor de %s es %s", field, config_get_string_value(config, (char*) field));
 }
 
 static void configurator_list_message_field_value_missing(void* field) {
-	char* message = string_from_format("Falta la configuracion de %s", (char*) field);
-
-	messenger_log(message, "WARNING");
-
-	free(message);
+	messenger_show("WARNING", "Falta la configuracion de %s", (char*) field);
 }
 
 static bool configurator_list_exists_field(void* field) {
@@ -73,11 +65,11 @@ static bool configurator_list_not_exists_field(void* field) {
 }
 
 void configurator_init(char* config_path, char** fields, size_t fields_size) {
-	messenger_log("Iniciando el archivo de configruacion", "INFO");
+	messenger_show("INFO", "Iniciando el archivo de configruacion");
 
 	config = config_create(config_path);
 
-	messenger_log("Abierto el archivo de configuracion", "INFO");
+	messenger_show("INFO", "Abierto el archivo de configuracion");
 
 	config_field_list = list_create();
 
@@ -85,12 +77,12 @@ void configurator_init(char* config_path, char** fields, size_t fields_size) {
 
 	configurator_message_log_field_names(config_field_list);
 
-	messenger_log("Finalizo la lectura inicial del archivo de configuracion", "INFO");
+	messenger_show("INFO", "Finalizo la lectura inicial del archivo de configuracion");
 }
 
 void configurator_read() {
 	if(list_all_satisfy(config_field_list, (void*) configurator_list_exists_field)) {
-		messenger_log("El archivo de configuracion leyo correctamente los siguientes campos con sus respectivos valores", "INFO");
+		messenger_show("INFO", "El archivo de configuracion leyo correctamente los siguientes campos con sus respectivos valores");
 
 		list_iterate(config_field_list, (void*) configurator_list_message_field_value);
 	}
@@ -99,14 +91,14 @@ void configurator_read() {
 		t_list* existing_fields = list_filter(config_field_list, (void*) configurator_list_exists_field);
 
 		if(list_size(existing_fields) != 0) {
-			messenger_log("El archivo de configuracion leyo correctamente los siguientes campos con sus respectivos valores", "INFO");
+			messenger_show("INFO", "El archivo de configuracion leyo correctamente los siguientes campos con sus respectivos valores");
 
 			list_iterate(existing_fields, (void*) configurator_list_message_field_value);
 		}
 
 		list_destroy(existing_fields);
 
-		messenger_log("El archivo de configuracion no pudo encontrar los valores de los siguientes campos", "WARNING");
+		messenger_show("WARNING", "El archivo de configuracion no pudo encontrar los valores de los siguientes campos");
 
 		t_list* non_existing_fields = list_filter(config_field_list, (void*) configurator_list_not_exists_field);
 
@@ -117,7 +109,7 @@ void configurator_read() {
 }
 
 void configurator_destroy() {
-	messenger_log("Cerrado archivo de configuracion", "INFO");
+	messenger_show("INFO", "Cerrado archivo de configuracion");
 
 	list_destroy_and_destroy_elements(config_field_list, free);
 

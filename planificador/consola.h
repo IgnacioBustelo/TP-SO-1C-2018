@@ -15,6 +15,8 @@ extern char* last_unlocked_key_by_console;
 extern t_list* g_new_killed_esis;
 extern t_list* g_esis_sexpecting_keys;
 extern t_list* g_new_blocked_by_console_esis;
+extern t_list* g_locked_keys;
+extern t_list* g_esi_bursts;
 
 /**
  * Recibe una linea de comando y lo ejecuta.
@@ -24,12 +26,19 @@ extern t_list* g_new_blocked_by_console_esis;
  *   - (-2) Cantidad incorrecta de argumentos.
  */
 int execute_console_command(char *command_line);
-void *init_console();
 
-#endif /* PLANIFICADOR_CONSOLA_H_ */
+void *init_console();
 
 /*
  * Muestra los procesos bloqueados por una determinada clave
  */
 
 void show_blocked_process(char* resource);
+
+/*
+ * Se encarga de detectar todos los deadlocks que hay en el momento y los muestra
+ */
+
+void detect_and_show_all_deadlocks();
+
+#endif /* PLANIFICADOR_CONSOLA_H_ */

@@ -46,7 +46,7 @@ void print_entry(char* key, entry_t* entry) {
 	free(entrada_text);
 }
 
-void print_ordered_stored_values() {
+void print_ordered_stored_values(t_dictionary* storage) {
 	typedef struct {
 		int entry;
 		char* value;

@@ -126,6 +126,7 @@ static void key_status(char **args)
 static void check_deadlock(char **_)
 {
 	printf("Detectar deadlock\n");
+	detect_and_show_all_deadlocks();
 }
 
 void show_blocked_process(char* resource) {
@@ -141,4 +142,139 @@ void show_blocked_process(char* resource) {
 
 	list_iterate(g_esis_sexpecting_keys, show_esi_from_resource);
 }
+
+void detect_and_show_all_deadlocks() {
+
+	typedef struct esi_in_deadlock {
+
+		int esi_id;
+		int esi_state;
+	}esi_in_deadlock;
+
+	esi_in_deadlock* create_esi_in_deadlock(int esi_id_) {
+
+		esi_in_deadlock* esi = malloc(sizeof(esi_in_deadlock));
+		esi->esi_id = esi_id_;
+		esi->esi_state = -1;
+		return esi;
+	}
+
+	t_list* all_esis_in_system = list_create();
+	t_list* current_esi_cycle = list_create();
+
+	int deadlock_number = 0;
+
+	void add_all_esi_numbers(void* esi_inf) {
+
+		int esi_id = ((esi_information*)esi_inf)->esi_id;
+        esi_in_deadlock* esi = create_esi_in_deadlock(esi_id);
+
+		list_add(all_esis_in_system, (void*)esi);
+	}
+
+	list_iterate(g_esi_bursts, add_all_esi_numbers);
+
+	void put_a_zero_to_esis_that_are_not_holding_keys(void* esi) {
+
+		bool esi_holding_a_key(int esi_id_) {
+
+			bool holding_a_key(void* key_blocker_) {
+
+			int esi_found_number = ((key_blocker*)key_blocker_)->esi_id;
+			return esi_found_number == esi_id_;
+			}
+
+			return list_any_satisfy(g_locked_keys, holding_a_key);
+		}
+
+		if(!esi_holding_a_key(((esi_in_deadlock*)esi)->esi_id)){
+
+			((esi_in_deadlock*)esi)->esi_state = 0;
+		}
+	}
+
+	list_iterate(all_esis_in_system, put_a_zero_to_esis_that_are_not_holding_keys);
+
+	/* STEP TWO */
+
+	bool esi_not_analized(void* esi) {
+
+		return ((esi_in_deadlock*)esi)->esi_state == -1;
+	}
+
+	while(list_any_satisfy(all_esis_in_system, esi_not_analized)) {
+
+		esi_in_deadlock* esi = list_find(all_esis_in_system, esi_not_analized);
+
+		bool esi_is_asking_for_a_key(int esi_id_) {
+
+			bool condition(void* esi_sexpecting) {
+
+				return ((esi_sexpecting_key*)esi_sexpecting)->esi_fd == esi_id_;
+			}
+
+			return list_any_satisfy(g_esis_sexpecting_keys, condition);
+		}
+
+		if(!esi_is_asking_for_a_key(esi->esi_id)) {
+
+			esi->esi_state = 0;
+		} else {
+
+			list_add(current_esi_cycle, (void*)&(esi->esi_id));
+
+			bool find_request(void* esi_sexpecting) {
+
+				return ((esi_sexpecting_key*)esi_sexpecting)->esi_fd == esi->esi_id;
+			}
+
+			esi_sexpecting_key* esi_sexpecting = list_find(g_esis_sexpecting_keys, find_request);
+			char* requested_key = esi_sexpecting->key;
+
+			int step_three(char* requested_key_) {
+
+				bool esi_owner(void* key_locked) {
+
+					return strcmp(((key_blocker*) key_locked)->key, requested_key_) == 0;
+				}
+
+				key_blocker* key_locked = list_find(g_locked_keys, esi_owner);
+				return key_locked->esi_id;
+			}
+
+			/* STEP THREE */
+
+			int esi_id = step_three(requested_key);
+
+			/* ---------------------*/
+
+			void step_four(int esi_id) {
+
+				bool find_request(void* esi_sexpecting) {
+
+					return ((esi_sexpecting_key*) esi_sexpecting)->esi_fd == esi_id;
+				}
+
+				esi_sexpecting_key* esi_sexpecting = list_find(g_locked_keys, find_request);
+
+				if(esi_sexpecting == NULL) {
+
+					/* TODO */
+				} else {
+
+					list_add(current_esi_cycle, (void*)&esi_id);
+					requested_key = esi_sexpecting->key;
+				}
+			}
+
+			step_four(esi_id);
+
+			/* STEP FIVE */
+			step_three(requested_key);
+
+			/* ---------------*/
+		}
+	}
+}
+
 

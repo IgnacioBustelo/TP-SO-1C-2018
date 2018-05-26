@@ -16,7 +16,6 @@ void coordinator_api_connect(char* host, int port) {
 
 void coordinator_api_handshake(char* instance_name, storage_setup_t* setup){
 	chunk_t* chunk;
-	void* serialized_chunk;
 	bool is_confirmed;
 
 	messenger_show("INFO", "Enviada la solicitud de handshake con el Coordinador");
@@ -39,9 +38,7 @@ void coordinator_api_handshake(char* instance_name, storage_setup_t* setup){
 
 		chunk_add_variable(chunk, instance_name, string_length(instance_name) + 1);
 
-		serialized_chunk = chunk_build(chunk);
-
-		chunk_send(fd_coordinador, serialized_chunk, chunk->current_size);
+		chunk_send_and_destroy(fd_coordinador, chunk);
 
 		chunk_recv(fd_coordinador, &setup->entry_size, sizeof(size_t));
 
@@ -49,9 +46,6 @@ void coordinator_api_handshake(char* instance_name, storage_setup_t* setup){
 
 		messenger_show("INFO", "Se asigno una dimension de %d entradas de tamano %d para el Storage", setup->total_entries, setup->entry_size);
 
-		chunk_destroy(chunk);
-
-		free(serialized_chunk);
 	}
 
 	else {
@@ -86,17 +80,16 @@ key_value_t* coordinator_api_receive_set() {
 	return key_value;
 }
 
-void coordinator_api_notify_status(int status) {
-	chunk_t* chunk = chunk_create();
+void coordinator_api_notify_set(int status, size_t entries_used) {
 	request_instancia header = PROTOCOL_IC_NOTIFY_STATUS;
+
+	messenger_show("INFO", "Notificar al Coordinador el status %d y la cantidad de entradas usadas, que es %d", status, entries_used);
+
+	chunk_t* chunk = chunk_create();
 
 	chunk_add(chunk, &header, sizeof(header));
 	chunk_add(chunk, &status, sizeof(status));
+	chunk_add(chunk, &entries_used, sizeof(entries_used));
 
-	void* status_message = chunk_build(chunk);
-
-	chunk_send(fd_coordinador, &status_message, chunk->current_size);
-
-	free(status_message);
-	chunk_destroy(chunk);
+	chunk_send_and_destroy(fd_coordinador, chunk);
 }
