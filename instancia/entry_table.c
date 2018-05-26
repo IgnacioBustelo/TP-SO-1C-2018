@@ -13,12 +13,20 @@ bool entry_table_insert(int next_entry, key_value_t* key_value)
 {
 	entry_t * new_entry=convert_key_value_t_to_entry_t(key_value);
 	new_entry->number=next_entry;
-	if(list_add(entry_table,(void *)new_entry))
+	if(next_entry>=0 &&list_add(entry_table,(void *)new_entry))
 	{
 		entries_left-=entry_table_entries_needed(key_value);
+		list_sort(entry_table,ascending);
 		return true;
 	}
+
 return false;
+}
+
+bool ascending(void * a, void *b){
+	entry_t * e1 = (entry_t*)a;
+	entry_t * e2 = (entry_t*)b;
+	return e1->number>e2->number?false:true;
 }
 
 int entry_table_next_entry(key_value_t* key_value){
@@ -42,9 +50,10 @@ int entry_table_next_entry(key_value_t* key_value){
     		else
     		{
     			e1 = (entry_t*) list_get(entry_table,0);
-    			if (e1->number!=0)
+
+    			if (e1->number>0)
 				{
-					if ((e1->number-1)>=entries_needed)
+					if ((e1->number)>=entries_needed)
 					{
 						return 0;
 					}
@@ -63,7 +72,7 @@ int entry_table_next_entry(key_value_t* key_value){
 					}
 				}
 				e2 = (entry_t *) list_get(entry_table,list_size(entry_table)-1);
-				if(get_total_entries()- e2->number)
+				if(get_total_entries()- e2->number>=entries_needed)
 				{
 					return (e2->size/get_entry_size()+ 1) + e2->number;
 				}
@@ -111,6 +120,7 @@ bool entry_table_delete(key_value_t * key_value)
 		if (!strcmp(key_value->key,entry->key))
 		{
 			list_remove(entry_table,i);
+			entries_left=+(entry->size/get_entry_size())+1;
 			return true;
 		}
 	}

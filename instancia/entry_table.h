@@ -52,4 +52,6 @@ bool entry_table_delete(key_value_t * key_value);
 
 void entry_table_print_table();
 
+bool ascending(void * a, void *b);
+
 #endif

@@ -89,13 +89,13 @@ int main()
 		entry_table_insert(next_entry,key_value);
 
 		printf("\n");
-		entry_table_print_table();
+		entry_table_print_table(); //X,Y,Z
 
 		key_value=key_value_generator("Y",30);
 		entry_table_delete(key_value);
 
 		printf("\n");
-		entry_table_print_table();
+		entry_table_print_table(); //X,Y
 
 		key_value=key_value_generator("Y",30);
 		next_entry = entry_table_next_entry(key_value);
@@ -103,5 +103,21 @@ int main()
 
 		printf("\n");
 		entry_table_print_table();
+
+		key_value=key_value_generator("X",30);
+		entry_table_delete(key_value);
+//
+		printf("\n");
+		entry_table_print_table();
+
+
+		key_value=key_value_generator("X",15);
+		next_entry = entry_table_next_entry(key_value);
+		entry_table_insert(next_entry,key_value);
+
+				printf("\n");
+				entry_table_print_table();
+
+//				printf("El number del primer elemento es: %d",((entry_t *)list_get(entry_table,0))->number);
 }
 
