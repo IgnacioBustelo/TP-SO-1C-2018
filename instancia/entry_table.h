@@ -36,8 +36,6 @@ size_t entries_left;
 
 void	entry_table_init();
 
-void	entry_table_delete(char* key); // Lo hace Nico
-
 void	entry_table_destroy();
 
 bool    entry_table_insert(int next_entry, key_value_t* key_value);
@@ -50,6 +48,6 @@ int     entry_table_entries_needed(key_value_t * key_value);
 
 entry_t * convert_key_value_t_to_entry_t(key_value_t * key_value);
 
-
+bool entry_table_delete(key_value_t * key_value);
 
 #endif
