@@ -115,8 +115,18 @@ int main()
 		next_entry = entry_table_next_entry(key_value);
 		entry_table_insert(next_entry,key_value);
 
-				printf("\n");
-				entry_table_print_table();
+		printf("\n");
+		entry_table_print_table();
+
+//		key_value=key_value_generator("M",15);
+//		next_entry = entry_table_next_entry(key_value);
+//		entry_table_insert(next_entry,key_value);
+
+		printf("\n");
+		entry_table_print_table();
+
+		printf("\n\n");
+		printf("La cantidad de entradas libres son: %d",entries_left);
 
 //				printf("El number del primer elemento es: %d",((entry_t *)list_get(entry_table,0))->number);
 }

@@ -13,8 +13,9 @@ bool entry_table_insert(int next_entry, key_value_t* key_value)
 {
 	entry_t * new_entry=convert_key_value_t_to_entry_t(key_value);
 	new_entry->number=next_entry;
-	if(next_entry>=0 &&list_add(entry_table,(void *)new_entry))
+	if(next_entry>=0)
 	{
+		list_add(entry_table,(void *)new_entry);
 		entries_left-=entry_table_entries_needed(key_value);
 		list_sort(entry_table,ascending);
 		return true;
@@ -35,8 +36,6 @@ int entry_table_next_entry(key_value_t* key_value){
 	int entries_used=list_size(entry_table);
 
 	int entries_needed = entry_table_entries_needed(key_value);
-
-
 
 	entry_t* e1;
 	entry_t* e2;
@@ -93,16 +92,6 @@ bool entry_table_have_entries(key_value_t* key_value)
 int entry_table_entries_needed(key_value_t * key_value)
 {
 	return key_value->size/get_entry_size()+1;
-//	int total = 0;
-//	int size = key_value->size;
-//
-//	while (size > 0)
-//			{
-//				total++;
-//				size -= get_entry_size();
-//			}
-//
-//	return total;
 }
 
 entry_t * convert_key_value_t_to_entry_t(key_value_t * key_value){

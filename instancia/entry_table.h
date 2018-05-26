@@ -26,7 +26,7 @@ typedef struct{
 
 t_list * entry_table;
 
-size_t entries_left;
+int entries_left;
 
 // Interfaz
 

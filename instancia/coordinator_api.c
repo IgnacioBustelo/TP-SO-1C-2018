@@ -74,6 +74,8 @@ key_value_t* coordinator_api_receive_set() {
 
 	key_value_t* key_value = key_value_create(key, value);
 
+	messenger_show("INFO", "Se recibio la clave %s con valor %s de tamano %d", key_value->key, key_value->value, key_value->size);
+
 	free(key);
 	free(value);
 
