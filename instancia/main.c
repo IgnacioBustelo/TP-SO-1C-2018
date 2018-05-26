@@ -46,5 +46,6 @@ int main(int argc, char* argv[]) {
 		}
 
 		coordinator_api_notify_set(status, ENTRIES_USED);
+
 	}
 }

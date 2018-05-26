@@ -18,6 +18,7 @@ enum{
 typedef struct{
 	size_t	number;
 	size_t	size;
+	char * key;
 } entry_t;
 
 // Atributos
@@ -29,20 +30,26 @@ size_t entries_left;
 
 // Interfaz
 
-void	entry_table_init(); // Lo hace Santi
 
-int		entry_table_next_entry(key_value_t* key_value);
 
-bool	entry_table_have_entries(key_value_t* key_value); // Lo hace Nico
 
-void	entry_table_insert(int next_entry, key_value_t* key_value); // Lo hace Santi
 
-void	entry_table_update(int next_entry, key_value_t* key_value); // Lo hace Nico
+void	entry_table_init();
 
 void	entry_table_delete(char* key); // Lo hace Nico
 
 void	entry_table_destroy();
 
+bool    entry_table_insert(int next_entry, key_value_t* key_value);
+
+int		entry_table_next_entry(key_value_t* key_value);
+
+bool 	entry_table_have_entries(key_value_t* key_value);
+
 int     entry_table_entries_needed(key_value_t * key_value);
+
+entry_t * convert_key_value_t_to_entry_t(key_value_t * key_value);
+
+
 
 #endif

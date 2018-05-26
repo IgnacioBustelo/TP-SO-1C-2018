@@ -29,3 +29,11 @@ void storage_setup_init(size_t total_entries, size_t entry_size) {
 void storage_setup_destroy() {
 	free(storage_setup);
 }
+
+int get_total_entries(){
+	return storage_setup->total_entries;
+}
+
+int get_entry_size(){
+	return storage_setup->entry_size;
+}

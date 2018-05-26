@@ -7,7 +7,7 @@ void instance_set(key_value_t* key_value) {
 
 	storage_set(next_entry, key_value->value, key_value->size);
 
-	entry_table_update(next_entry, key_value);
+	entry_table_insert(next_entry, key_value);
 }
 
 int instance_entries_used() {
