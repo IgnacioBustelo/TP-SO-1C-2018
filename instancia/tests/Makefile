@@ -1,6 +1,6 @@
 CC = gcc -Wall
 
-TARGET = cfg strg handshake
+TARGET = cfg strg handshake entry_table_test
 LIBS = -lcommons -lpthread
 
 DEPS = ../../libs/messenger.h ../../libs/mocks/printfer.h
@@ -15,6 +15,8 @@ cfg: DEPS += ../cfg_instancia.h ../../libs/configurator.h
 strg: DEPS += ../storage.h
 
 handshake: DEPS += ../coordinator_api.h ../globals.h ../../libs/chunker.h ../../libs/conector.h ../../libs/mocks/client_server.h ../../protocolo/protocolo_coordinador_instancia.h
+
+entry_table_test: DEPS += ./utils.h ../entry_table.h ../globals.h
 
 %: %.c $(DEPS) $(SRC)
 	$(CC) $< $(SRC) -o $@ $(LIBS)

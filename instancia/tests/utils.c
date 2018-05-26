@@ -25,11 +25,10 @@ key_value_t* key_value_generator(char key[40], size_t size) {
 }
 
 size_t entry_table_required_entries(size_t size) {
-	int required_entries = size/storage_setup.entry_size;
+	int required_entries = size/get_entry_size();
 
-	return size % storage_setup.entry_size == 0 ? required_entries : ++required_entries;
+	return size % get_entry_size() == 0 ? required_entries : ++required_entries;
 }
-
 void key_value_print(key_value_t* key_value) {
 	printf("Clave: %s\t Tamanio: %d\t Valor: %s\n", key_value->key, key_value->size, key_value->value);
 }
