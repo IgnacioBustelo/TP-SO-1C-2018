@@ -159,9 +159,21 @@ void detect_and_show_all_deadlocks(t_list* locked_keys, t_list* esi_requests, t_
 		return esi;
 	}
 
+	int* create_esi(int esi_id) {
+
+		int* esi = malloc(sizeof(int));
+		*esi = esi_id;
+		return esi;
+	}
+
 	void destroy_esi_in_deadlock(void* esi) {
 
 		free((esi_in_deadlock*)esi);
+	}
+
+	void int_destroyer(void* esi) {
+
+		free((int*)esi);
 	}
 
 	t_list* all_esis_in_system = list_create();
@@ -224,7 +236,7 @@ void detect_and_show_all_deadlocks(t_list* locked_keys, t_list* esi_requests, t_
 			esi->esi_state = 0;
 		} else {
 
-			list_add(current_esi_cycle, (void*)&(esi->esi_id));
+			list_add(current_esi_cycle, (void*)create_esi(esi->esi_id));
 
 			bool find_request(void* esi_sexpecting) {
 
@@ -274,13 +286,13 @@ void detect_and_show_all_deadlocks(t_list* locked_keys, t_list* esi_requests, t_
 				return strcmp(esi_sexpecting->key, esi_blocker->key) == 0;
 			}
 
-			list_add(current_esi_cycle, (void*) &esi_id);
+			list_add(current_esi_cycle, (void*)create_esi(esi_id));
 
 			while(esi_asks_for_a_key(esi_id) && !esi_requests_matches_first_esi_in_cycle_assigned_key(esi_id)) {
 
 				esi_sexpecting = obtain_esi_request(esi_id);
 				esi_id = obtain_key_owner(esi_sexpecting->key);
-				list_add(current_esi_cycle, (void*)&esi_id);
+				list_add(current_esi_cycle, (void*)create_esi(esi_id));
 			}
 
 			if(!esi_asks_for_a_key(esi_id)) {
@@ -298,7 +310,7 @@ void detect_and_show_all_deadlocks(t_list* locked_keys, t_list* esi_requests, t_
 
 				list_iterate(current_esi_cycle, apply_a_zero);
 
-				list_clean(current_esi_cycle);
+				list_clean_and_destroy_elements(current_esi_cycle, int_destroyer);
 
 			} else {
 
@@ -317,27 +329,40 @@ void detect_and_show_all_deadlocks(t_list* locked_keys, t_list* esi_requests, t_
 
 				list_iterate(current_esi_cycle, apply_deadlock_id);
 
-				list_clean(current_esi_cycle);
+				list_clean_and_destroy_elements(current_esi_cycle, int_destroyer);
 			}
 	}
 }
+	if(deadlock_number == 0) {
+
+		printf("No hay deadlocks en el sistema\n");
+	}
+
 	int i;
 	for(i = 1; i <= deadlock_number; i++) {
 
-		printf("Deadlock %i\n", i);
+		printf("Deadlock %i:\n", i);
 
 		void is_in_deadlock_i(void* esi_in_deadlock_) {
 
 			if(((esi_in_deadlock*)esi_in_deadlock_)->esi_state == i) {
 
-				int esi_number = obtain_esi_information_by_id(((esi_in_deadlock*)esi_in_deadlock_)->esi_id)->esi_numeric_name;
+				esi_information* obtain_esi_information_by_id_(int esi_fd){
+
+					bool equal_condition(void* esi_inf) {
+
+						return ((esi_information*)esi_inf)->esi_id == esi_fd;
+					}
+
+					return list_find(esis_in_system, equal_condition);
+				 }
+
+				int esi_number = obtain_esi_information_by_id_(((esi_in_deadlock*)esi_in_deadlock_)->esi_id)->esi_numeric_name;
 				printf("ESI %i\n", esi_number);
 			}
 		}
 
 		list_iterate(all_esis_in_system, is_in_deadlock_i);
-
-		printf("\n");
 	}
 
 	list_clean_and_destroy_elements(all_esis_in_system, destroy_esi_in_deadlock);
