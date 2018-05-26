@@ -50,4 +50,6 @@ entry_t * convert_key_value_t_to_entry_t(key_value_t * key_value);
 
 bool entry_table_delete(key_value_t * key_value);
 
+void entry_table_print_table();
+
 #endif

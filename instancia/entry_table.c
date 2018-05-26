@@ -15,7 +15,7 @@ bool entry_table_insert(int next_entry, key_value_t* key_value)
 	new_entry->number=next_entry;
 	if(list_add(entry_table,(void *)new_entry))
 	{
-		entries_left--;
+		entries_left-=entry_table_entries_needed(key_value);
 		return true;
 	}
 return false;
@@ -54,19 +54,17 @@ int entry_table_next_entry(key_value_t* key_value){
 
 					e1 = (entry_t*) list_get(entry_table,i);
 					e2 = (entry_t*) list_get(entry_table,i+1);
-					printf("Estoy avaaaaaaaaaa");
+
 					in_beetwen_entry_space = (e2->number)-(e1->number+(e1->size/get_entry_size()+1));
-					printf("Espacio entre medio %d",in_beetwen_entry_space);
+
 					if (in_beetwen_entry_space>=entries_needed)
 					{
-						return i;
+						return i+(e1->size/get_entry_size()+1);
 					}
 				}
 				e2 = (entry_t *) list_get(entry_table,list_size(entry_table)-1);
 				if(get_total_entries()- e2->number)
 				{
-
-
 					return (e2->size/get_entry_size()+ 1) + e2->number;
 				}
     		}
@@ -85,17 +83,17 @@ bool entry_table_have_entries(key_value_t* key_value)
 
 int entry_table_entries_needed(key_value_t * key_value)
 {
-
-	int total = 0;
-	int size = key_value->size;
-
-	while (size > 0)
-			{
-				total++;
-				size -= get_entry_size();
-			}
-
-	return total;
+	return key_value->size/get_entry_size()+1;
+//	int total = 0;
+//	int size = key_value->size;
+//
+//	while (size > 0)
+//			{
+//				total++;
+//				size -= get_entry_size();
+//			}
+//
+//	return total;
 }
 
 entry_t * convert_key_value_t_to_entry_t(key_value_t * key_value){
@@ -107,14 +105,22 @@ entry_t * convert_key_value_t_to_entry_t(key_value_t * key_value){
 
 bool entry_table_delete(key_value_t * key_value)
 {
-	for (int i=0; i<=list_size(entry_table);i++)
+	for (int i=0; i<list_size(entry_table);i++)
 	{
 		entry_t * entry = (entry_t*) list_get(entry_table,i);
-		if (strcmp(key_value->key,entry->key))
+		if (!strcmp(key_value->key,entry->key))
 		{
 			list_remove(entry_table,i);
 			return true;
 		}
 	}
 	return false;
+}
+
+void entry_table_print_table(){
+	for (int i=0; i<list_size(entry_table);i++)
+		{
+		entry_t * entry=(entry_t *) list_get(entry_table,i);
+		printf("Registro %d, KEY: %s, TAMANIO: %d y tiene INDICE STORAGE: %d \n",i,entry->key,entry->size,entry->number);
+		}
 }
