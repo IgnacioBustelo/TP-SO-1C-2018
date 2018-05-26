@@ -4,12 +4,13 @@
 #include "coordinator_api.h"
 #include "globals.h"
 
-#define PROCESS	"Instancia"
-#define LOGGER	"instancia.log"
-#define CFG		"instancia.cfg"
-#define IP		cfg_instancia_get_coordinador_ip()
-#define HOST	cfg_instancia_get_coordinador_port()
-#define NAME	cfg_instancia_get_instance_name()
+#define PROCESS			"Instancia"
+#define LOGGER			"instancia.log"
+#define CFG				"instancia.cfg"
+#define IP				cfg_instancia_get_coordinador_ip()
+#define HOST			cfg_instancia_get_coordinador_port()
+#define NAME			cfg_instancia_get_instance_name()
+#define ENTRIES_USED	instance_entries_used()
 
 int main(int argc, char* argv[]) {
 	logger_init(LOGGER, PROCESS, (argc == 1) ? "INFO" : argv[1]);
@@ -22,7 +23,7 @@ int main(int argc, char* argv[]) {
 
 	for(;;) {
 
-		int status;
+		int status, entries_used;
 
 		switch(coordinator_api_receive_header()) {
 			case PROTOCOL_CI_SET: {
@@ -44,6 +45,6 @@ int main(int argc, char* argv[]) {
 			}
 		}
 
-		coordinator_api_notify_status(status);
+		coordinator_api_notify_set(status, ENTRIES_USED);
 	}
 }

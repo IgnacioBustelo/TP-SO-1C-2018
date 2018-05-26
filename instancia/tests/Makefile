@@ -16,6 +16,8 @@ strg: DEPS += ../storage.h
 
 handshake: DEPS += ../coordinator_api.h ../globals.h ../../libs/chunker.h ../../libs/conector.h ../../libs/mocks/client_server.h ../../protocolo/protocolo_coordinador_instancia.h
 
+notify_set: DEPS += ../coordinator_api.h ../globals.h ../../libs/chunker.h ../../libs/conector.h ../../libs/mocks/client_server.h ../../protocolo/protocolo_coordinador_instancia.h
+
 %: %.c $(DEPS) $(SRC)
 	$(CC) $< $(SRC) -o $@ $(LIBS)
 

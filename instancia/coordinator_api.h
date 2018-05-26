@@ -25,6 +25,6 @@ request_coordinador	coordinator_api_receive_header();
 
 key_value_t*		coordinator_api_receive_set(); // Hablado con Fer
 
-void				coordinator_api_notify_status(int status); // Lo hace Santi
+void				coordinator_api_notify_set(int status, size_t entries_used); // Lo hace Santi
 
 #endif
