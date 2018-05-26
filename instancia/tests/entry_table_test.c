@@ -51,6 +51,7 @@ int main()
 	 entry = (entry_t *)list_get(entry_table,1);
 	 printf("Registro 1, KEY: %s, TAMANIO: %d y tiene INDICE STORAGE: %d \n",entry->key,entry->size,entry->number);
 
-//	int next_entry=entry_table_next_entry(key_value);
-//	printf("La proxima entrada libre es:%d",next_entry);
+
+
+
 }
