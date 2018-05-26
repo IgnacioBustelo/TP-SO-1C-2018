@@ -54,9 +54,9 @@ int entry_table_next_entry(key_value_t* key_value){
 
 					e1 = (entry_t*) list_get(entry_table,i);
 					e2 = (entry_t*) list_get(entry_table,i+1);
-
-					in_beetwen_entry_space = e2->number-e1->number;
-
+					printf("Estoy avaaaaaaaaaa");
+					in_beetwen_entry_space = (e2->number)-(e1->number+(e1->size/get_entry_size()+1));
+					printf("Espacio entre medio %d",in_beetwen_entry_space);
 					if (in_beetwen_entry_space>=entries_needed)
 					{
 						return i;
@@ -65,7 +65,9 @@ int entry_table_next_entry(key_value_t* key_value){
 				e2 = (entry_t *) list_get(entry_table,list_size(entry_table)-1);
 				if(get_total_entries()- e2->number)
 				{
-					return e2->size/get_entry_size()+ 1;
+
+
+					return (e2->size/get_entry_size()+ 1) + e2->number;
 				}
     		}
     	}
@@ -101,4 +103,18 @@ entry_t * convert_key_value_t_to_entry_t(key_value_t * key_value){
 	entry->size = key_value->size;
 	entry->key = strdup(key_value->key);
 	return entry;
+}
+
+bool entry_table_delete(key_value_t * key_value)
+{
+	for (int i=0; i<=list_size(entry_table);i++)
+	{
+		entry_t * entry = (entry_t*) list_get(entry_table,i);
+		if (strcmp(key_value->key,entry->key))
+		{
+			list_remove(entry_table,i);
+			return true;
+		}
+	}
+	return false;
 }

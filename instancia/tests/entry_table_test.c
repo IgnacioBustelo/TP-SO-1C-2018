@@ -8,7 +8,7 @@
 int main()
 {
 	printf("Se levanta proceso \n\n");
-	storage_setup_init(5,20);
+	storage_setup_init(5,19);
 	entry_table_init();
 	printf("Cantidad de entradas: %d \n",get_total_entries());
 	printf("Tamanio de entradas: %d \n",get_entry_size());
@@ -51,7 +51,18 @@ int main()
 	 entry = (entry_t *)list_get(entry_table,1);
 	 printf("Registro 1, KEY: %s, TAMANIO: %d y tiene INDICE STORAGE: %d \n",entry->key,entry->size,entry->number);
 
+	 key_value=key_value_generator("Z",10);
+	 	 next_entry = entry_table_next_entry(key_value);
+	 	 entry_table_insert(next_entry,key_value);
 
+	 	printf("\n\n\n");
 
+	 		 printf("El table entry tiene %d registros \n\n",list_size(entry_table));
+
+	 		 entry = (entry_t *)list_get(entry_table,2);
+	 		 printf("Registro 2, KEY: %s, TAMANIO: %d y tiene INDICE STORAGE: %d \n",entry->key,entry->size,entry->number);
+
+	 key_value=key_value_generator("y",25);
+	 entry_table_delete()
 
 }
