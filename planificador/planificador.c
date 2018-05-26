@@ -80,11 +80,15 @@ fd_set connected_fds;
 int max_fd;
 int g_coordinator_fd;
 
+sem_t mutex_coordinador;
+
 int main(void) {
 
 	logger = init_log();
 
 	setup = init_config(logger);
+
+	sem_init(&mutex_coordinador, 0, 1);
 
 	char* host = setup.coordinator_ip;
 	int port_coordinator = setup.coordinator_port;
@@ -214,6 +218,8 @@ int main(void) {
 
 				case PROTOCOL_CP_IS_THIS_KEY_BLOCKED:
 
+					sem_wait(&mutex_coordinador);
+
 					last_key_inquired = receive_inquired_key(fd);
 
 					log_info(logger, "El coordinador preguntó si la clave %s está bloqueada", last_key_inquired);
@@ -239,6 +245,8 @@ int main(void) {
 
 						send_protocol_answer(fd, PROTOCOL_PC_KEY_BLOCKED_BY_EXECUTING_ESI);
 						log_info(logger, "La clave %s que fue solicitada fue bloqueada por el ESI en ejecución");
+
+						sem_post(&mutex_coordinador);
 					}
 					else {
 
@@ -252,14 +260,20 @@ int main(void) {
 					add_new_key_blocker(last_key_inquired);
 					send_protocol_answer(fd, PROTOCOL_PC_KEY_BLOCKED_SUCCESFULLY);
 					log_info(logger,"Clave %s bloqueada", last_key_inquired);
+
+					sem_post(&mutex_coordinador);
 					break;
 
 				case PROTOCOL_CP_UNLOCK_KEY:
+
+					sem_wait(&mutex_coordinador);
 
 					remove_blocked_key_from_list(last_key_inquired);
 					update_blocked_esis(&update_blocked_esi_queue_flag);
 					send_protocol_answer(fd, PROTOCOL_PC_KEY_UNLOCKED_SUCCESFULLY);
 					log_info(logger,"Clave %s desbloqueada", last_key_inquired);
+
+					sem_post(&mutex_coordinador);
 					break;
 				}
 

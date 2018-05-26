@@ -9,8 +9,11 @@
 #include <commons/string.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <semaphore.h>
 
 #define MAXCONN 20
+
+sem_t mutex_coordinador;
 
 /*
  * Nodo de ESI que ha bloqueado alguna clave

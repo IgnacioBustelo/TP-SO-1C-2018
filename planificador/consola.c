@@ -12,6 +12,19 @@ static void check_deadlock(char **_);
 #define COMMANDS_SIZE (sizeof(commands) / sizeof(*commands))
 #define eprintf(args...) fprintf (stderr, args)
 
+extern int scheduler_paused_flag;
+extern int block_esi_by_console_flag;
+extern int unlock_esi_by_console_flag;
+extern int killed_esi_flag;
+extern char* last_unlocked_key_by_console;
+extern t_list* g_new_killed_esis;
+extern t_list* g_esis_sexpecting_keys;
+extern t_list* g_new_blocked_by_console_esis;
+extern t_list* g_locked_keys;
+extern t_list* g_esi_bursts;
+extern sem_t mutex_coordinador;
+extern int g_coordinator_fd;
+
 static struct command_t commands[] = {
 	DEF_COMMAND("pausar",      0, pause_scheduler),
 	DEF_COMMAND("continuar",   0, resume_scheduler),
@@ -114,9 +127,13 @@ static void key_status(char **args)
 	void _key_status(char *key) {
 		printf("Informar estado de la clave %s\n", key);
 
-		/* Probablemente se necesite un mutex para sincronizar la comunicación con el coordinador y que no explote TODO horrendamente */
+		sem_wait(&mutex_coordinador);
 
-		/* Hay que comunicarse con el coordinador para obtener los datos de la clave respecto de las instancias */
+		send_key_to_coordinator(key);
+
+		receive_and_print_key_status();
+
+		sem_post(&mutex_coordinador);
 
 		show_blocked_process(key);
 	}
@@ -368,4 +385,60 @@ void detect_and_show_all_deadlocks(t_list* locked_keys, t_list* esi_requests, t_
 	list_clean_and_destroy_elements(all_esis_in_system, destroy_esi_in_deadlock);
 }
 
+void send_key_to_coordinator(char* key) {
+
+	int operation = PROTOCOL_PC_KEY_STATUS;
+	size_t package_size = sizeof(operation) + sizeof(size_t) + strlen(key) + 1;
+	package_t* package = create_package(package_size);
+	add_content(package, &operation, sizeof(operation));
+	add_content_variable(package, key, strlen(key) + 1);
+	void* package_ = build_package(package);
+	send_serialized_package(g_coordinator_fd, package, package_size);
+}
+
+void receive_and_print_key_status() {
+
+	int operation_code;
+	int key_state;
+
+	recv_package(g_coordinator_fd, &operation_code, sizeof(int));
+
+	if(operation_code != PROTOCOL_CP_KEY_STATUS) {
+
+		printf("Algo salió mal en la comunicación con el coordinador\n"); // TODO Ver si hay que hacer algo en esta situación
+	} else {
+
+	recv_package(g_coordinator_fd, &key_state, sizeof(int));
+
+	switch(key_state) {
+
+	case -1:
+
+		printf("La clave solicitada no existe, por lo que no tiene valor ni instancia\n");
+		break;
+
+	case 0: {
+
+		printf("La clave existe pero no está asignada actualmente a una instancia\n");
+		char* instance_name;
+		recv_package_variable(g_coordinator_fd, (void**) &instance_name);
+		printf("Instancia en la que se asignaría: %s\n", instance_name);
+		break;
+	}
+
+	case 1: {
+
+		char* instance_name;
+		char* key_value;
+
+		recv_package_variable(g_coordinator_fd, (void**) &instance_name);
+		recv_package_variable(g_coordinator_fd, (void**) &key_value);
+
+		printf("Valor: %s\n", key_value);
+		printf("Instancia actual: %s\n", instance_name);
+		break;
+	}
+	}
+  }
+}
 

@@ -5,18 +5,11 @@
 #include <stdlib.h>
 #include <readline/readline.h>
 #include "../libs/comando.h"
+#include "../libs/serializador.h"
+#include "../libs/deserializador.h"
+#include "../protocolo/protocolo.h"
+#include "../libs/conector.h"
 #include "planificador.h"
-
-extern int scheduler_paused_flag;
-extern int block_esi_by_console_flag;
-extern int unlock_esi_by_console_flag;
-extern int killed_esi_flag;
-extern char* last_unlocked_key_by_console;
-extern t_list* g_new_killed_esis;
-extern t_list* g_esis_sexpecting_keys;
-extern t_list* g_new_blocked_by_console_esis;
-extern t_list* g_locked_keys;
-extern t_list* g_esi_bursts;
 
 /**
  * Recibe una linea de comando y lo ejecuta.
@@ -40,5 +33,17 @@ void show_blocked_process(char* resource);
  */
 
 void detect_and_show_all_deadlocks();
+
+/*
+ * Le envía la clave al coordinador para consultar su estado
+ */
+
+void send_key_to_coordinator(char* key);
+
+/*
+ * Recibe el paquete con la información de la clave solicitada al coordinador y muestra el estado de la misma
+ */
+
+void receive_and_print_key_status();
 
 #endif /* PLANIFICADOR_CONSOLA_H_ */
