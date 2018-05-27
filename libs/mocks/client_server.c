@@ -1,12 +1,24 @@
+#include <commons/string.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>
 
-#include "../messenger.h"
+#include "../mocks/printfer.h"
 #include "../conector.h"
 #include "client_server.h"
+#include "color.h"
 
+pthread_t server_thread, client_thread;
 sem_t server_sem, client_sem;
+
+char* color_get() {
+	pthread_t current_thread_id = pthread_self();
+
+	bool is_server = pthread_equal(current_thread_id, server_thread);
+	bool is_client = pthread_equal(current_thread_id, client_thread);
+
+	return (is_server) ? COLOR_RED : (is_client) ? COLOR_CYAN : COLOR_RESET;
+}
 
 static void set_server(void* args) {
 	sem_wait(&server_sem);
@@ -56,17 +68,13 @@ void client_server_run() {
 	sem_init(&server_sem, 0, 1);
 	sem_init(&client_sem, 0, 0);
 
-	pthread_t server_thread, client_thread;
-
 	pthread_create(&server_thread, NULL, (void*) set_server, NULL);
 	pthread_create(&client_thread, NULL, (void*) set_client, NULL);
 
 	pthread_join(server_thread, NULL);
 	pthread_join(client_thread, NULL);
 
-	messenger_show("INFO", "%sSe termino la conexion con %s", COLOR_RESET, client_name);
-
-	messenger_show("INFO", "%sSe termino la conexion con %s", COLOR_RESET, server_name);
+	messenger_show("INFO", "Se cerraron las conexiones");
 
 	sem_destroy(&server_sem);
 	sem_destroy(&client_sem);

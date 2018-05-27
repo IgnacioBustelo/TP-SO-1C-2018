@@ -1,26 +1,27 @@
 #include <commons/string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
+#include "../messenger.h"
+#include "../mocks/color.h"
 #include "../mocks/printfer.h"
 
-int main(int argc, char* argv[]) {
-	messenger_log("Prueba de PRINTFER para imprimir los argumentos del programa por pantalla", "TEST");
+int parity;
 
-	char *arguments = string_duplicate("Argumentos: ");
+char* color_get() {
+	return parity % 2 == 0 ? (parity == 0) ? "" : COLOR_RED : COLOR_CYAN;
+}
+
+int main(int argc, char* argv[]) {
+	parity = 0;
+
+	messenger_show("INFO", "Prueba de PRINTFER para imprimir los argumentos del programa por pantalla");
 
 	int i;
 	for(i = 1; i < argc; i++) {
-		char* arg = string_duplicate(argv[i]);
-		char* comma = string_duplicate((i != argc - 1) ? ", " : "");
+		parity = i;
 
-		string_append(&arguments, arg);
-		string_append(&arguments, comma);
-
-		free(arg);
-		free(comma);
+		messenger_show("INFO", "Argumento %d: %s", i, argv[i]);
 	}
 
-	messenger_log(arguments, "ARGS");
-
-	free(arguments);
 }

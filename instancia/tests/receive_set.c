@@ -10,14 +10,14 @@
 char *key, *value;
 
 void client_server_execute_server(int fd_client) {
-	messenger_show("INFO", "%sPreparando clave y valor a enviar", COLOR_SERVER, key, value);
+	messenger_show("INFO", "Preparando clave y valor a enviar", key, value);
 
 	chunk_t* key_value = chunk_create();
 
 	chunk_add_variable(key_value, key, string_length(key) + 1);
 	chunk_add_variable(key_value, value, string_length(value) + 1);
 
-	messenger_show("INFO", "Enviando SET %s, %s%s", key, value, COLOR_CLIENT);
+	messenger_show("INFO", "Enviando SET %s, %s", key, value);
 
 	chunk_send_and_destroy(fd_client, key_value);}
 

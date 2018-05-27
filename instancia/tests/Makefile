@@ -11,11 +11,11 @@ SRC = $(DEPS:.h=.c)
 
 all: $(TARGET)
 
-cfg: DEPS += ../cfg_instancia.h ../../libs/configurator.h
+cfg: DEPS += ../cfg_instancia.h ../../libs/configurator.h ../../libs/mocks/default_color.h
 
-strg: DEPS += ../storage.h
+strg: DEPS += ../storage.h ../../libs/mocks/default_color.h
 
-entry_table_test: DEPS += ./utils.h ../entry_table.h ../globals.h
+entry_table_test: DEPS += ./utils.h ../entry_table.h ../globals.h ../../libs/mocks/default_color.h
 
 handshake: DEPS += $(API_DEPS)
 

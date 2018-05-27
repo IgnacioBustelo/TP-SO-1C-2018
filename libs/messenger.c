@@ -1,5 +1,4 @@
 #include <commons/string.h>
-#include <stdarg.h>
 #include <string.h>
 
 #include "messenger.h"

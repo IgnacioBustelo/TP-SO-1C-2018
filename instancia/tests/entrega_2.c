@@ -15,11 +15,11 @@ void client_server_execute_server(int fd_client) {
 
 	receive_handshake(fd_client);
 
-	messenger_show("INFO", "%sSe recibio una solicitud de handshake de una instancia", COLOR_SERVER);
+	messenger_show("INFO", "Se recibio una solicitud de handshake de una instancia");
 
 	messenger_show("INFO", "Se envio confirmacion de handshake");
 
-	messenger_show("INFO", "Esperando recibir el nombre de la instancia%s", COLOR_CLIENT);
+	messenger_show("INFO", "Esperando recibir el nombre de la instancia");
 
 	send_confirmation(fd_client, true);
 
@@ -27,7 +27,7 @@ void client_server_execute_server(int fd_client) {
 
 	chunk_recv_variable(fd_client, (void**) &received_name);
 
-	messenger_show("INFO", "%sSe recibio el nombre de la instancia, que se llama %s", COLOR_SERVER, received_name);
+	messenger_show("INFO", "Se recibio el nombre de la instancia, que se llama %s", received_name);
 
 	storage_setup_t setup = {.total_entries = total_entries, .entry_size = entry_size};
 
@@ -37,7 +37,7 @@ void client_server_execute_server(int fd_client) {
 
 	chunk_add(chunk, &setup.total_entries, sizeof(size_t));
 
-	messenger_show("INFO", "Se va a enviar el tamano del storage de %d entradas de tamano %d a %s%s", setup.total_entries, setup.entry_size, received_name, COLOR_CLIENT);
+	messenger_show("INFO", "Se va a enviar el tamano del storage de %d entradas de tamano %d a %s", setup.total_entries, setup.entry_size, received_name);
 
 	chunk_send_and_destroy(fd_client, chunk);
 
@@ -45,7 +45,7 @@ void client_server_execute_server(int fd_client) {
 
 	sleep(1);
 
-	messenger_show("INFO", "%sPreparando clave y valor a enviar", COLOR_SERVER, key, value);
+	messenger_show("INFO", "Preparando clave y valor a enviar", key, value);
 
 	chunk_t* key_value = chunk_create();
 
@@ -55,7 +55,7 @@ void client_server_execute_server(int fd_client) {
 	chunk_add_variable(key_value, key, string_length(key) + 1);
 	chunk_add_variable(key_value, value, string_length(value) + 1);
 
-	messenger_show("INFO", "SET %s, %s%s", key, value, COLOR_CLIENT);
+	messenger_show("INFO", "SET %s, %s", key, value);
 
 	chunk_send_and_destroy(fd_client, key_value);
 

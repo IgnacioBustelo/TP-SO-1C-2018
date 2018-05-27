@@ -1,14 +1,17 @@
+#include <commons/string.h>
 #include <semaphore.h>
+#include <stdio.h>
 
 #include "../messenger.h"
 #include "../mocks/client_server.h"
+#include "../mocks/color.h"
 
 sem_t execute_server, execute_client;
 
 void client_server_execute_server(int fd_client) {
 	sem_wait(&execute_server);
 
-	messenger_show("INFO", "%sSoy el servidor %s%s", COLOR_SERVER, server_name, COLOR_RESET);
+	messenger_show("INFO", "Soy el servidor %s", server_name);
 
 	sem_post(&execute_client);
 }
@@ -16,7 +19,7 @@ void client_server_execute_server(int fd_client) {
 void client_server_execute_client(int fd_server) {
 	sem_wait(&execute_client);
 
-	messenger_show("INFO", "%sSoy el cliente %s%s", COLOR_CLIENT, client_name, COLOR_RESET);
+	messenger_show("INFO", "Soy el cliente %s", client_name);
 
 	sem_post(&execute_server);
 }

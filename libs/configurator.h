@@ -5,8 +5,6 @@
 #include <commons/config.h>
 #include <stdlib.h>
 
-#include "messenger.h"
-
 t_list* config_field_list;
 
 t_config* config;

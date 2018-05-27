@@ -13,7 +13,7 @@
 #define ENTRIES_USED	instance_entries_used()
 
 int main(int argc, char* argv[]) {
-	logger_init(LOGGER, PROCESS, (argc == 1) ? "INFO" : argv[1]);
+	messenger_init(LOGGER, PROCESS, (argc == 1) ? "INFO" : argv[1]);
 
 	cfg_instancia_init(CFG);
 

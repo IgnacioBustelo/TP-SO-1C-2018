@@ -6,8 +6,4 @@
 
 t_log* logger;
 
-void logger_init(char* logger_route, char* process_name, char* log_level);
-
-void logger_destroy();
-
 #endif
