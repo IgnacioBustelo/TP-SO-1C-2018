@@ -4,6 +4,7 @@
 typedef enum {
 	PROTOCOL_CI_HANDSHAKE_CONFIRMATION,
 	PROTOCOL_CI_SET,
+	PROTOCOL_CI_KILL
 } request_coordinador;
 
 typedef enum {

@@ -9,9 +9,11 @@
 #include "globals.h"
 
 void coordinator_api_connect(char* host, int port) {
-	// TODO: Manejar error cuando no encuentra al Coordinador
+	if(fd_coordinador == 0) {
+		fd_coordinador = connect_to_server(host, port);
+	}
 
-	fd_coordinador = connect_to_server(host, port);
+	// TODO: Manejar error cuando no encuentra al Coordinador
 }
 
 void coordinator_api_handshake(char* instance_name, storage_setup_t* setup){
@@ -74,23 +76,24 @@ key_value_t* coordinator_api_receive_set() {
 
 	key_value_t* key_value = key_value_create(key, value);
 
+	messenger_show("INFO", "Se recibio la clave %s con valor %s de tamano %d", key_value->key, key_value->value, key_value->size);
+
 	free(key);
 	free(value);
 
 	return key_value;
 }
 
-void coordinator_api_notify_status(int status) {
-	chunk_t* chunk = chunk_create();
+void coordinator_api_notify_set(int status, size_t entries_used) {
 	request_instancia header = PROTOCOL_IC_NOTIFY_STATUS;
+
+	messenger_show("INFO", "Notificar al Coordinador el status %d y la cantidad de entradas usadas, que es %d", status, entries_used);
+
+	chunk_t* chunk = chunk_create();
 
 	chunk_add(chunk, &header, sizeof(header));
 	chunk_add(chunk, &status, sizeof(status));
+	chunk_add(chunk, &entries_used, sizeof(entries_used));
 
-	void* status_message = chunk_build(chunk);
-
-	chunk_send(fd_coordinador, &status_message, chunk->current_size);
-
-	free(status_message);
-	chunk_destroy(chunk);
+	chunk_send_and_destroy(fd_coordinador, chunk);
 }

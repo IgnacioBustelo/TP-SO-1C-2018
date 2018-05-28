@@ -6,7 +6,8 @@
 
 int main(int argc, char* argv[]) {
 	if(argc == 1) {
-		messenger_log("Inserte una lista de campos que tiene el archivo de configuracion", "ERROR");
+		messenger_show("ERROR", "Inserte una lista de campos que tiene el archivo de configuracion");
+
 		exit(EXIT_FAILURE);
 	}
 

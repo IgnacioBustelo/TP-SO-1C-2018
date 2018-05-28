@@ -11,7 +11,7 @@
 #include <unistd.h>
 
 enum process_type {
-	SCHEDULER, ESI, INSTANCE
+	SCHEDULER, ESI, INSTANCE, COORDINATOR
 };
 
 /**

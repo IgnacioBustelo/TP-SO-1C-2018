@@ -21,6 +21,8 @@ char*	cfg_instancia_get_instance_name();
 
 int		cfg_instancia_get_dump_time();
 
+void	cfg_instancia_show();
+
 void	cfg_instancia_destroy();
 
 #endif

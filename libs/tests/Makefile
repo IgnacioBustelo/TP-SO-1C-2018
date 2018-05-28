@@ -10,11 +10,13 @@ SRC = $(DEPS:.h=.c)
 
 all: $(TARGET)
 
+printfer: DEPS = ../../libs/messenger.h ../mocks/printfer.h ../mocks/color.h
+
 logger: DEPS = ../../libs/messenger.h ../logger.h
 
-configurator: DEPS += ../configurator.h
+configurator: DEPS += ../configurator.h ../mocks/default_color.h
 
-client_server: DEPS += ../mocks/client_server.h ../conector.h
+client_server: DEPS += ../conector.h ../mocks/color.h ../mocks/client_server.h
 
 %: %.c $(DEPS) $(SRC)
 	$(CC) $< $(SRC) -o $@ $(LIBS)
