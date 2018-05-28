@@ -9,9 +9,11 @@
 #include "globals.h"
 
 void coordinator_api_connect(char* host, int port) {
-	// TODO: Manejar error cuando no encuentra al Coordinador
+	if(fd_coordinador == 0) {
+		fd_coordinador = connect_to_server(host, port);
+	}
 
-	fd_coordinador = connect_to_server(host, port);
+	// TODO: Manejar error cuando no encuentra al Coordinador
 }
 
 void coordinator_api_handshake(char* instance_name, storage_setup_t* setup){

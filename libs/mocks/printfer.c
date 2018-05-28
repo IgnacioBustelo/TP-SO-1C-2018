@@ -18,6 +18,10 @@ void messenger_show_method(char* log_level, char* message) {
 	free(current_time);
 }
 
+void printfer_next_line() {
+	printf("\n");
+}
+
 void messenger_destroy() {
 	printf(COLOR_RESET);
 }

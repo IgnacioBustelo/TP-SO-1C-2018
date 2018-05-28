@@ -4,4 +4,6 @@
 #include "color.h"
 #include "../messenger.h"
 
+void printfer_next_line();
+
 #endif
