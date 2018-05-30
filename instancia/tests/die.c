@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 #include "../../libs/messenger.h"
 #include "../../libs/mocks/color.h"
 #include "../../libs/mocks/printfer.h"
@@ -14,7 +16,7 @@ int main() {
 
 	messenger_show("INFO", "Pulse CTRL+C para desconectar la Instancia");
 
-	while(terminator_is_alive());
+	pause();
 
 	printfer_next_line();
 

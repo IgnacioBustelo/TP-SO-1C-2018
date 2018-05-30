@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../libs/logger.h"
+#include "../libs/messenger.h"
 #include "globals.h"
 #include "storage.h"
 
@@ -16,7 +16,7 @@ static char* value_to_string(void* value, size_t size) {
 }
 
 static void insert_value(int next_entry, void* value, size_t size) {
-	memcpy(storage->data[next_entry], value, size);
+	memcpy(storage->data + (next_entry * storage->entry_size), value, size);
 
 	char* string_value = value_to_string(value, size);
 
@@ -32,13 +32,7 @@ void storage_init(size_t entries, size_t entry_size) {
 
 	storage->entries = entries;
 	storage->entry_size = entry_size;
-	storage->data = calloc(storage->entries, sizeof(void*));
-
-	int i;
-	for(i = 0; i < storage->entries; i++) {
-		storage->data[i] = malloc(storage->entry_size);
-		memset(storage->data[i], 0, storage->entry_size);
-	}
+	storage->data = calloc(storage->entries, entry_size);
 
 	messenger_show("DEBUG", "Inicio exitoso del Storage con %d entradas de tamano %d", entries, entry_size);
 }
@@ -68,16 +62,12 @@ void storage_set(int next_entry, void* value, size_t size) {
 void storage_show() {
 	messenger_show("INFO", "Muestra de valores almacenados en el Storage");
 
-	int i;
+	int i, longest_size = messenger_longest_string_length(storage->entries);
 
 	for(i = 0; i < storage->entries; i++) {
-		char* value = value_to_string(storage->data[i], storage->entry_size);
+		char* value = value_to_string(storage->data + (i * storage->entry_size), storage->entry_size);
 
-		char* message = string_duplicate("Entrada %d : %s");
-
-		messenger_show("INFO", message, i,  value);
-
-		free(message);
+		messenger_show("INFO", "[%p] - Entrada %.*d: %s", storage->data + (i * storage->entry_size), longest_size, i, value);
 
 		free(value);
 	}
@@ -85,12 +75,6 @@ void storage_show() {
 
 void storage_destroy() {
 	messenger_show("DEBUG", "Liberacion del Storage");
-
-	int i;
-
-	for(i = 0; i < storage->entries; i++) {
-		free(storage->data[i]);
-	}
 
 	free(storage->data);
 	free(storage);

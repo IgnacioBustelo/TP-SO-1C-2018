@@ -26,3 +26,13 @@ char* messenger_bytes_to_string(void* data, size_t size) {
 
 	return chunk_string;
 }
+
+int messenger_longest_string_length(int max_number) {
+	char* max_number_string = string_itoa(max_number);
+
+	int longest_length = string_length(max_number_string);
+
+	free(max_number_string);
+
+	return longest_length;
+}

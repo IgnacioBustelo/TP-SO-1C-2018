@@ -6,7 +6,7 @@
 typedef struct {
 	size_t	entries;
 	size_t	entry_size;
-	void**	data;
+	void*	data;
 } storage_t;
 
 enum{

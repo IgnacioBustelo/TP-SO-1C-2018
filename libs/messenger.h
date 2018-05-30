@@ -12,6 +12,8 @@ void	messenger_show_method(char* log_level, char* message);
 
 char*	messenger_bytes_to_string(void* data, size_t size);
 
+int		messenger_longest_string_length(int max_number);
+
 void	messenger_destroy();
 
 #endif
