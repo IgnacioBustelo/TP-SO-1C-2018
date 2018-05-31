@@ -17,6 +17,7 @@ struct key_table_t {
 static struct key_table_t *key_table;
 
 __attribute__((constructor)) void init_key_table(void) {
+	key_table = malloc(sizeof(*key_table));
 	key_table->table = dictionary_create();
 }
 
