@@ -1,16 +1,20 @@
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
 #include "../defines.h"
+#include "../key-table/key-table.h"
 #include "../../protocolo/protocolo.h"
 
 #include "scheduler-connection.h"
 
 static bool scheduler_connected;
 static int scheduler_fd;
+
+static bool scheduler_send_key_status(void);
 
 __attribute__((destructor)) void close_scheduler_fd(void) {
 	if (scheduler_connected) {
@@ -22,6 +26,27 @@ void handle_scheduler_connection(int fd)
 {
 	scheduler_connected = true;
 	scheduler_fd = fd;
+
+	for ( ; ; ) {
+		protocol_id op_code;
+		if (!CHECK_RECV(fd, &op_code)) {
+			/* TODO: Manejar desconexion de todos los hilos. */
+			exit(EXIT_FAILURE);
+		}
+
+		switch (op_code) {
+		case PROTOCOL_PC_KEY_STATUS:
+			/* TODO: Manejar desconexion de todos los hilos. */
+			if (!scheduler_send_key_status()) {
+				exit(EXIT_FAILURE);
+			}
+			break;
+		default:
+			/* TODO: Manejar desconexion de todos los hilos. */
+			exit(EXIT_FAILURE);
+			break;
+		}
+	}
 }
 
 enum key_state_t scheduler_recv_key_state(char *key)
@@ -63,6 +88,55 @@ enum key_state_t scheduler_recv_key_state(char *key)
 	} else {
 		return KEY_RECV_ERROR;
 	}
+}
+
+static bool scheduler_send_key_status(void)
+{
+	size_t key_size;
+	if (!CHECK_RECV(scheduler_fd, &key_size)) {
+		return false;
+	}
+
+	char *key = malloc(key_size);
+	if (!CHECK_RECV_WITH_SIZE(scheduler_fd, key, key_size)) {
+		free(key);
+		return false;
+	}
+
+	protocol_id op_code = PROTOCOL_CP_KEY_STATUS;
+	if (!CHECK_SEND(scheduler_fd, &op_code)) {
+		free(key);
+		return false;
+	}
+
+	enum key_state { KEY_NOT_EXIST, KEY_UNINITIALIZED, KEY_INITIALIZED };
+
+	char *instance_name = key_table_get_instance_name(key);
+	if (instance_name == NULL) {
+		free(key);
+		int key_state = KEY_NOT_EXIST;
+
+		return CHECK_SEND(scheduler_fd, &key_state);
+	}
+
+	/* TODO: Pedir el valor a la instancia. */
+	int key_state = KEY_UNINITIALIZED;
+	if (!CHECK_SEND(scheduler_fd, &key_state)) {
+		free(key);
+		return false;
+	}
+
+	size_t instance_name_size = strlen(instance_name) + 1;
+	if (!CHECK_SEND(scheduler_fd, &instance_name_size)) {
+		free(key);
+		return false;
+	}
+	if (!CHECK_SEND_WITH_SIZE(scheduler_fd, instance_name, instance_name_size)) {
+		free(key);
+		return false;
+	}
+
+	return true;
 }
 
 bool scheduler_block_key(void)
