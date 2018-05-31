@@ -15,12 +15,23 @@ static bool scheduler_connected;
 static int scheduler_fd;
 
 static bool scheduler_send_key_status(void);
+static void *scheduler_recv(size_t size);
+static void scheduler_unrecv(void *data, size_t size);
 
 __attribute__((destructor)) void close_scheduler_fd(void) {
 	if (scheduler_connected) {
 		close(scheduler_fd);
 	}
 }
+
+/* TODO:
+ *   - Synchronization
+ */
+
+static struct {
+	void *data;
+	size_t size;
+} recv_buffer = { NULL, 0 };
 
 void handle_scheduler_connection(int fd)
 {
@@ -42,8 +53,7 @@ void handle_scheduler_connection(int fd)
 			}
 			break;
 		default:
-			/* TODO: Manejar desconexion de todos los hilos. */
-			exit(EXIT_FAILURE);
+			scheduler_unrecv(&op_code, sizeof(op_code));
 			break;
 		}
 	}
@@ -167,4 +177,44 @@ bool scheduler_unblock_key(void)
 	} else {
 		return response == PROTOCOL_PC_KEY_UNLOCKED_SUCCESFULLY;
 	}
+}
+
+static void *scheduler_recv(size_t size)
+{
+	if (recv_buffer.size <= size) {
+		void *ret = recv_buffer.data;
+		ret = realloc(ret, size);
+		if (recv_buffer.size != size &&
+			!CHECK_RECV_WITH_SIZE(scheduler_fd, &ret[recv_buffer.size], size - recv_buffer.size))
+		{
+			free(ret);
+			recv_buffer.data = NULL;
+			recv_buffer.size = 0;
+			return NULL;
+		} else {
+			return ret;
+		}
+	} else {
+		void *ret = recv_buffer.data;
+		recv_buffer.data = malloc(recv_buffer.size - size);
+		memcpy(recv_buffer.data, &ret[size], recv_buffer.size - size);
+		recv_buffer.size -= size;
+		ret = realloc(ret, size);
+
+		return ret;
+	}
+}
+
+static void scheduler_unrecv(void *data, size_t size)
+{
+	void *new_data = malloc(size + recv_buffer.size);
+	memcpy(new_data, data, size);
+
+	if (recv_buffer.size > 0) {
+		memcpy(&new_data[size], recv_buffer.data, recv_buffer.size);
+	}
+
+	free(recv_buffer.data);
+	recv_buffer.data = new_data;
+	recv_buffer.size += size;
 }
