@@ -10,11 +10,6 @@
 
 #include "instance-request-list.h"
 
-/* TODO:
- *   - Request structure
- *   - Request list functions
- */
-
 static struct instance_t *instance_list_node_create(char *name, int fd);
 static void instance_list_node_destroy(struct instance_t *victim);
 static bool string_equals(char *actual, char *expected);
@@ -25,6 +20,17 @@ struct instance_list_t *instance_list_create(void)
 	pthread_mutex_init(&instance_list->lock, NULL);
 	instance_list->elements = list_create();
 	return instance_list;
+}
+
+void instance_list_destroy(struct instance_list_t *victim)
+{
+	void destroyer(void *elem) {
+		instance_list_node_destroy((struct instance_t *)elem);
+	}
+
+	pthread_mutex_destroy(&victim->lock);
+	list_destroy_and_destroy_elements(victim->elements, destroyer);
+	free(victim);
 }
 
 struct instance_t *instance_list_get(struct instance_list_t *instance_list, char *name)

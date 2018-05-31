@@ -20,6 +20,7 @@ struct instance_t {
 };
 
 struct instance_list_t *instance_list_create(void);
+void instance_list_destroy(struct instance_list_t *victim);
 struct instance_t *instance_list_get(struct instance_list_t *instance_list, char *name);
 struct instance_t *instance_list_add(struct instance_list_t *instance_list, char *name, int fd);
 struct instance_t* instance_list_remove(struct instance_list_t *instance_list, char *name);
