@@ -9,6 +9,7 @@
 #define IP				cfg_instancia_get_coordinador_ip()
 #define HOST			cfg_instancia_get_coordinador_port()
 #define NAME			cfg_instancia_get_instance_name()
+#define MOUNT_POINT		cfg_instancia_get_mount_point()
 
 void bootstrap_start(char* process_name, char* logger_route, char* log_level, char* cfg_route) {
 	storage_setup_t dimensions;
@@ -25,7 +26,7 @@ void bootstrap_start(char* process_name, char* logger_route, char* log_level, ch
 
 	storage_setup_init(dimensions.total_entries, dimensions.entry_size);
 
-	storage_init(dimensions.total_entries, dimensions.entry_size);
+	storage_init(MOUNT_POINT, dimensions.total_entries, dimensions.entry_size);
 
 	entry_table_init();
 }

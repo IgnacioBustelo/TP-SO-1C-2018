@@ -18,9 +18,9 @@ static int required_entries(int size) {
 }
 
 int main(int argc, char* argv[]) {
-	messenger_show("INFO", "Comienzo de la prueba de insercion en el Storage");
+	messenger_show("INFO", "Comienzo de la prueba de insercion y persistencia en el Storage");
 
-	storage_init(8, 2);
+	storage_init("./files/", 8, 2);
 
 	char* random_value = "TEST";
 
@@ -30,11 +30,12 @@ int main(int argc, char* argv[]) {
 
 	storage_show();
 
-	int i, next_entry = 0, entries_left = storage->entries;
+	int i, next_entry = 0, entries_left = storage->entries, max_keys = messenger_longest_string_length(argc);
 
 	messenger_show("INFO", "Insercion de valores insertados como argumentos en el Storage");
 
 	for(i = 1; i < argc; i++) {
+		char* key = string_from_format("clave_%*.d", max_keys, i);
 		int length = string_length(argv[i]);
 		int required = required_entries(length);
 
@@ -42,6 +43,8 @@ int main(int argc, char* argv[]) {
 			messenger_show("INFO", "El valor '%s' de tamanio %d ocupa %d entrada/s y puede insertarse en el Storage", argv[i], length, required);
 
 			storage_set(next_entry, argv[i], length);
+
+			storage_store(next_entry, key, length);
 
 			next_entry += required;
 
@@ -53,6 +56,8 @@ int main(int argc, char* argv[]) {
 		else {
 			messenger_show("WARNING", "El valor '%s' de tamanio %d no entra en el Storage porque ocupa %d entradas y quedan %d", argv[i], length, required, entries_left);
 		}
+
+		free(key);
 	}
 
 	messenger_show("INFO", "Fin de la prueba de insercion en el Storage");
