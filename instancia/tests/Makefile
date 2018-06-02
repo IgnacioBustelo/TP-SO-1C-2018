@@ -1,6 +1,6 @@
 CC = gcc -Wall
 
-TARGET = cfg storage entry_table_test handshake receive_set notify_set die checkpoint_2
+TARGET = cfg storage entry_table_test handshake receive_set notify_set die checkpoint_2 dumper
 LIBS = -lcommons -lpthread
 
 DEPS = ../../libs/messenger.h ../../libs/mocks/printfer.h
@@ -14,9 +14,9 @@ all: $(TARGET)
 
 cfg: DEPS += ../cfg_instancia.h ../../libs/configurator.h ../../libs/mocks/default_color.h
 
-storage: DEPS += ../storage.h ../../libs/mocks/default_color.h
+storage: DEPS += ../globals.h ../storage.h ../../libs/mocks/default_color.h
 
-store: DEPS += ../../libs/mocks/default_color.h
+dumper: DEPS += ../dumper.h ../globals.h ../../libs/mocks/default_color.h
 
 entry_table_test: DEPS += ./utils.h ../entry_table.h ../globals.h ../../libs/mocks/default_color.h
 

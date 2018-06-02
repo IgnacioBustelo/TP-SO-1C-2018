@@ -26,7 +26,9 @@ void bootstrap_start(char* process_name, char* logger_route, char* log_level, ch
 
 	storage_setup_init(dimensions.total_entries, dimensions.entry_size);
 
-	storage_init(MOUNT_POINT, dimensions.total_entries, dimensions.entry_size);
+	storage_init(dimensions.total_entries, dimensions.entry_size);
+
+	// dumper_init(MOUNT_POINT);
 
 	entry_table_init();
 }

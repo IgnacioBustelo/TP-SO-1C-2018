@@ -4,7 +4,6 @@
 #include "globals.h"
 
 typedef struct {
-	char*	mount_point;
 	size_t	entries;
 	size_t	entry_size;
 	void*	data;
@@ -20,16 +19,16 @@ storage_t* storage;
 
 // Interfaz
 
-void	storage_init(char* mount_point, size_t entries, size_t entry_size); // Lo hace Santi
+void	storage_init(size_t entries, size_t entry_size);
 
-void	storage_set(int next_entry, void* value, size_t size); // Lo hace Santi
+void	storage_set(int next_entry, void* value, size_t size);
 
-void	storage_store(int entry, char* key, size_t value_size); // Lo hace Santi
+void*	storage_retrieve(int entry, size_t value_size);
 
 int		storage_required_entries(int size);
 
 void	storage_show();
 
-void	storage_destroy(); // Lo hace Nico
+void	storage_destroy();
 
 #endif

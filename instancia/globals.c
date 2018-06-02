@@ -1,7 +1,17 @@
 #include <commons/string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "globals.h"
+
+char* value_to_string(void* value, size_t size) {
+	char* string_value = malloc(size + 1);
+
+	memset(string_value, '\0', size + 1);
+	memcpy(string_value, value, size);
+
+	return string_value;
+}
 
 key_value_t* key_value_create(char* key, char* value) {
 	key_value_t* key_value = malloc(sizeof(key_value_t));

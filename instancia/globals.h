@@ -23,6 +23,8 @@ storage_setup_t* storage_setup;
 
 // Funciones auxiliares
 
+char*			value_to_string(void* value, size_t size);
+
 key_value_t*	key_value_create(char* key, char* value);
 
 void			key_value_destroy(key_value_t* key_value);
