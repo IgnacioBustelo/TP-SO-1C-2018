@@ -54,15 +54,15 @@ static void request_list_push(struct request_list_t *request_list, struct reques
 {
 	synchronized(request_list->lock) {
 		queue_push(request_list->elements, elem);
-		sem_post(&request_list->count);
 	}
+	sem_post(&request_list->count);
 }
 
 struct request_node_t *request_list_pop(struct request_list_t *request_list)
 {
 	struct request_node_t *node;
+	sem_wait(&request_list->count);
 	synchronized(request_list->lock) {
-		sem_wait(&request_list->count);
 		node = (struct request_node_t *)queue_pop(request_list->elements);
 	}
 
