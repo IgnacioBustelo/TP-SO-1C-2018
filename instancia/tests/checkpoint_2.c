@@ -1,3 +1,5 @@
+#include <commons/string.h>
+
 #include "../../libs/mocks/client_server.h"
 #include "../bootstrap.h"
 #include "../coordinator_api.h"
@@ -6,15 +8,23 @@
 #include "../storage.h"
 #include "coordinador_mock.h"
 
-int total_entries, entry_size;
-char *key, *value;
+int		total_entries, entry_size, key_amount;
+char**	values;
 
 void client_server_execute_server(int fd_client) {
 	coordinador_mock_handshake(fd_client, total_entries, entry_size);
 
-	coordinador_mock_set_request(fd_client, key, value);
+	int i;
 
-	coordinador_mock_set_response(fd_client);
+	for(i = 1; i < key_amount; i++) {
+		char* key = string_from_format("clave_%d", i);
+
+		coordinador_mock_set_request(fd_client, key, values[i]);
+
+		coordinador_mock_set_response(fd_client);
+
+		free(key);
+	}
 
 	coordinador_mock_kill(fd_client);
 }
@@ -37,11 +47,11 @@ int main(int argc, char* argv[]) {
 	server_name = "Coordinador";
 	client_name = "Instancia 1";
 
-	total_entries = 16;
+	total_entries = 32;
 	entry_size = 4;
+	key_amount = argc;
 
-	key = "A";
-	value = (argc == 1) ? "Test" : argv[1];
+	values = argv;
 
 	client_server_run();
 }
