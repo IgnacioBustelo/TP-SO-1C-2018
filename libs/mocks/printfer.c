@@ -14,7 +14,7 @@ void messenger_init(char* logger_route, char* process_name, char* log_level) {
 void messenger_show_method(char* log_level, char* message) {
 	char* current_time = temporal_get_string_time();
 
-	printf("PID: <%d> %s%-.13s - %-.7s \t | %s%s\n", process_getpid(), color_get(), current_time, log_level, message, COLOR_RESET);
+	printf("PID <%d> %s%-12s - %-7s | %s%s\n", process_getpid(), color_get(), current_time, log_level, message, COLOR_RESET);
 
 	free(current_time);
 }
