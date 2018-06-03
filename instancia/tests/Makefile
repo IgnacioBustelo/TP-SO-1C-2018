@@ -28,9 +28,9 @@ receive_set: DEPS += $(COORDINADOR_DEPS)
 
 notify_set: DEPS += $(COORDINADOR_DEPS)
 
-die: DEPS += ../terminator.h ../../libs/mocks/color.h
+die: DEPS += ../event_handler.h ../../libs/mocks/color.h
 
-checkpoint_2: DEPS += $(COORDINADOR_DEPS) ../bootstrap.h ../cfg_instancia.h ../../libs/configurator.h ../entry_table.h ../instancia.h ../storage.h ../terminator.h
+checkpoint_2: DEPS += $(COORDINADOR_DEPS) ../bootstrap.h ../cfg_instancia.h ../../libs/configurator.h ../entry_table.h ../instancia.h ../storage.h ../event_handler.h
 
 %: %.c $(DEPS) $(SRC)
 	$(CC) $< $(SRC) -o $@ $(LIBS)

@@ -2,9 +2,9 @@
 #include "cfg_instancia.h"
 #include "coordinator_api.h"
 #include "entry_table.h"
+#include "event_handler.h"
 #include "globals.h"
 #include "storage.h"
-#include "terminator.h"
 
 #define IP				cfg_instancia_get_coordinador_ip()
 #define HOST			cfg_instancia_get_coordinador_port()
@@ -14,7 +14,7 @@
 void bootstrap_start(char* process_name, char* logger_route, char* log_level, char* cfg_route) {
 	storage_setup_t dimensions;
 
-	terminator_init();
+	event_handler_init();
 
 	messenger_init(logger_route, process_name, log_level);
 

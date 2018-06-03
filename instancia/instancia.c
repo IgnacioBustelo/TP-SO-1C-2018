@@ -3,8 +3,9 @@
 #include "coordinator_api.h"
 #include "entry_table.h"
 #include "instancia.h"
+
+#include "event_handler.h"
 #include "storage.h"
-#include "terminator.h"
 
 void instance_set(key_value_t* key_value) {
 	int next_entry = entry_table_next_entry(key_value);
@@ -27,7 +28,7 @@ void instance_die() {
 }
 
 void instance_main() {
-	while(terminator_is_alive()) {
+	while(instance_is_alive) {
 
 		int status; // TODO: Manejar el tema de retornos de valores de operaciones.
 
@@ -45,7 +46,7 @@ void instance_main() {
 			}
 
 			case PROTOCOL_CI_KILL: {
-				terminator_die();
+				instance_is_alive = false;
 
 				status = 0;
 
