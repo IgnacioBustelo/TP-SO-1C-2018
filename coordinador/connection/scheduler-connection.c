@@ -2,8 +2,10 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include <semaphore.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <commons/collections/queue.h>
 
 #include "../defines.h"
 #include "../key-table/key-table.h"
@@ -14,46 +16,47 @@
 static bool scheduler_connected;
 static int scheduler_fd;
 
+sem_t pending_protocol_sem;
+protocol_id pending_protocol;
+
+sem_t protocol_recv_sem;
+
 static bool scheduler_send_key_status(void);
-static void *scheduler_recv(size_t size);
-static void scheduler_unrecv(void *data, size_t size);
+static void scheduler_pending_protocol_set(protocol_id protocol);
+static protocol_id scheduler_pending_protocol_recv();
+static void scheduler_exit(void);
 
 __attribute__((destructor)) void close_scheduler_fd(void) {
 	if (scheduler_connected) {
+		sem_destroy(&pending_protocol_sem);
 		close(scheduler_fd);
 	}
 }
-
-/* TODO:
- *   - Synchronization
- */
-
-static struct {
-	void *data;
-	size_t size;
-} recv_buffer = { NULL, 0 };
 
 void handle_scheduler_connection(int fd)
 {
 	scheduler_connected = true;
 	scheduler_fd = fd;
 
+	sem_init(&pending_protocol_sem, 0, 0);
+	sem_init(&protocol_recv_sem, 0, 1);
+
 	for ( ; ; ) {
+		sem_wait(&protocol_recv_sem);
 		protocol_id op_code;
 		if (!CHECK_RECV(fd, &op_code)) {
-			/* TODO: Manejar desconexion de todos los hilos. */
-			exit(EXIT_FAILURE);
+			scheduler_exit();
 		}
 
 		switch (op_code) {
 		case PROTOCOL_PC_KEY_STATUS:
-			/* TODO: Manejar desconexion de todos los hilos. */
 			if (!scheduler_send_key_status()) {
-				exit(EXIT_FAILURE);
+				scheduler_exit();
 			}
+			sem_post(&protocol_recv_sem);
 			break;
 		default:
-			scheduler_unrecv(&op_code, sizeof(op_code));
+			scheduler_pending_protocol_set(op_code);
 			break;
 		}
 	}
@@ -73,31 +76,33 @@ enum key_state_t scheduler_recv_key_state(char *key)
 	int i;
 	for (i = 0; i < sizeof(blocks) / sizeof(*blocks); i++) {
 		if (!CHECK_SEND_WITH_SIZE(scheduler_fd, blocks[i].block, blocks[i].block_size)) {
-			return KEY_RECV_ERROR;
+			scheduler_exit();
 		}
 	}
 
-	protocol_id blocked_state_response;
-	if (!CHECK_RECV(scheduler_fd, &blocked_state_response)) {
-		return KEY_RECV_ERROR;
-	}
+	enum key_state_t key_state;
+
+	protocol_id blocked_state_response = scheduler_pending_protocol_recv();
 	if (blocked_state_response == PROTOCOL_PC_KEY_IS_NOT_BLOCKED) {
-		return KEY_UNBLOCKED;
+		key_state = KEY_UNBLOCKED;
 	} else if (blocked_state_response == PROTOCOL_PC_KEY_IS_BLOCKED) {
 		protocol_id blocked_by_executing_esi_response;
 
 		if (!CHECK_RECV(scheduler_fd, &blocked_by_executing_esi_response)) {
-			return KEY_RECV_ERROR;
+			scheduler_exit();
 		} else if (blocked_by_executing_esi_response == PROTOCOL_PC_KEY_BLOCKED_BY_EXECUTING_ESI) {
-			return KEY_BLOCKED_BY_EXECUTING_ESI;
+			key_state = KEY_BLOCKED_BY_EXECUTING_ESI;
 		} else if (blocked_by_executing_esi_response == PROTOCOL_PC_KEY_NOT_BLOCKED_BY_EXECUTING_ESI) {
-			return KEY_BLOCKED;
+			key_state = KEY_BLOCKED;
 		} else {
-			return KEY_RECV_ERROR;
+			scheduler_exit();
 		}
 	} else {
-		return KEY_RECV_ERROR;
+		scheduler_exit();
 	}
+
+	sem_post(&protocol_recv_sem);
+	return key_state;
 }
 
 static bool scheduler_send_key_status(void)
@@ -156,12 +161,9 @@ bool scheduler_block_key(void)
 		return false;
 	}
 
-	protocol_id response;
-	if (!CHECK_RECV(scheduler_fd, &response)) {
-		return false;
-	} else {
-		return response == PROTOCOL_PC_KEY_BLOCKED_SUCCESFULLY;
-	}
+	protocol_id response = scheduler_pending_protocol_recv();
+	sem_post(&protocol_recv_sem);
+	return response == PROTOCOL_PC_KEY_BLOCKED_SUCCESFULLY;
 }
 
 bool scheduler_unblock_key(void)
@@ -171,50 +173,25 @@ bool scheduler_unblock_key(void)
 		return false;
 	}
 
-	protocol_id response;
-	if (!CHECK_RECV(scheduler_fd, &response)) {
-		return false;
-	} else {
-		return response == PROTOCOL_PC_KEY_UNLOCKED_SUCCESFULLY;
-	}
+	protocol_id response = scheduler_pending_protocol_recv();
+	sem_post(&protocol_recv_sem);
+	return response == PROTOCOL_PC_KEY_UNLOCKED_SUCCESFULLY;
 }
 
-static void *scheduler_recv(size_t size)
+static void scheduler_pending_protocol_set(protocol_id protocol)
 {
-	if (recv_buffer.size <= size) {
-		void *ret = recv_buffer.data;
-		ret = realloc(ret, size);
-		if (recv_buffer.size != size &&
-			!CHECK_RECV_WITH_SIZE(scheduler_fd, &ret[recv_buffer.size], size - recv_buffer.size))
-		{
-			free(ret);
-			recv_buffer.data = NULL;
-			recv_buffer.size = 0;
-			return NULL;
-		} else {
-			return ret;
-		}
-	} else {
-		void *ret = recv_buffer.data;
-		recv_buffer.data = malloc(recv_buffer.size - size);
-		memcpy(recv_buffer.data, &ret[size], recv_buffer.size - size);
-		recv_buffer.size -= size;
-		ret = realloc(ret, size);
-
-		return ret;
-	}
+	pending_protocol = protocol;
+	sem_post(&pending_protocol_sem);
 }
 
-static void scheduler_unrecv(void *data, size_t size)
+static protocol_id scheduler_pending_protocol_recv()
 {
-	void *new_data = malloc(size + recv_buffer.size);
-	memcpy(new_data, data, size);
+	sem_wait(&pending_protocol_sem);
+	protocol_id protocol = pending_protocol;
+	return protocol;
+}
 
-	if (recv_buffer.size > 0) {
-		memcpy(&new_data[size], recv_buffer.data, recv_buffer.size);
-	}
-
-	free(recv_buffer.data);
-	recv_buffer.data = new_data;
-	recv_buffer.size += size;
+static void scheduler_exit(void)
+{
+	exit(EXIT_FAILURE);
 }

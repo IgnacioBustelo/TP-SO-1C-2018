@@ -74,7 +74,10 @@ void handle_esi_connection(int fd)
 
 static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *operation)
 {
-	/* TODO: Log de operaciones. */
+	/* TODO:
+	 *   - Log de operaciones.
+	 *   - Manejar desconexion del planificador.
+	 */
 	if (operation->type == ESI_GET) {
 		esi_log_info(logger, "GET %s", operation->get.key);
 		switch (scheduler_recv_key_state(operation->get.key)) {
@@ -88,15 +91,12 @@ static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *opera
 			esi_log_info(logger, "Clave bloqueada.");
 			esi_send_notify_block(esi.fd);
 			break;
-		case KEY_RECV_ERROR:
-			esi_log_error(logger, "Error al recibir estado de la clave desde el Planificador!");
-			return false;
 		}
 	} else {
+		esi_log_info(logger, "Seleccionando una Instancia para ejecutar la operacion...");
 		struct instance_t *instance = equitative_load(instance_list);
 		if (instance == NULL) {
-			// TODO: HANDLE_ERROR
-			esi_log_error(logger, "No hay instancias disponibles!");
+			/* TODO: Bloquear el ESI. */
 			return false;
 		}
 		if (operation->type == ESI_SET) {
