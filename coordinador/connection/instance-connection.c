@@ -27,7 +27,7 @@ __attribute__((constructor)) void init_instance_list(void) {
 }
 
 __attribute__((destructor)) void destroy_instance_list(void) {
-	/* TODO */
+	instance_list_destroy(instance_list);
 }
 
 static char *instance_recv_name(int fd);
