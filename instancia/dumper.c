@@ -107,9 +107,11 @@ void dumper_init(char* mount_point) {
 }
 
 void dumper_store(char* key, void* data, size_t size) {
-	int fd_key = (int) dictionary_get(dumper->file_dictionary, key);
+	int fd_key = dictionary_has_key(dumper->file_dictionary, key) ? (int) dictionary_get(dumper->file_dictionary, key) : dumper_create_key_value(key);
 
 	ftruncate(fd_key, size);
+
+	// TODO: Podria poner este mmap en el dictionary e inicializarlo cuando se añade la clave, y munmapearlo cuando se elimina
 
 	void* mapped_memory = mmap(NULL, size, PROT_WRITE | PROT_READ | PROT_EXEC, MAP_SHARED, fd_key, 0);
 

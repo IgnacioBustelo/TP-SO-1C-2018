@@ -23,8 +23,6 @@ int main(int argc, char* argv[]) {
 
 		int length = string_length(argv[i]);
 
-		dumper_create_key_value(key),
-
 		dumper_store(key, argv[i], length);
 
 		messenger_show("INFO", "Insercion del valor %s en el path %s%s, ocupando %d byte/s", argv[i], dumper->mount_point, key, length);
