@@ -21,9 +21,11 @@ int main(int argc, char* argv[]) {
 	for(i = 1; i < argc; i++) {
 		char* key = string_from_format("clave_%0.*d", max_keys, i);
 
-		int fd_key = dumper_create_key_value(key), length = string_length(argv[i]);
+		int length = string_length(argv[i]);
 
-		dumper_store(fd_key, argv[i], length);
+		dumper_create_key_value(key),
+
+		dumper_store(key, argv[i], length);
 
 		messenger_show("INFO", "Insercion del valor %s en el path %s%s, ocupando %d byte/s", argv[i], dumper->mount_point, key, length);
 

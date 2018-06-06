@@ -84,6 +84,31 @@ key_value_t* coordinator_api_receive_set() {
 	return key_value;
 }
 
+char* coordinator_api_receive_store() {
+	char *key;
+
+	chunk_recv_variable(fd_coordinador, (void**) &key);
+
+	return key;
+}
+
+void coordinator_api_notify_header(request_instancia header) {
+	chunk_t* chunk = chunk_create();
+
+	chunk_add(chunk, &header, sizeof(header));
+
+	chunk_send_and_destroy(fd_coordinador, chunk);
+}
+
+void coordinator_api_notify_status(request_instancia header, int status) {
+	chunk_t* chunk = chunk_create();
+
+	chunk_add(chunk, &header, sizeof(header));
+	chunk_add(chunk, &status, sizeof(status));
+
+	chunk_send_and_destroy(fd_coordinador, chunk);
+}
+
 void coordinator_api_notify_set(int status, size_t entries_used) {
 	request_instancia header = PROTOCOL_IC_NOTIFY_STATUS;
 

@@ -34,24 +34,26 @@ int entries_left;
 
 
 
-void	entry_table_init();
+void		entry_table_init();
 
-void	entry_table_destroy();
+void		entry_table_destroy();
 
-bool    entry_table_insert(int next_entry, key_value_t* key_value);
+bool    	entry_table_insert(int next_entry, key_value_t* key_value);
 
-int		entry_table_next_entry(key_value_t* key_value);
+entry_t*	entry_table_get_entry(char* key); // TODO: URGENTE!! Dada una clave, hace que retorne un entry_t con la entrada y el tamaño que ocupa.
 
-bool 	entry_table_have_entries(key_value_t* key_value);
+int			entry_table_next_entry(key_value_t* key_value);
 
-int     entry_table_entries_needed(key_value_t * key_value);
+bool 		entry_table_have_entries(key_value_t* key_value);
 
-entry_t * convert_key_value_t_to_entry_t(key_value_t * key_value);
+int     	entry_table_entries_needed(key_value_t * key_value);
 
-bool entry_table_delete(key_value_t * key_value);
+entry_t *	convert_key_value_t_to_entry_t(key_value_t * key_value);
 
-void entry_table_print_table();
+bool		entry_table_delete(key_value_t * key_value);
 
-bool ascending(void * a, void *b);
+void		entry_table_print_table();
+
+bool		ascending(void * a, void *b);
 
 #endif

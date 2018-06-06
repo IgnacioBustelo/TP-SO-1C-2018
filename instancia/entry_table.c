@@ -31,6 +31,14 @@ bool ascending(void * a, void *b){
 	return e1->number>e2->number?false:true;
 }
 
+entry_t* entry_table_get_entry(char* key) {
+	entry_t* requested_entry;
+
+	// TODO: URGENTE!! Dada una clave, hace que retorne un entry_t con la entrada y el tamaño que ocupa.
+
+	return requested_entry;
+}
+
 int entry_table_next_entry(key_value_t* key_value){
 
 	int in_beetwen_entry_space=0;
