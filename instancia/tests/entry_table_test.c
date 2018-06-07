@@ -134,6 +134,8 @@ int main()
 
 		entry = entry_table_get_entry("Y");
 
-		printf("La clave Y apunta a la entrada %d y ocupa %d bits",entry->number,entry->size);
+		printf("La clave Y apunta a la entrada %d y ocupa %d bits \n\n",entry->number,entry->size);
+
+		printf("La cantidad de entradas atomicas es %d \n",entry_table_atomic_entries_count());
 }
 
