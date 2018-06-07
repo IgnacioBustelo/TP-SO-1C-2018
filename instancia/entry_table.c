@@ -32,11 +32,14 @@ bool ascending(void * a, void *b){
 }
 
 entry_t* entry_table_get_entry(char* key) {
-	entry_t* requested_entry;
 
-	// TODO: URGENTE!! Dada una clave, hace que retorne un entry_t con la entrada y el tamaño que ocupa.
-
-	return requested_entry;
+	for (int i=0; i<list_size(entry_table);i++)
+			{
+				entry_t * entry = (entry_t*) list_get(entry_table,i);
+				if (!strcmp(key,entry->key))
+					return entry;
+			}
+	return NULL;
 }
 
 int entry_table_next_entry(key_value_t* key_value){
@@ -131,4 +134,17 @@ void entry_table_print_table(){
 		entry_t * entry=(entry_t *) list_get(entry_table,i);
 		printf("Registro %d, KEY: %s, TAMANIO: %d y tiene INDICE STORAGE: %d \n",i,entry->key,entry->size,entry->number);
 		}
+}
+
+int entry_table_atomic_entries_count()
+{
+	int atomic_entries=0;
+	for (int i=0; i<list_size(entry_table);i++)
+		{
+			entry_t * entry = (entry_t*) list_get(entry_table,i);
+			if (entry->size<= get_entry_size())
+				atomic_entries+=1;
+
+		}
+	return atomic_entries;
 }

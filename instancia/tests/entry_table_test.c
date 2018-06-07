@@ -126,8 +126,16 @@ int main()
 		entry_table_print_table();
 
 		printf("\n\n");
-		printf("La cantidad de entradas libres son: %d",entries_left);
+		printf("La cantidad de entradas libres son: %d \n\n",entries_left);
 
-//				printf("El number del primer elemento es: %d",((entry_t *)list_get(entry_table,0))->number);
+		printf("Busco si la clave Y existe \n");
+
+		entry_t * entry;
+
+		entry = entry_table_get_entry("Y");
+
+		printf("La clave Y apunta a la entrada %d y ocupa %d bits \n\n",entry->number,entry->size);
+
+		printf("La cantidad de entradas atomicas es %d \n",entry_table_atomic_entries_count());
 }
 

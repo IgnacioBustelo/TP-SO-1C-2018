@@ -1,10 +1,14 @@
 #ifndef INSTANCIA_ALGORITHMS_H_
 #define INSTANCIA_ALGORITHMS_H_
 
-#include <commons/collections/dictionary.h>
+#include <commons/collections/list.h>
 
-void algorithm_circular(t_dictionary* entry_table, t_dictionary* storage);
+#include "entry_table.h"
 
-void algorithm_lru(t_dictionary* entry_table, t_dictionary* storage);
+int algorithm_circular_pointer;
+
+int algorithm_circular(t_list* entry_table, t_list* replaced_keys);
+
+void algorithm_lru(t_list* entry_table, t_list* replaced_keys);
 
 #endif
