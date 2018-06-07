@@ -57,4 +57,8 @@ void		entry_table_print_table();
 bool		ascending(void * a, void *b);
 
 int 		entry_table_atomic_entries_count();
+
+bool	    entry_table_is_entry_atomic(entry_t * entry);
+
+entry_t* 	entry_table_get_entry_by_entry_number(int number);
 #endif
