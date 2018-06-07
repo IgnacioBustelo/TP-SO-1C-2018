@@ -42,6 +42,18 @@ entry_t* entry_table_get_entry(char* key) {
 	return NULL;
 }
 
+
+entry_t* entry_table_get_entry_by_entry_number(int number) {
+
+	for (int i=0; i<list_size(entry_table);i++)
+			{
+				entry_t * entry = (entry_t*) list_get(entry_table,i);
+				if (entry->number==number)
+					return entry;
+			}
+	return NULL;
+}
+
 int entry_table_next_entry(key_value_t* key_value){
 
 	int in_beetwen_entry_space=0;
@@ -103,6 +115,8 @@ bool entry_table_have_entries(key_value_t* key_value)
 
 int entry_table_entries_needed(key_value_t * key_value)
 {
+//	int entries=key_value->size/get_entry_size();
+//	return entries%get_entry_size()==0?entries:entries+1;
 	return key_value->size/get_entry_size()+1;
 }
 
@@ -142,9 +156,14 @@ int entry_table_atomic_entries_count()
 	for (int i=0; i<list_size(entry_table);i++)
 		{
 			entry_t * entry = (entry_t*) list_get(entry_table,i);
-			if (entry->size<= get_entry_size())
+			if (entry_table_is_entry_atomic(entry))
 				atomic_entries+=1;
 
 		}
 	return atomic_entries;
+}
+
+bool entry_table_is_entry_atomic(entry_t * entry)
+{
+	return entry->size <= get_entry_size();
 }

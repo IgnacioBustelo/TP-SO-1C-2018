@@ -74,7 +74,7 @@ int main()
 //	 printf("\n\n\n");
 //	 entry_table_print_table();
 
-		storage_setup_init(5,20);
+		storage_setup_init(10,20);
 		entry_table_init();
 		key_value_t* key_value=key_value_generator("X",30);
 		int next_entry = entry_table_next_entry(key_value);
@@ -136,6 +136,10 @@ int main()
 
 		printf("La clave Y apunta a la entrada %d y ocupa %d bits \n\n",entry->number,entry->size);
 
-		printf("La cantidad de entradas atomicas es %d \n",entry_table_atomic_entries_count());
+		printf("La cantidad de entradas atomicas es %d \n\n",entry_table_atomic_entries_count());
+
+
+
 }
+
 
