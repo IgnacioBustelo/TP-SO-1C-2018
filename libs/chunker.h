@@ -33,6 +33,6 @@ void		chunk_recv(int fd, void* receiver, size_t size);
 
 void		chunk_recv_variable(int fd, void** receiver);
 
-void		chunk_recv_list(int fd, t_list* receiver, void*(*unpackager)(int));
+void		chunk_recv_list(int fd, t_list** receiver, void*(*unpackager)(int));
 
 #endif
