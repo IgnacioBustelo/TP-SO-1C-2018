@@ -1102,11 +1102,16 @@ static void block_by_console_procedure() {
 		}
 
 		esi_sexpecting_key* esi_sexpecting_key_exec = list_find(mapped_list, condition);
+
+		if(determine_if_key_is_blocked(esi_sexpecting_key_exec->key)) {
 		list_add(g_esis_sexpecting_keys, (void*)create_esi_sexpecting_key(esi_sexpecting_key_exec->esi_fd, esi_sexpecting_key_exec->key));
-
 		move_esi_from_and_to_queue(g_execution_queue, g_new_blocked_by_console_esis, *esi_executing);
-
 		log_info(logger, "El ESI %i se ha bloqueado por consola y ahora está esperando la liberación de la clave %s", obtain_esi_information_by_id(*esi_executing)->esi_numeric_name, esi_sexpecting_key_exec->key);
+		} else {
+
+			list_add(g_locked_keys, (void*)create_key_blocker(esi_sexpecting_key_exec->key, esi_sexpecting_key_exec->esi_fd));
+			log_info(logger, "El ESI %i tomó la clave %s y no se bloqueó ya que nadie poseía la misma", obtain_esi_information_by_id(*esi_executing)->esi_numeric_name, esi_sexpecting_key_exec->key);
+		}
 	}
 
 	bool is_in_ready(void* esi_fd) {
@@ -1131,11 +1136,16 @@ static void block_by_console_procedure() {
 			}
 
 			esi_sexpecting_key* esi_sexpecting_key_ready = list_find(mapped_list, condition);
+
+			if(determine_if_key_is_blocked(esi_sexpecting_key_ready->key)) {
 			list_add(g_esis_sexpecting_keys, (void*)create_esi_sexpecting_key(esi_sexpecting_key_ready->esi_fd, esi_sexpecting_key_ready->key));
-
 			move_esi_from_and_to_queue(g_ready_queue, g_blocked_queue_by_console, *(int*)esi_fd);
-
 			log_info(logger, "El ESI %i se ha bloqueado por consola y ahora está esperando la liberación de la clave %s", obtain_esi_information_by_id(esi_sexpecting_key_ready->esi_fd)->esi_numeric_name, esi_sexpecting_key_ready->key);
+			} else {
+
+				list_add(g_locked_keys, (void*)create_key_blocker(esi_sexpecting_key_ready->key, esi_sexpecting_key_ready->esi_fd));
+				log_info(logger, "El ESI %i tomó la clave %s y no se bloqueó ya que nadie poseía la misma", obtain_esi_information_by_id(esi_sexpecting_key_ready->esi_fd)->esi_numeric_name, esi_sexpecting_key_ready->key);
+			}
 		}
 
 		list_iterate(filtered_list, closure);
@@ -1151,7 +1161,15 @@ static void block_by_console_procedure() {
 
 		void show_esi_that_wasnt_blocked(void* esi_fd) {
 
-			log_error(logger, "El ESI %i no pudo bloquearse porque no se encuentra en ready ni tampoco en ejecución", obtain_esi_information_by_id(*(int*)esi_fd)->esi_numeric_name);
+			esi_information* esi_inf = obtain_esi_information_by_id(*(int*)esi_fd);
+
+			if (esi_inf != NULL) {
+
+				log_error(logger,"El ESI %i no pudo bloquearse porque no se encuentra en ready ni tampoco en ejecución", esi_inf->esi_numeric_name);
+			} else {
+
+				log_error(logger, "El ESI %i no existe en el sistema", esi_inf->esi_numeric_name);
+			}
 		}
 
 		list_iterate(esis_that_cant_be_blocked_by_console, show_esi_that_wasnt_blocked);
