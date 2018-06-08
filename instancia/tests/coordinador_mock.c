@@ -9,31 +9,39 @@
 #include "coordinador_mock.h"
 
 void coordinador_mock_handshake(int fd_client, size_t total_entries, size_t entry_size) {
-	receive_handshake(fd_client);
+	chunk_t* chunk = chunk_create();
 
-	messenger_show("INFO", "Se recibio una solicitud de handshake de una instancia");
+	bool is_new_instance = true;
 
-	messenger_show("INFO", "Se envio confirmacion de handshake");
-
-	messenger_show("INFO", "Esperando recibir el nombre de la instancia");
-
-	send_confirmation(fd_client, true);
-
-	char* received_name;
-
-	chunk_recv_variable(fd_client, (void**) &received_name);
-
-	messenger_show("INFO", "Se recibio el nombre de la instancia, que se llama %s", received_name);
+	request_coordinador header = PROTOCOL_CI_HANDSHAKE_CONFIRMATION;
 
 	storage_setup_t setup = {.total_entries = total_entries, .entry_size = entry_size};
 
-	chunk_t* chunk = chunk_create();
+	char *received_name, *existing_instance_name = "Esquivel";
 
-	chunk_add(chunk, &setup.entry_size, sizeof(size_t));
+	receive_handshake(fd_client);
 
-	chunk_add(chunk, &setup.total_entries, sizeof(size_t));
+	chunk_recv_variable(fd_client, (void**) &received_name);
 
-	messenger_show("INFO", "Se va a enviar el tamano del storage de %d entradas de tamano %d a %s", setup.total_entries, setup.entry_size, received_name);
+	messenger_show("INFO", "Se recibio una solicitud de handshake de la instancia %s", received_name);
+
+	is_new_instance = !string_equals_ignore_case(received_name, existing_instance_name);
+
+	chunk_add(chunk, &header, sizeof(header));
+
+	chunk_add(chunk, &is_new_instance, sizeof(is_new_instance));
+
+	if(is_new_instance) {
+		messenger_show("INFO", "Se va a enviar el tamano del storage de %d entradas de tamano %d a %s", setup.total_entries, setup.entry_size, received_name);
+
+		chunk_add(chunk, &setup.entry_size, sizeof(size_t));
+
+		chunk_add(chunk, &setup.total_entries, sizeof(size_t));
+	}
+
+	else {
+		messenger_show("ERROR", "La instancia %s ya existe en el sistema", received_name);
+	}
 
 	chunk_send_and_destroy(fd_client, chunk);
 

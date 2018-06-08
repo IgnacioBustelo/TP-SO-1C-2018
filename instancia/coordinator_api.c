@@ -18,46 +18,38 @@ void coordinator_api_connect(char* host, int port) {
 
 void coordinator_api_handshake(char* instance_name, storage_setup_t* setup){
 	chunk_t* chunk;
-	bool is_confirmed;
+
+	request_coordinador header;
+
+	bool is_confirmed = false;
 
 	messenger_show("INFO", "Enviada la solicitud de handshake con el Coordinador");
 
-	messenger_show("INFO", "Esperando confirmacion de handshake");
-
 	send_handshake(fd_coordinador, INSTANCE);
 
-	receive_confirmation(fd_coordinador, &is_confirmed);
+	messenger_show("INFO", "Se prepara el envio del nombre de la instancia (%s)", instance_name);
 
-	messenger_show("INFO", "Recibida la confirmacion de handshake");
+	chunk = chunk_create();
 
-	if (is_confirmed){
+	chunk_add_variable(chunk, instance_name, string_length(instance_name) + 1);
 
-		messenger_show("INFO", "El Coordinador acepto la solicitud de handshake");
+	chunk_send_and_destroy(fd_coordinador, chunk);
 
-		messenger_show("INFO", "Se prepara el envio del nombre de la instancia (%s)", instance_name);
+	chunk_recv(fd_coordinador, &header, sizeof(header));
 
-		chunk = chunk_create();
+	chunk_recv(fd_coordinador, &is_confirmed, sizeof(is_confirmed));
 
-		chunk_add_variable(chunk, instance_name, string_length(instance_name) + 1);
-
-		chunk_send_and_destroy(fd_coordinador, chunk);
-
+	if(is_confirmed) {
 		chunk_recv(fd_coordinador, &setup->entry_size, sizeof(size_t));
 
 		chunk_recv(fd_coordinador, &setup->total_entries, sizeof(size_t));
 
 		messenger_show("INFO", "Se asigno una dimension de %d entradas de tamano %d para el Storage", setup->total_entries, setup->entry_size);
-
 	}
 
 	else {
-
-		messenger_show("ERROR", "El Coordinador rechazo la solicitud de handshake");
-
-		// TODO: Manejar error
-
+		messenger_show("ERROR", "El Coordinador no acepto a la Instancia");
 	}
-
 }
 
 request_coordinador coordinator_api_receive_header() {
