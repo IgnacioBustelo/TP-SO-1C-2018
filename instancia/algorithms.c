@@ -6,7 +6,7 @@ void algorithm_circular_set_pointer(int index){
 }
 
 int algorithm_circular(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys){
-	if(new_value_fits(key_value))
+	if(!entry_table_have_entries(key_value) && new_value_fits(key_value))
 	{
 
 		int continous_atomic_and_free_entries=0;
@@ -49,9 +49,7 @@ int algorithm_circular(t_list* entry_table,key_value_t* key_value,t_list* replac
 				status = (status_t*)list_get(entry_table_status,first_entry_of_continous_atomic_and_free_entries);
 				if (status->status==ATOMIC)
 				{
-					fake_key_value->key=strdup(status->key);
-					entry_table_delete(fake_key_value);
-					//Aca deberia agegar las claves que destruyo a la tabla de claves.
+					list_add(replaced_keys,status->key);
 				}
 				first_entry_of_continous_atomic_and_free_entries++;
 				continous_atomic_and_free_entries--;

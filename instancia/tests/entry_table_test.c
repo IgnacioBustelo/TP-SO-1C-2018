@@ -91,55 +91,18 @@ int main()
 		printf("\n");
 		entry_table_print_table(); //X,Y,Z
 
-		key_value=key_value_generator("Y",30);
+		key_value=key_value_generator("X",30);
 		entry_table_delete(key_value);
 
 		printf("\n");
 		entry_table_print_table(); //X,Y
 
-		key_value=key_value_generator("Y",30);
+		key_value=key_value_generator("A",15);
 		next_entry = entry_table_next_entry(key_value);
 		entry_table_insert(next_entry,key_value);
 
 		printf("\n");
-		entry_table_print_table();
-
-		key_value=key_value_generator("X",30);
-		entry_table_delete(key_value);
-//
-		printf("\n");
-		entry_table_print_table();
-
-
-		key_value=key_value_generator("X",15);
-		next_entry = entry_table_next_entry(key_value);
-		entry_table_insert(next_entry,key_value);
-
-		printf("\n");
-		entry_table_print_table();
-
-//		key_value=key_value_generator("M",15);
-//		next_entry = entry_table_next_entry(key_value);
-//		entry_table_insert(next_entry,key_value);
-
-		printf("\n");
-		entry_table_print_table();
-
-		printf("\n\n");
-		printf("La cantidad de entradas libres son: %d \n\n",entries_left);
-
-		printf("Busco si la clave Y existe \n");
-
-		entry_t * entry;
-
-		entry = entry_table_get_entry("Y");
-
-		printf("La clave Y apunta a la entrada %d y ocupa %d bits \n\n",entry->number,entry->size);
-
-		printf("La cantidad de entradas atomicas es %d \n\n",entry_table_atomic_entries_count());
-
-
-
+		entry_table_print_table(); //X,Y
 }
 
 

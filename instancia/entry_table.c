@@ -135,7 +135,7 @@ bool entry_table_delete(key_value_t * key_value)
 		if (!strcmp(key_value->key,entry->key))
 		{
 			list_remove(entry_table,i);
-			entries_left=+(entry->size/get_entry_size())+1;
+			entries_left+=entry_table_entries_needed(key_value);
 			return true;
 		}
 	}
