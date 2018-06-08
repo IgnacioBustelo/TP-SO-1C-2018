@@ -21,25 +21,23 @@ void coordinator_api_handshake(char* instance_name, storage_setup_t* setup){
 
 	request_coordinador header;
 
-	bool is_confirmed = false;
-
 	messenger_show("INFO", "Enviada la solicitud de handshake con el Coordinador");
 
 	send_handshake(fd_coordinador, INSTANCE);
 
 	messenger_show("INFO", "Se prepara el envio del nombre de la instancia (%s)", instance_name);
 
-	chunk = chunk_create();
+	bool is_confirmed;
 
-	chunk_add_variable(chunk, instance_name, string_length(instance_name) + 1);
+	int confirmation_received = receive_confirmation(fd_coordinador, &is_confirmed);
 
-	chunk_send_and_destroy(fd_coordinador, chunk);
+	if(confirmation_received && is_confirmed) {
+		chunk = chunk_create();
 
-	chunk_recv(fd_coordinador, &header, sizeof(header));
+		chunk_add_variable(chunk, instance_name, string_length(instance_name) + 1);
 
-	chunk_recv(fd_coordinador, &is_confirmed, sizeof(is_confirmed));
+		chunk_send_and_destroy(fd_coordinador, chunk);
 
-	if(is_confirmed) {
 		chunk_recv(fd_coordinador, &setup->entry_size, sizeof(size_t));
 
 		chunk_recv(fd_coordinador, &setup->total_entries, sizeof(size_t));

@@ -141,14 +141,10 @@ static bool instance_recv_execution_status(int fd, int *status_code)
 static bool instance_send_confirmation(int fd)
 {
 	struct {
-		request_coordinador op_code;
-		bool validation;
 		size_t entry_size;
 		size_t entry_num;
 	} PACKED package;
 
-	package.op_code = PROTOCOL_CI_HANDSHAKE_CONFIRMATION;
-	package.validation = true;
 	package.entry_size = setup.entries_size;
 	package.entry_num = setup.entries_num;
 
