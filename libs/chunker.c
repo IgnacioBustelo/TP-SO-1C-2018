@@ -110,13 +110,15 @@ void chunk_recv_variable(int fd, void** receiver) {
 	messenger_show("DEBUG", "Se recibio un cacho variable serializado de memoria de tamano %d", size);
 }
 
-void chunk_recv_list(int fd, t_list* receiver, void*(*unpackager)(int)) {
+void chunk_recv_list(int fd, t_list** receiver, void*(*unpackager)(int)) {
 	size_t size;
+
+	*receiver = list_create();
 
 	chunk_recv(fd, &size, sizeof(size));
 
 	int i;
 	for(i = 0; i < size; i++) {
-		list_add(receiver, unpackager(fd));
+		list_add(*receiver, unpackager(fd));
 	}
 }

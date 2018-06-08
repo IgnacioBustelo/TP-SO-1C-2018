@@ -15,48 +15,47 @@ typedef struct {
 
 student_t* student_send;
 
-student_t* student_init() {
-	student_t* student = malloc(sizeof(student_t));
-
-	student->subjects = list_create();
-
-	return student;
-}
-
 student_t* student_create(int id, char* name, char* surname, float average, t_list* subjects) {
-	student_t* student = student_init();
+	student_t* student = malloc(sizeof(student_t));
 
 	student->id = id;
 	student->name = string_duplicate(name);
 	student->surname = string_duplicate(surname);
 	student->average = average;
-	student->subjects = subjects;
+	student->subjects = list_duplicate(subjects);
 
 	return student;
 }
 
 char* student_show(student_t* student) {
-	char* subjects = string_new();
+	char *subjects = string_new(), *comma = string_duplicate(", "), *student_string;
 
 	void subjects_retriever(void* node) {
-		subjects = string_from_format("%s%s ", subjects, (char*) node);
+		string_append(&subjects, (char*) node);
+		string_append(&subjects, comma);
 	}
 
 	list_iterate(student->subjects, (void*) subjects_retriever);
 
-	return string_from_format("alumno %s %s, de legajo %d, que cursa %s, y tiene promedio %f", student->name, student->surname, student->id, subjects, student->average);
+	student_string = string_from_format("alumno %s %s, de legajo %d, que cursa %sy tiene promedio %.2f", student->name, student->surname, student->id, subjects, student->average);
+
+	free(comma);
+
+	free(subjects);
+
+	return student_string;
 }
 
 void student_destroy(student_t* student) {
 	free(student->name);
 	free(student->surname);
-	list_destroy(student->subjects);
+	list_destroy_and_destroy_elements(student->subjects, free);
 	free(student);
 }
 
 void client_server_execute_server(int fd_client) {
 	void packager(chunk_t* chunk, void* node) {
-		chunk_add_variable(chunk, string_duplicate((char*) node), string_length((char*) node) + 1);
+		chunk_add_variable(chunk, (char*) node, string_length((char*) node) + 1);
 	}
 
 	chunk_t* chunk = chunk_create();
@@ -107,41 +106,39 @@ void client_server_execute_client(int fd_server) {
 		return subject;
 	}
 
-	student_t* student_received = student_init();
+	student_t* student_received = malloc(sizeof(student_t));
 
 	chunk_recv(fd_server, &student_received->id, sizeof(student_received->id));
 
 	messenger_show("INFO", "Recibiendo el paquete");
 
-	messenger_show("INFO", "Recibiendo el legajo");
-
-	chunk_recv_variable(fd_server, (void**) &student_received->name);
-
 	messenger_show("INFO", "Recibido el legajo");
 
 	messenger_show("INFO", "Recibiendo el nombre");
 
-	chunk_recv_variable(fd_server, (void**) &student_received->surname);
+	chunk_recv_variable(fd_server, (void**) &student_received->name);
 
 	messenger_show("INFO", "Recibido el nombre");
 
 	messenger_show("INFO", "Recibiendo el apellido");
 
-	chunk_recv_list(fd_server, student_received->subjects, unpackager);
+	chunk_recv_variable(fd_server, (void**) &student_received->surname);
 
 	messenger_show("INFO", "Recibido el apellido");
 
 	messenger_show("INFO", "Recibiendo las materias");
 
-	chunk_recv(fd_server, &student_received->average, sizeof(student_received->average));
+	chunk_recv_list(fd_server, &student_received->subjects, unpackager);
 
 	messenger_show("INFO", "Recibidas las materias");
 
 	messenger_show("INFO", "Recibiendo el promedio");
 
-	char* student_description = student_show(student_received);
+	chunk_recv(fd_server, &student_received->average, sizeof(student_received->average));
 
 	messenger_show("INFO", "Recibido el promedio");
+
+	char* student_description = student_show(student_received);
 
 	messenger_show("INFO", "Se recibio al alumno %s", student_description);
 
@@ -164,10 +161,12 @@ int main(int argc, char* argv[]) {
 
 	int i;
 	for(i = 5; i < argc; i++) {
-		list_add(subject_list, argv[i]);
+		list_add(subject_list, string_duplicate(argv[i]));
 	}
 
 	student_send = student_create(atoi(argv[1]), argv[2], argv[3], atof(argv[4]), subject_list);
+
+	list_destroy(subject_list);
 
 	char* student_description = student_show(student_send);
 

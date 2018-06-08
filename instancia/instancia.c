@@ -90,10 +90,16 @@ void instance_main() {
 
 				key_value_destroy(key_value);
 
+				if(!list_is_empty(replaced_keys)) {
+					// TODO: La tabla de entradas tiene que eliminar la lista de claves que se hayan reemplazado
+
+					list_clean_and_destroy_elements(replaced_keys, free);
+				}
+
+				list_destroy(replaced_keys);
+
 				// TODO: Añadir parametro de lista de claves reemplazadas
 				coordinator_api_notify_set(status, get_total_entries() - entries_left);
-
-				list_destroy_and_destroy_elements(replaced_keys, free);
 
 				break;
 			}
