@@ -537,6 +537,7 @@ void update_waiting_time_of_ready_esis() {
 	}
 
 	list_iterate(esis_in_ready_queue, update_waited_bursts);
+	list_destroy(esis_in_ready_queue);
 }
 
 void move_esi_from_and_to_queue(t_list* from_queue, t_list* to_queue, int esi_fd) {
@@ -580,6 +581,7 @@ int schedule_esis() {
 		t_list* mapped_to_sort_list = list_map(g_ready_queue, obtain_esi_information);
 	 	list_sort(mapped_to_sort_list, comparator);
 	 	esi_fd = &((esi_information*)mapped_to_sort_list->head->data)->esi_id;
+	 	list_destroy(mapped_to_sort_list);
 		break;
 	}
 
@@ -602,6 +604,7 @@ int schedule_esis() {
 		t_list* mapped_to_sort_list = list_map(g_ready_queue, obtain_esi_information);
 		list_sort(mapped_to_sort_list, comparator);
 		esi_fd = &((esi_information*) mapped_to_sort_list->head->data)->esi_id;
+		list_destroy(mapped_to_sort_list);
 		break;
 	}
 
@@ -670,6 +673,8 @@ int unlock_esis(char* unlocked_key) {
     }
 
     list_remove_and_destroy_by_condition(g_esis_sexpecting_keys, remove_condition, esi_sexpecting_destroyer);
+    list_destroy(filtered_list);
+    list_destroy(mapped_list);
 
 	return esi_fd_to_unlock;
 }
@@ -793,6 +798,8 @@ void release_resources(int esi_fd, int* update_blocked_esi_queue_flag) {
 	list_remove_and_destroy_by_condition(g_locked_keys, condition, destroy_key_blocker);
 
 	list_remove_and_destroy_by_condition(g_esi_bursts, condition2, destroy_esi_information);
+
+	list_destroy(keys_unlocked);
 
 	log_info(logger,"Los recursos del ESI %i fueron liberados correctamente", esi_numeric_order);
 
