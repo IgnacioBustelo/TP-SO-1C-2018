@@ -16,11 +16,15 @@ struct setup_t setup;
 
 struct instance_list_t *instance_list;
 
+static bool instance_handle_set_request(int fd, char *name, struct request_node_t *request);
+static bool instance_handle_store_request(int fd, char *name, struct request_node_t *request);
 static char *instance_recv_name(int fd);
-static bool instance_recv_execution_status(int fd, int *status_code);
+static bool instance_recv_set_execution_status(int fd, int *status_code, size_t *used_entries);
+static bool instance_recv_store_execution_status(int fd, int *status_code);
 static bool instance_send_confirmation(int fd);
 static bool instance_send_confirmation_error(int fd);
 static bool instance_send_set_instruction(int fd, char *key, char *value);
+static bool instance_send_store_instruction(int fd, char *key);
 
 __attribute__((constructor)) void init_instance_list(void) {
 	instance_list = instance_list_create();
@@ -56,58 +60,104 @@ void handle_instance_connection(int fd)
 		return;
 	}
 
-	for (;;) {
+	bool error = false;
+	while (!error) {
 		struct request_node_t *request = request_list_pop(instance->requests);
 		log_info(logger, "[Instancia %s] Atendiendo pedido...", name);
 
-		bool send_success = false;		// TODO: Quitar el false.
-		switch (request->type) {
+		switch(request->type) {
 		case INSTANCE_SET:
-			send_success = instance_send_set_instruction(fd, request->set.key, request->set.value);
+			error = !instance_handle_set_request(fd, name, request);
 			break;
 		case INSTANCE_STORE:
-			/* TODO:
-			 * success = instance_send_store_instruction(fd, request->store.key);
-			 */
+			error = !instance_handle_store_request(fd, name, request);
 			break;
 		}
 
-		if (!send_success) {
-			/* TODO: Bloquear ESI por la desconexion de la instancia. */
-			log_error(logger, "[Instancia %s] Error al enviar instruccion!", name);
-			esi_send_notify_block(request->requesting_esi_fd);
-			request_node_destroy(request);
-			break;
-		}
-
-		int status;
-		if (!instance_recv_execution_status(fd, &status)) {
-			log_error(logger, "[Instancia %s] Error al recibir resultado de ejecucion!", name);
-			esi_send_notify_block(request->requesting_esi_fd);
-			request_node_destroy(request);
-			break;
-		}
-
-		/* status:
-		 *   (1) success.
-		 *   (0) failure.
-		 */
-		if (status == 1) {
-			esi_send_execution_success(request->requesting_esi_fd);
-		} else if (status == 0) {
-			esi_send_notify_block(request->requesting_esi_fd);
-			request_node_destroy(request);
-			break;
-		} else {
-			esi_send_notify_block(request->requesting_esi_fd);
-			request_node_destroy(request);
-			break;
-		}
 		request_node_destroy(request);
 	}
 
 	instance_list_remove(instance_list, name);
 	free(name);
+}
+
+static bool instance_handle_set_request(int fd, char *name, struct request_node_t *request)
+{
+	if (!instance_send_set_instruction(fd, request->set.key, request->set.value)) {
+		log_error(logger, "[Instancia %s] Error al enviar instruccion SET!", name);
+		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", name);
+		esi_send_notify_block(request->requesting_esi_fd);
+
+		return false;
+	}
+
+	int status;
+	size_t used_entries;	// TODO: Hacer algo con eso.
+	if (!instance_recv_set_execution_status(fd, &status, &used_entries)) {
+		log_error(logger, "[Instancia %s] Error al recibir resultado de ejecucion!", name);
+		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", name);
+		esi_send_notify_block(request->requesting_esi_fd);
+
+		return false;
+	}
+
+	/* status:
+	 *   (1) success.
+	 *   (0) failure.
+	 */
+	if (status == 1) {
+		log_info(logger, "[Instancia %s] Operacion realizada correctamente.", name);
+		esi_send_execution_success(request->requesting_esi_fd);
+		return true;
+	} else if (status == 0) {
+		/* TODO: REVIEW */
+		log_error(logger, "[Instancia %s] Operacion fallida!", name);
+		esi_send_illegal_operation(request->requesting_esi_fd);
+		return false;
+	} else {
+		log_error(logger, "[Instancia %s] Se recibio un resultado invalido!", name);
+		esi_send_notify_block(request->requesting_esi_fd);
+		return false;
+	}
+}
+
+static bool instance_handle_store_request(int fd, char *name, struct request_node_t *request)
+{
+	if (!instance_send_store_instruction(fd, request->store.key)) {
+		log_error(logger, "[Instancia %s] Error al enviar instruccion STORE!", name);
+		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", name);
+		esi_send_notify_block(request->requesting_esi_fd);
+
+		return false;
+	}
+
+	int status;
+	if (!instance_recv_store_execution_status(fd, &status)) {
+		log_error(logger, "[Instancia %s] Error al recibir resultado de ejecucion!", name);
+		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", name);
+		esi_send_notify_block(request->requesting_esi_fd);
+
+		return false;
+	}
+
+	/* status:
+	 *   (1) success.
+	 *   (0) failure.
+	 */
+	if (status == 1) {
+		log_info(logger, "[Instancia %s] Operacion realizada correctamente.", name);
+		esi_send_execution_success(request->requesting_esi_fd);
+		return true;
+	} else if (status == 0) {
+		/* TODO: REVIEW */
+		log_error(logger, "[Instancia %s] Operacion fallida!", name);
+		esi_send_illegal_operation(request->requesting_esi_fd);
+		return false;
+	} else {
+		log_error(logger, "[Instancia %s] Se recibio un resultado invalido!", name);
+		esi_send_notify_block(request->requesting_esi_fd);
+		return false;
+	}
 }
 
 static char *instance_recv_name(int fd)
@@ -128,14 +178,27 @@ static char *instance_recv_name(int fd)
 	return name;
 }
 
-static bool instance_recv_execution_status(int fd, int *status_code)
+static bool instance_recv_set_execution_status(int fd, int *status_code, size_t *used_entries)
 {
 	request_instancia op_code;
 	if (!CHECK_RECV(fd, &op_code) || op_code != PROTOCOL_IC_NOTIFY_STATUS) {
 		return false;
-	} else {
-		return CHECK_RECV(fd, status_code);
 	}
+
+	if (!CHECK_RECV(fd, status_code)) {
+		return false;
+	}
+
+	return CHECK_RECV(fd, used_entries);
+}
+
+static bool instance_recv_store_execution_status(int fd, int *status_code)
+{
+	request_instancia op_code;
+	if (!CHECK_RECV(fd, &op_code) || op_code != PROTOCOL_IC_NOTIFY_STORE) {
+		return false;
+	}
+	return CHECK_RECV(fd, status_code);
 }
 
 static bool instance_send_confirmation(int fd)
@@ -176,6 +239,27 @@ static bool instance_send_set_instruction(int fd, char *key, char *value)
 		{ key, key_size },
 		{ &value_size, sizeof(value_size) },
 		{ value, value_size }
+	};
+
+	int i;
+	for (i = 0; i < sizeof(blocks) / sizeof(*blocks); i++) {
+		if (!CHECK_SEND_WITH_SIZE(fd, blocks[i].block, blocks[i].block_size)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static bool instance_send_store_instruction(int fd, char *key)
+{
+	request_coordinador op_code = PROTOCOL_CI_STORE;
+	size_t key_size = strlen(key) + 1;
+
+	struct { void *block; size_t block_size; } blocks[] = {
+		{ &op_code, sizeof(op_code) },
+		{ &key_size, sizeof(key_size) },
+		{ key, key_size },
 	};
 
 	int i;
