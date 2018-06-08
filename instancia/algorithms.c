@@ -1,25 +1,62 @@
 #include "algorithms.h"
 
 
-void algorithm_circular_init(){
-	algorithm_circular_pointer=0;
+void algorithm_circular_set_pointer(int index){
+	algorithm_circular_pointer=index;
 }
 
 int algorithm_circular(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys){
 	if(new_value_fits(key_value))
 	{
+
 		int continous_atomic_and_free_entries=0;
-		int first_entry_of_continous_atomic_and_free_entries=0;
-		if (algorithm_circular_pointer>=list_size(entry_table))
+		int first_entry_of_continous_atomic_and_free_entries=-1;
+		t_list* entry_table_status = original_entry_table_migration_to_complete_one();
+		status_t* status;
+		if (algorithm_circular_pointer>=list_size(entry_table_status))
 		{
+
 			algorithm_circular_pointer=0;
 		}
-		while(algorithm_circular_pointer<list_size(entry_table))
+		while(algorithm_circular_pointer<list_size(entry_table_status) && continous_atomic_and_free_entries!=entry_table_entries_needed(key_value))
 		{
-			entry_t* entry = (entry_t *)list_get(entry_table,algorithm_circular_pointer);
-				if(entry_table_is_entry_atomic(entry))
+
+			status = (status_t*)list_get(entry_table_status,algorithm_circular_pointer);
+			if ((status->status==ATOMIC || status->status==FREE) && first_entry_of_continous_atomic_and_free_entries == -1)
+			{
+				first_entry_of_continous_atomic_and_free_entries = algorithm_circular_pointer;
+				continous_atomic_and_free_entries++;
+			}
+			else if ((status->status==ATOMIC || status->status==FREE) && first_entry_of_continous_atomic_and_free_entries != -1)
+			{
+				continous_atomic_and_free_entries++;
+
+			}
+			else
+			{
+				continous_atomic_and_free_entries=0;
+				first_entry_of_continous_atomic_and_free_entries=-1;
+			}
+			algorithm_circular_pointer++;
+		}
+
+		if (continous_atomic_and_free_entries==entry_table_entries_needed(key_value))
+		{
+		key_value_t * fake_key_value=malloc(sizeof(key_value_t));
+
+			while (continous_atomic_and_free_entries>0)
+			{
+				status = (status_t*)list_get(entry_table_status,first_entry_of_continous_atomic_and_free_entries);
+				if (status->status==ATOMIC)
 				{
+					fake_key_value->key=strdup(status->key);
+					entry_table_delete(fake_key_value);
+					//Aca deberia agegar las claves que destruyo a la tabla de claves.
 				}
+				first_entry_of_continous_atomic_and_free_entries++;
+				continous_atomic_and_free_entries--;
+			}
+		return 1;
 		}
 	}
 	return 0;
