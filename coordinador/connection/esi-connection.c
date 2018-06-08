@@ -127,7 +127,7 @@ static struct esi_operation_t *esi_recv_operation(struct esi_t esi)
 
 	int op_id;
 	if (!CHECK_RECV(esi.fd, &op_id)) {
-		esi_log_error(logger, "Error al recibir operacion!");
+		esi_log_info(logger, "Finaliza la ejecucion del ESI.");
 		return NULL;
 	}
 
