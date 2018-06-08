@@ -76,6 +76,7 @@ void handle_instance_connection(int fd)
 			/* TODO: Bloquear ESI por la desconexion de la instancia. */
 			log_error(logger, "[Instancia %s] Error al enviar instruccion!", name);
 			esi_send_notify_block(request->requesting_esi_fd);
+			request_node_destroy(request);
 			break;
 		}
 
@@ -83,6 +84,7 @@ void handle_instance_connection(int fd)
 		if (!instance_recv_execution_status(fd, &status)) {
 			log_error(logger, "[Instancia %s] Error al recibir resultado de ejecucion!", name);
 			esi_send_notify_block(request->requesting_esi_fd);
+			request_node_destroy(request);
 			break;
 		}
 
@@ -94,11 +96,14 @@ void handle_instance_connection(int fd)
 			esi_send_execution_success(request->requesting_esi_fd);
 		} else if (status == 0) {
 			esi_send_notify_block(request->requesting_esi_fd);
+			request_node_destroy(request);
 			break;
 		} else {
 			esi_send_notify_block(request->requesting_esi_fd);
+			request_node_destroy(request);
 			break;
 		}
+		request_node_destroy(request);
 	}
 
 	instance_list_remove(instance_list, name);

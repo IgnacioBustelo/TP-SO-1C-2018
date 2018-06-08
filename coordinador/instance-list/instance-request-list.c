@@ -12,7 +12,6 @@
 static struct request_node_t *request_node_create_set(int esi_fd, char *key, char *value);
 static struct request_node_t *request_node_create_store(int esi_fd, char *key);
 static void request_list_push(struct request_list_t *request_list, struct request_node_t *elem);
-static void request_node_destroy(struct request_node_t *node);
 
 struct request_list_t *request_list_create(void)
 {
@@ -32,6 +31,7 @@ void request_list_destroy(struct request_list_t *list)
 	pthread_mutex_destroy(&list->lock);
 	queue_destroy_and_destroy_elements(list->elements, destructor);
 	sem_destroy(&list->count);
+	free(list);
 }
 
 struct request_node_t *request_list_push_set(struct request_list_t *request_list, int esi_fd, char *key, char *value)
@@ -90,7 +90,7 @@ static struct request_node_t *request_node_create_store(int esi_fd, char *key)
 	return node;
 }
 
-static void request_node_destroy(struct request_node_t *node)
+void request_node_destroy(struct request_node_t *node)
 {
 	switch (node->type) {
 	case INSTANCE_SET:
