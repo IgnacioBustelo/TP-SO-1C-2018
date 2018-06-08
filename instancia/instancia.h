@@ -5,8 +5,6 @@
 
 #include "globals.h"
 
-static int algorithm_circular_pointer;
-
 void	instance_init(char* process_name, char* logger_route, char* log_level, char* cfg_route);
 
 int		instance_set(key_value_t* key_value, t_list* replaced_keys);

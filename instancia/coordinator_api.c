@@ -17,22 +17,18 @@ void coordinator_api_connect(char* host, int port) {
 }
 
 void coordinator_api_handshake(char* instance_name, storage_setup_t* setup){
-	chunk_t* chunk;
-
-	request_coordinador header;
+	bool is_confirmed;
 
 	messenger_show("INFO", "Enviada la solicitud de handshake con el Coordinador");
 
 	send_handshake(fd_coordinador, INSTANCE);
 
-	messenger_show("INFO", "Se prepara el envio del nombre de la instancia (%s)", instance_name);
-
-	bool is_confirmed;
-
 	int confirmation_received = receive_confirmation(fd_coordinador, &is_confirmed);
 
+	messenger_show("INFO", "Recibida la confirmacion del Coordinador");
+
 	if(confirmation_received && is_confirmed) {
-		chunk = chunk_create();
+		chunk_t* chunk = chunk_create();
 
 		chunk_add_variable(chunk, instance_name, string_length(instance_name) + 1);
 
@@ -47,6 +43,8 @@ void coordinator_api_handshake(char* instance_name, storage_setup_t* setup){
 
 	else {
 		messenger_show("ERROR", "El Coordinador no acepto a la Instancia");
+
+		// TODO: Manejar errores!!
 	}
 }
 

@@ -35,9 +35,13 @@ void instance_init(char* process_name, char* logger_route, char* log_level, char
 	dumper_init(MOUNT_POINT);
 
 	entry_table_init();
+
+	messenger_show("INFO", "La Instancia se inicio correctamente");
 }
 
 int instance_set(key_value_t* key_value, t_list* replaced_keys) {
+	messenger_show("INFO", "Se recibio un pedido de SET de la clave %s", key_value->key);
+
 	int status = 1; // TODO: Hacer que cada operacion devuelva un estado y decidir si retornar o no error.
 
 	if(!entry_table_have_entries(key_value)) {
@@ -56,10 +60,16 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 
 	entry_table_insert(next_entry, key_value);
 
+	if(status == 1) {
+		messenger_show("INFO", "Se proceso correctamente el SET de la clave %s en la entrada %d", key_value->key, next_entry);
+	}
+
 	return status;
 }
 
 int	instance_store(char* key) {
+	messenger_show("INFO", "Se recibio un pedido de STORE de la clave %s", key);
+
 	int status = 1; // TODO: Hacer que cada operacion devuelva un estado y decidir si retornar o no error.
 
 	entry_t* entry = entry_table_get_entry(key); // TODO: Hacer que dada una clave, devuelva la entrada y el tamaño de la clave
@@ -67,6 +77,10 @@ int	instance_store(char* key) {
 	void* data = storage_retrieve(entry->number, entry->size);
 
 	dumper_store(key, data, entry->size);
+
+	if(status == 1) {
+		messenger_show("INFO", "Se proceso correctamente el STORE de la clave %s", key);
+	}
 
 	free(data);
 
@@ -76,7 +90,11 @@ int	instance_store(char* key) {
 }
 
 void instance_main() {
+	messenger_show("INFO", "Comienzo de actividades de la Instancia");
+
 	while(instance_is_alive) {
+
+		messenger_show("INFO", "Esperando peticion del Coordinador");
 
 		int status; // TODO: Manejar el tema de retornos de valores de operaciones.
 
@@ -107,8 +125,6 @@ void instance_main() {
 			case PROTOCOL_CI_STORE: {
 				char* key = coordinator_api_receive_store();
 
-				messenger_show("INFO", "Se recibio un pedido de STORE de la clave %s", key);
-
 				status = instance_store(key);
 
 				coordinator_api_notify_status(PROTOCOL_IC_NOTIFY_STORE, status);
@@ -119,10 +135,14 @@ void instance_main() {
 			case PROTOCOL_CI_KILL: {
 				instance_is_alive = false;
 
+				messenger_show("INFO", "La Instancia recibio un pedido del Coordinador para desconectarse");
+
 				break;
 			}
 
 			default: {
+				instance_is_alive = false;
+
 				messenger_show("INFO", "Se recibio un mensaje no esperado");
 
 				break;
@@ -141,7 +161,7 @@ void instance_show() {
 }
 
 void instance_die() {
-	messenger_show("INFO", "Desconectando a la Instancia");
+	messenger_show("INFO", "Fin de actividades de la Instancia");
 
 	storage_destroy();
 
