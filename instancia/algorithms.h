@@ -5,11 +5,11 @@
 
 #include "entry_table.h"
 
-static enum{
+static enum {
 	ATOMIC,
 	NON_ATOMIC,
 	FREE
-};
+} entry_status;
 
 typedef struct{
 	int status;

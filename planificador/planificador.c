@@ -358,7 +358,7 @@ int main(void) {
 					}
 				}
 
-				if (reschedule_flag == 1){
+				if (reschedule_flag == 1 && !list_is_empty(g_ready_queue)){
 
 					reschedule(&reschedule_flag, &executing_esi);
 				}
@@ -367,7 +367,7 @@ int main(void) {
 					authorize_esi_execution(*(int*)g_execution_queue->head->data);
 				}
 
-			} else sock_my_port(fd);
+			} /*else sock_my_port(fd);*/
 		}
 
 		if(list_is_empty(g_execution_queue) && !list_is_empty(g_new_queue) && scheduler_paused_flag != 1) {
@@ -740,6 +740,7 @@ void reschedule(int* reschedule_flag, int* old_executing_esi) {
 
 	authorize_esi_execution(esi_fd_to_execute);
 	*old_executing_esi = esi_fd_to_execute;
+
 	*reschedule_flag = 0;
 }
 
