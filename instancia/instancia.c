@@ -84,8 +84,6 @@ int	instance_store(char* key) {
 
 	free(data);
 
-	free(entry);
-
 	return status;
 }
 
