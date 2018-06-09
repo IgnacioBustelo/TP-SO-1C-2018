@@ -1,5 +1,6 @@
 #include "../libs/configurator.h"
 #include "../libs/messenger.h"
+#include "algorithms.h"
 #include "cfg_instancia.h"
 #include "coordinator_api.h"
 #include "dumper.h"
@@ -36,6 +37,8 @@ void instance_init(char* process_name, char* logger_route, char* log_level, char
 
 	entry_table_init();
 
+	algorithm_circular_set_pointer(0);
+
 	messenger_show("INFO", "La Instancia se inicio correctamente");
 }
 
@@ -46,10 +49,9 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 
 
 	if(!entry_table_have_entries(key_value)) {
+		algorithm_circular(entry_table,key_value, replaced_keys);
 
-		 status = algorithm_circular(entry_table,key_value, replaced_keys);
-
-		 entry_table_delete_few(replaced_keys);
+		entry_table_delete_few(replaced_keys);
 
 		dumper_remove_key_value(key_value->key);
 	}
@@ -60,7 +62,7 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 
 	storage_set(next_entry, key_value->value, key_value->size);
 
-	entry_table_insert(next_entry, key_value);
+	status = entry_table_insert(next_entry, key_value);
 
 	if(status == 1) {
 		messenger_show("INFO", "Se proceso correctamente el SET de la clave %s en la entrada %d", key_value->key, next_entry);
@@ -109,7 +111,6 @@ void instance_main() {
 				key_value_destroy(key_value);
 
 				if(!list_is_empty(replaced_keys)) {
-					// TODO: La tabla de entradas tiene que eliminar la lista de claves que se hayan reemplazado
 
 					list_clean_and_destroy_elements(replaced_keys, free);
 				}
