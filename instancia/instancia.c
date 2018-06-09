@@ -37,7 +37,7 @@ void instance_init(char* process_name, char* logger_route, char* log_level, char
 
 	entry_table_init();
 
-	algorithm_circular_set_pointer(0);
+	algorithm_circular_set_pointer(4);
 
 	messenger_show("INFO", "La Instancia se inicio correctamente");
 }
@@ -49,6 +49,7 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 
 
 	if(!entry_table_have_entries(key_value)) {
+
 		algorithm_circular(entry_table,key_value, replaced_keys);
 
 		entry_table_delete_few(replaced_keys);

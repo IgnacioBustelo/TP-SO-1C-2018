@@ -22,9 +22,9 @@ int algorithm_circular(t_list* entry_table,key_value_t* key_value, t_list* repla
 
 void algorithm_lru(t_list* entry_table, t_list* replaced_keys);
 
-static bool new_value_fits(key_value_t* key_value);//Se fija si el tamanio del nuevo key_value entra entre todas las entradas atomicas que hay y los lugares libres dentro de la tabla
+bool new_value_fits(key_value_t* key_value);//Se fija si el tamanio del nuevo key_value entra entre todas las entradas atomicas que hay y los lugares libres dentro de la tabla
 
-static status_t * convert_entry_t_to_status_t(entry_t * entry);
+status_t * convert_entry_t_to_status_t(entry_t * entry);
 
 void entry_table_status_print_table(t_list* entry_table_status);
 
