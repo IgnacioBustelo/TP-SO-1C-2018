@@ -99,8 +99,6 @@ void chunk_recv(int fd, void* receiver, size_t size) {
 void chunk_recv_variable(int fd, void** receiver) {
 	size_t size;
 
-	messenger_show("DEBUG", "Se va a recibir un cacho serializado de memoria de tamano variable");
-
 	recv(fd, &size, sizeof(size), MSG_WAITALL);
 
 	*receiver = malloc(size);

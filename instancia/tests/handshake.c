@@ -23,9 +23,9 @@ void client_server_execute_client(int fd_server) {
 int main(int argc, char* argv[]) {
 	server_name = "Coordinador";
 
-	total_entries = (argc < 2) ? 16 : atoi(argv[1]);
-	entry_size = (argc < 3) ? 4 : atoi(argv[2]);
-	client_name = (argc < 4) ? "Instancia 1" : argv[3];
+	client_name = (argc < 2) ? "Instancia 1" : argv[1];
+	total_entries = (argc < 3) ? 16 : atoi(argv[2]);
+	entry_size = (argc < 4) ? 4 : atoi(argv[3]);
 
 	client_server_run();
 }

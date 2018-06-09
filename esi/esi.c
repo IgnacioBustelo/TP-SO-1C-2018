@@ -228,8 +228,13 @@ int wait_for_execution_result(int coordinador_fd_) {
 
 void exit_gracefully(int status) {
 
-	log_info(logger, "La ejecución del ESI finalizó");
+	if(status == EXIT_SUCCESS) {
 
+	log_info(logger, "La ejecución del ESI finalizó");
+	} else {
+
+		log_error(logger, "La ejecución del ESI falló inesperadamente");
+	}
 	log_destroy(logger);
 
 	close(coordinator_fd_);

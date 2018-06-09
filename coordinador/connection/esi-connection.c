@@ -49,6 +49,15 @@ static bool esi_recv_store_args(struct esi_t esi, struct esi_operation_t *operat
 static void esi_operation_destroy(struct esi_operation_t *victim);
 static int esi_get_id(void);
 
+t_log *operation_logger;
+__attribute__((constructor)) void operation_logger_init(void) {
+	operation_logger = log_create("operaciones.log", "Coordinador", true, LOG_LEVEL_INFO);
+}
+
+__attribute__((destructor)) void operation_logger_destroy(void) {
+	log_destroy(operation_logger);
+}
+
 void handle_esi_connection(int fd)
 {
 	struct esi_t esi;
@@ -72,14 +81,15 @@ void handle_esi_connection(int fd)
 #define esi_log_info(logger, fmt, args...) log_info(logger, "[ESI %d] " fmt, esi.id, ##args)
 #define esi_log_error(logger, fmt, args...) log_error(logger, "[ESI %d] " fmt, esi.id, ##args)
 
+#define esi_log_operation(fmt, args...) log_info(operation_logger, "ESI %d\t" fmt, esi.id, ##args)
+
 static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *operation)
 {
 	/* TODO:
-	 *   - Log de operaciones.
 	 *   - Manejar desconexion del planificador.
 	 */
 	if (operation->type == ESI_GET) {
-		esi_log_info(logger, "GET %s", operation->get.key);
+		esi_log_operation("GET %s", operation->get.key);
 		switch (scheduler_recv_key_state(operation->get.key)) {
 		case KEY_UNBLOCKED:
 		case KEY_BLOCKED_BY_EXECUTING_ESI:
@@ -100,10 +110,10 @@ static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *opera
 			return false;
 		}
 		if (operation->type == ESI_SET) {
-			esi_log_info(logger, "SET %s \"%s\"", operation->set.key, operation->set.value);
+			esi_log_operation("SET %s \"%s\"", operation->set.key, operation->set.value);
 			request_list_push_set(instance->requests, esi.fd, operation->set.key, operation->set.value);
 		} else /* operation->type == ESI_STORE */ {
-			esi_log_info(logger, "STORE %s", operation->store.key);
+			esi_log_operation("STORE %s", operation->store.key);
 			request_list_push_store(instance->requests, esi.fd, operation->store.key);
 		}
 	}
@@ -117,7 +127,7 @@ static struct esi_operation_t *esi_recv_operation(struct esi_t esi)
 
 	int op_id;
 	if (!CHECK_RECV(esi.fd, &op_id)) {
-		esi_log_error(logger, "Error al recibir operacion!");
+		esi_log_info(logger, "Finaliza la ejecucion del ESI.");
 		return NULL;
 	}
 

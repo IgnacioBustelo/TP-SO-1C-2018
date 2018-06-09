@@ -9,31 +9,25 @@
 #include "coordinador_mock.h"
 
 void coordinador_mock_handshake(int fd_client, size_t total_entries, size_t entry_size) {
-	receive_handshake(fd_client);
-
-	messenger_show("INFO", "Se recibio una solicitud de handshake de una instancia");
-
-	messenger_show("INFO", "Se envio confirmacion de handshake");
-
-	messenger_show("INFO", "Esperando recibir el nombre de la instancia");
-
-	send_confirmation(fd_client, true);
+	storage_setup_t setup = {.total_entries = total_entries, .entry_size = entry_size};
 
 	char* received_name;
 
+	receive_handshake(fd_client);
+
+	send_confirmation(fd_client, true);
+
 	chunk_recv_variable(fd_client, (void**) &received_name);
 
-	messenger_show("INFO", "Se recibio el nombre de la instancia, que se llama %s", received_name);
+	messenger_show("INFO", "Se recibio una solicitud de handshake de la instancia %s", received_name);
 
-	storage_setup_t setup = {.total_entries = total_entries, .entry_size = entry_size};
+	messenger_show("INFO", "Se va a enviar el tamano del storage de %d entradas de tamano %d a %s", setup.total_entries, setup.entry_size, received_name);
 
 	chunk_t* chunk = chunk_create();
 
 	chunk_add(chunk, &setup.entry_size, sizeof(size_t));
 
 	chunk_add(chunk, &setup.total_entries, sizeof(size_t));
-
-	messenger_show("INFO", "Se va a enviar el tamano del storage de %d entradas de tamano %d a %s", setup.total_entries, setup.entry_size, received_name);
 
 	chunk_send_and_destroy(fd_client, chunk);
 
