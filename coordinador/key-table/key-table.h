@@ -5,6 +5,7 @@
 
 bool key_table_create_key(char *key, struct instance_t *instance);
 struct key_table_data_t *key_table_get(char *key);
+void key_table_remove(char *key);
 struct instance_t *key_table_get_instance(char *key);
 
 #endif /* COORDINADOR_KEY_TABLE_KEY_TABLE_H_ */

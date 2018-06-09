@@ -43,6 +43,11 @@ struct key_table_data_t *key_table_get(char *key)
 	return dictionary_get(key_table->table, key);
 }
 
+void key_table_remove(char *key)
+{
+	dictionary_remove_and_destroy(key_table->table, key, free);
+}
+
 struct instance_t *key_table_get_instance(char *key)
 {
 	struct key_table_data_t *data = key_table_get(key);

@@ -11,7 +11,11 @@ struct instance_t *equitative_load(struct instance_list_t *instance_list, char *
 {
 	struct instance_t *instance = key_table_get_instance(key);
 	if (instance != NULL) {
-		return instance;
+		if (instance->fd != DISCONNECTED) {
+			return instance;
+		} else {
+			key_table_remove(key);
+		}
 	}
 
 	struct instance_t *next_instance;
