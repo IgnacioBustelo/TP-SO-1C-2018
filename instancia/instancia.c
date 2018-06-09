@@ -45,12 +45,11 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 
 	int status = 1; // TODO: Hacer que cada operacion devuelva un estado y decidir si retornar o no error.
 
+
 	if(!entry_table_have_entries(key_value)) {
-		status = algorithm_circular(entry_table, key_value, replaced_keys);
+		status = algorithm_circular(entry_table,key_value, replaced_keys);
 
-		// TODO: int algorithm_<nombre>(t_list* entry_table, t_list* replaced_keys);
-
-		// TODO: void entry_table_delete(t_list* replaced_keys);
+		entry_table_delete_few(replaced_keys);
 
 		dumper_remove_key_value(key_value->key);
 	}
