@@ -1,6 +1,6 @@
 CC = gcc -Wall
 
-TARGET = cfg storage dumper recover entry_table_test handshake receive_set notify_set die checkpoint_2 algorithms_test
+TARGET = cfg storage dumper recover entry_table_test handshake receive_set notify_set die checkpoint_3 algorithms_test
 LIBS = -lcommons -lpthread
 
 DEPS = ../../libs/messenger.h ../../libs/mocks/printfer.h
@@ -32,7 +32,7 @@ notify_set: DEPS += $(COORDINADOR_DEPS)
 
 die: DEPS += ../event_handler.h ../../libs/mocks/color.h
 
-checkpoint_2: DEPS += $(COORDINADOR_DEPS) ../cfg_instancia.h ../../libs/configurator.h ../dumper.h ../entry_table.h ../instancia.h ../storage.h ../event_handler.h
+checkpoint_3: DEPS += $(COORDINADOR_DEPS) ../cfg_instancia.h ../../libs/configurator.h ../dumper.h ../entry_table.h ../instancia.h ../storage.h ../event_handler.h
 
 %: %.c $(DEPS) $(SRC)
 	$(CC) $< $(SRC) -o $@ $(LIBS)

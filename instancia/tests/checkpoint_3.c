@@ -22,6 +22,10 @@ void client_server_execute_server(int fd_client) {
 
 		coordinador_mock_set_response(fd_client);
 
+		coordinador_mock_store_request(fd_client, key);
+
+		coordinador_mock_store_response(fd_client);
+
 		free(key);
 	}
 
@@ -44,7 +48,7 @@ int main(int argc, char* argv[]) {
 	server_name = "Coordinador";
 	client_name = "Instancia 1";
 
-	total_entries = 32;
+	total_entries = 16;
 	entry_size = 4;
 	key_amount = argc;
 
