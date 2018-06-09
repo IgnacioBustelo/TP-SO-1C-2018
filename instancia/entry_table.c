@@ -115,9 +115,9 @@ bool entry_table_have_entries(key_value_t* key_value)
 
 int entry_table_entries_needed(key_value_t * key_value)
 {
-//	int entries=key_value->size/get_entry_size();
-//	return entries%get_entry_size()==0?entries:entries+1;
-	return key_value->size/get_entry_size()+1;
+		int entries=(key_value->size/get_entry_size());
+		return key_value->size%get_entry_size()==0?entries:entries+1;
+	//return key_value->size/get_entry_size()+1;
 }
 
 entry_t * convert_key_value_t_to_entry_t(key_value_t * key_value){
@@ -135,7 +135,7 @@ bool entry_table_delete(key_value_t * key_value)
 		if (!strcmp(key_value->key,entry->key))
 		{
 			list_remove(entry_table,i);
-			entries_left=+(entry->size/get_entry_size())+1;
+			entries_left+=entry_table_entries_needed(key_value);
 			return true;
 		}
 	}
