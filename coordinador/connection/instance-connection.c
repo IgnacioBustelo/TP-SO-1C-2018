@@ -148,7 +148,7 @@ static bool instance_handle_store_request(int fd, char *name, struct request_nod
 	if (status == 1) {
 		log_info(logger, "[Instancia %s] Operacion realizada correctamente.", name);
 		/* TODO: Manejar desconexion del planificador. */
-		scheduler_unblock_key();
+		scheduler_unblock_key(request->store.key);
 		esi_send_execution_success(request->requesting_esi_fd);
 		return true;
 	} else if (status == 0) {

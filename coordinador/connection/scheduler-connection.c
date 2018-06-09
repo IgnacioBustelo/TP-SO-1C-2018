@@ -172,11 +172,22 @@ bool scheduler_block_key(void)
 	return response == PROTOCOL_PC_KEY_BLOCKED_SUCCESFULLY;
 }
 
-bool scheduler_unblock_key(void)
+bool scheduler_unblock_key(char *key)
 {
 	protocol_id request = PROTOCOL_CP_UNLOCK_KEY;
-	if (!CHECK_SEND(scheduler_fd, &request)) {
-		return false;
+	size_t key_size = strlen(key) + 1;
+
+	struct { void *block; size_t block_size; } blocks[] = {
+		{ &request, sizeof(request) },
+		{ &key_size, sizeof(key_size) },
+		{ key, key_size },
+	};
+
+	int i;
+	for (i = 0; i < sizeof(blocks) / sizeof(*blocks); i++) {
+		if (!CHECK_SEND_WITH_SIZE(scheduler_fd, blocks[i].block, blocks[i].block_size)) {
+			return false;
+		}
 	}
 
 	protocol_id response = scheduler_pending_protocol_recv();
