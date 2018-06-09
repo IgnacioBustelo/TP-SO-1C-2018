@@ -697,11 +697,11 @@ void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_q
 	log_info(logger, "El ESI %i se ha desbloqueado", obtain_esi_information_by_id(esi_unlocked)->esi_numeric_name);
 	}
 
+	log_info(logger,"Clave %s liberada", last_key_inquired);
+
 	remove_blocked_key_from_list(last_key_inquired);
 
 	*update_blocked_esi_queue_flag = 0;
-
-	log_info(logger,"Clave %s liberada", last_key_inquired);
 }
 
 void update_blocked_by_console_esi_queue() {
