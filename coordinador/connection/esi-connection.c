@@ -103,8 +103,10 @@ static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *opera
 			break;
 		}
 	} else {
+		char *key = operation->type == ESI_SET ? operation->set.key : operation->store.key;
+
 		esi_log_info(logger, "Seleccionando una Instancia para ejecutar la operacion...");
-		struct instance_t *instance = equitative_load(instance_list);
+		struct instance_t *instance = equitative_load(instance_list, key);
 		if (instance == NULL) {
 			/* TODO: Bloquear el ESI. */
 			return false;

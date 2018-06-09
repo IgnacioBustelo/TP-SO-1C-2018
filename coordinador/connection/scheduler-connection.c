@@ -8,6 +8,7 @@
 #include <commons/collections/queue.h>
 
 #include "../defines.h"
+#include "../instance-list/instance-list.h"
 #include "../key-table/key-table.h"
 #include "../../protocolo/protocolo.h"
 
@@ -126,8 +127,8 @@ static bool scheduler_send_key_status(void)
 
 	enum key_state { KEY_NOT_EXIST, KEY_UNINITIALIZED, KEY_INITIALIZED };
 
-	char *instance_name = key_table_get_instance_name(key);
-	if (instance_name == NULL) {
+	struct instance_t *instance = key_table_get_instance(key);
+	if (instance == NULL) {
 		free(key);
 		int key_state = KEY_NOT_EXIST;
 
@@ -141,12 +142,12 @@ static bool scheduler_send_key_status(void)
 		return false;
 	}
 
-	size_t instance_name_size = strlen(instance_name) + 1;
+	size_t instance_name_size = strlen(instance->name) + 1;
 	if (!CHECK_SEND(scheduler_fd, &instance_name_size)) {
 		free(key);
 		return false;
 	}
-	if (!CHECK_SEND_WITH_SIZE(scheduler_fd, instance_name, instance_name_size)) {
+	if (!CHECK_SEND_WITH_SIZE(scheduler_fd, instance->name, instance_name_size)) {
 		free(key);
 		return false;
 	}
