@@ -32,7 +32,7 @@ notify_set: DEPS += $(COORDINADOR_DEPS)
 
 die: DEPS += ../event_handler.h ../../libs/mocks/color.h
 
-checkpoint_3: DEPS += $(COORDINADOR_DEPS) ../cfg_instancia.h ../../libs/configurator.h ../dumper.h ../entry_table.h ../instancia.h ../storage.h ../event_handler.h
+checkpoint_3: DEPS += $(COORDINADOR_DEPS) ../algorithms.h ../cfg_instancia.h ../../libs/configurator.h ../dumper.h ../event_handler.h ../entry_table.h ../instancia.h ../storage.h utils.h
 
 %: %.c $(DEPS) $(SRC)
 	$(CC) $< $(SRC) -o $@ $(LIBS)

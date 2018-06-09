@@ -1,5 +1,6 @@
 #include "../libs/configurator.h"
 #include "../libs/messenger.h"
+#include "algorithms.h"
 #include "cfg_instancia.h"
 #include "coordinator_api.h"
 #include "dumper.h"
@@ -46,9 +47,13 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 
 
 	if(!entry_table_have_entries(key_value)) {
+		status = algorithm_circular(entry_table,key_value, replaced_keys);
 
+<<<<<<< HEAD
 		algorithm_circular(entry_table,key_value, replaced_keys);
 
+=======
+>>>>>>> df25511d59aba7122b563933be6aeb656ca01a5c
 		entry_table_delete_few(replaced_keys);
 
 		dumper_remove_key_value(key_value->key);
