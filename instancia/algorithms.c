@@ -43,7 +43,7 @@ int algorithm_circular(t_list* entry_table,key_value_t* key_value,t_list* replac
 
 		if (continous_atomic_and_free_entries==entry_table_entries_needed(key_value))
 		{
-		key_value_t * fake_key_value=malloc(sizeof(key_value_t));
+
 
 			while (continous_atomic_and_free_entries>0)
 			{
@@ -63,7 +63,7 @@ int algorithm_circular(t_list* entry_table,key_value_t* key_value,t_list* replac
 	return 0;
 }
 
-static bool new_value_fits(key_value_t* key_value)
+bool new_value_fits(key_value_t* key_value)
 {
 	return entries_left+entry_table_atomic_entries_count()>=entry_table_entries_needed(key_value);
 }
@@ -116,7 +116,7 @@ return entry_table_status;
 
 }
 
-static status_t * convert_entry_t_to_status_t(entry_t* entry){
+status_t * convert_entry_t_to_status_t(entry_t* entry){
 	status_t * status = malloc(sizeof(status_t));
 	status->key = strdup(entry->key);
 	if (entry_table_is_entry_atomic(entry))
