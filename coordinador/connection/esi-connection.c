@@ -70,12 +70,11 @@ void handle_esi_connection(int fd)
 	for (operation = esi_recv_operation(esi); operation != NULL; operation = esi_recv_operation(esi)) {
 		if (!handle_esi_operation(esi, operation)) {
 			esi_operation_destroy(operation);
+			log_error(logger, "[ESI %d] Finalizando comunicacion...", esi.id);
 			break;
 		}
 		esi_operation_destroy(operation);
 	}
-
-	log_error(logger, "[ESI %d] Finalizando comunicacion...", esi.id);
 }
 
 #define esi_log_info(logger, fmt, args...) log_info(logger, "[ESI %d] " fmt, esi.id, ##args)
