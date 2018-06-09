@@ -87,6 +87,11 @@ enum key_state_t scheduler_recv_key_state(char *key)
 	if (blocked_state_response == PROTOCOL_PC_KEY_IS_NOT_BLOCKED) {
 		key_state = KEY_UNBLOCKED;
 	} else if (blocked_state_response == PROTOCOL_PC_KEY_IS_BLOCKED) {
+		int blocked_by_executing_esi_op_code = PROTOCOL_CP_IS_KEY_BLOCKED_BY_EXECUTING_ESI;
+		if (!CHECK_SEND(scheduler_fd, &blocked_by_executing_esi_op_code)) {
+			scheduler_exit();
+		}
+
 		protocol_id blocked_by_executing_esi_response;
 
 		if (!CHECK_RECV(scheduler_fd, &blocked_by_executing_esi_response)) {
