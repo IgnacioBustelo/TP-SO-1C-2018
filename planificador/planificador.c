@@ -155,6 +155,7 @@ int main(void) {
 
 		int fd;
 		char* last_key_inquired;
+		char* key_to_unlock;
 
 		for (fd = 0; fd <= max_fd; fd++) {
 
@@ -268,9 +269,11 @@ int main(void) {
 
 					// sem_wait(&mutex_coordinador);
 
+					key_to_unlock = receive_inquired_key(fd);
+
 					update_blocked_esis(&update_blocked_esi_queue_flag);
 					send_protocol_answer(fd, PROTOCOL_PC_KEY_UNLOCKED_SUCCESFULLY);
-					log_info(logger,"Clave %s desbloqueada", last_key_inquired);
+					log_info(logger,"Clave %s desbloqueada", key_to_unlock);
 
 					// sem_post(&mutex_coordinador);
 					break;
@@ -345,7 +348,7 @@ int main(void) {
 							we_must_reschedule(&reschedule_flag);
 						}
 
-						if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(last_key_inquired, &update_blocked_esi_queue_flag);
+						if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag);
 
 						if (unlock_esi_by_console_flag == 1) update_blocked_esi_queue(last_unlocked_key_by_console, &unlock_esi_by_console_flag);
 
@@ -353,7 +356,6 @@ int main(void) {
 
 						if (block_esi_by_console_flag == 1) block_by_console_procedure();
 
-						free(last_key_inquired);
 					}
 				}
 
@@ -373,7 +375,7 @@ int main(void) {
 
 			if (killed_esi_flag == 1) burn_esi_corpses(executing_esi);
 
-			if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(last_key_inquired, &update_blocked_esi_queue_flag);
+			if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag);
 
 			if (unlock_esi_by_console_flag == 1) update_blocked_esi_queue(last_unlocked_key_by_console, &unlock_esi_by_console_flag);
 
