@@ -167,3 +167,11 @@ bool entry_table_is_entry_atomic(entry_t * entry)
 {
 	return entry->size <= get_entry_size();
 }
+
+void entry_table_delete_few(t_list* keys){
+	for(int i=0;i<list_size(keys);i++)
+		{
+			keys= key_value_generator(list_get(keys,i),0);
+			entry_table_delete(keys);
+		}
+}

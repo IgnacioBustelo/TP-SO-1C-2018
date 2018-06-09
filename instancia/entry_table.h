@@ -61,4 +61,7 @@ int 		entry_table_atomic_entries_count();
 bool	    entry_table_is_entry_atomic(entry_t * entry);
 
 entry_t* 	entry_table_get_entry_by_entry_number(int number);
+
+void entry_table_delete_few(t_list* keys);
+
 #endif

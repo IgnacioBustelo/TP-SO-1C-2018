@@ -43,7 +43,7 @@ int main(void)
 //
 //	entry_table_status_print_table(entry_table_status);
 
-	key_value=key_value_generator("FF",85);
+	key_value=key_value_generator("FF",99);
 
 	algorithm_circular_set_pointer(0);
 
