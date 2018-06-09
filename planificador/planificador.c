@@ -79,6 +79,7 @@ char* last_unlocked_key_by_console;
 fd_set connected_fds;
 int max_fd;
 int g_coordinator_fd;
+int executing_esi = -1;
 
 sem_t mutex_coordinador;
 
@@ -139,7 +140,6 @@ int main(void) {
 	pthread_create(&tid, &attrs, init_console, parasite);
 
 	int esi_numeric_arrival_order = 1;
-	int executing_esi = -1;
 
 	while (1) {
 
@@ -287,8 +287,6 @@ int main(void) {
 				switch (confirmation) {
 
 				case PROTOCOL_EP_EXECUTION_SUCCESS:
-					update_waiting_time_of_ready_esis();
-					update_executing_esi(fd);
 
 					log_info(logger,"El ESI %i terminó de ejecutar una sentencia correctamente", obtain_esi_information_by_id(fd)->esi_numeric_name);
 
@@ -335,8 +333,8 @@ int main(void) {
 
 				if(finished_esi_flag == 1) {
 					log_info(logger,"El ESI %i finalizó la ejecución de su script correctamente", obtain_esi_information_by_id(fd)->esi_numeric_name);
-					release_resources(*(int*)g_execution_queue->head->data, &update_blocked_esi_queue_flag);
-					move_esi_from_and_to_queue(g_execution_queue, g_finished_queue, *(int*)g_execution_queue->head->data);
+					release_resources(executing_esi, &update_blocked_esi_queue_flag);
+					move_esi_from_and_to_queue(g_execution_queue, g_finished_queue, executing_esi);
 					executing_esi = -1;
 					finished_esi_flag = 0;
 				} else {
@@ -345,7 +343,7 @@ int main(void) {
 
 						if(algorithm_is_preemptive()) {
 
-							move_esi_from_and_to_queue(g_execution_queue, g_ready_queue, *(int*)g_execution_queue->head->data);
+							move_esi_from_and_to_queue(g_execution_queue, g_ready_queue, executing_esi);
 							we_must_reschedule(&reschedule_flag);
 						}
 
@@ -500,6 +498,9 @@ void authorize_esi_execution(int esi_fd) {
 		sock_my_port(esi_fd);
 	}
 
+	update_waiting_time_of_ready_esis();
+	update_executing_esi(esi_fd);
+
 	log_info(logger, "Se autorizó la ejecución del ESI %i", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
 }
 
@@ -561,7 +562,7 @@ int schedule_esis() {
 	switch(algorithm) {
 
 	case FIFO:
-		esi_fd = (int*)g_ready_queue->head->data;
+		esi_fd = (int*)list_get(g_ready_queue, 0);
 		break;
 
 	case SJFCD:
@@ -574,18 +575,40 @@ int schedule_esis() {
 
 		bool comparator (void* esi_inf1, void* esi_inf2) {
 
-			int last_estimated_burst1 = ((esi_information*)esi_inf1)->last_estimated_burst;
+			float last_estimated_burst1 = ((esi_information*)esi_inf1)->last_estimated_burst;
 			int last_real_burst1 = ((esi_information*)esi_inf1)->last_real_burst;
-			int last_estimated_burst2 = ((esi_information*)esi_inf2)->last_estimated_burst;
+			float last_estimated_burst2 = ((esi_information*)esi_inf2)->last_estimated_burst;
 			int last_real_burst2 = ((esi_information*)esi_inf2)->last_real_burst;
 
-			return last_estimated_burst1 - last_real_burst1 <= last_estimated_burst2 - last_real_burst2;
+			float result1, result2;
 
+			if(last_real_burst1 == 0) result1 = last_estimated_burst1;
+			else result1 = next_estimated_burst_sjf(setup.alpha, last_real_burst1, last_estimated_burst1);
+
+			if(last_real_burst2 == 0) result2 = last_estimated_burst2;
+			else result2 = next_estimated_burst_sjf(setup.alpha, last_real_burst2, last_estimated_burst2);
+
+			return result1 <= result2;
 		}
 
 		t_list* mapped_to_sort_list = list_map(g_ready_queue, obtain_esi_information);
 	 	list_sort(mapped_to_sort_list, comparator);
-	 	esi_fd = &((esi_information*)mapped_to_sort_list->head->data)->esi_id;
+
+	 	void show_esi_estimations(void* esi_inf) {
+
+	 		float last_estimated_burst = ((esi_information*)esi_inf)->last_estimated_burst;
+	 		int last_real_burst = ((esi_information*)esi_inf)->last_real_burst;
+
+	 		float estimation;
+
+	 		if(last_real_burst == 0) estimation = last_estimated_burst;
+	 		else estimation = next_estimated_burst_sjf(setup.alpha, last_real_burst, last_estimated_burst);
+
+	 		log_info(logger, "ESI %i tiene una estimación de %f", ((esi_information*)esi_inf)->esi_numeric_name, estimation);
+	 	}
+
+	 	list_iterate(mapped_to_sort_list, show_esi_estimations);
+	 	esi_fd = &((esi_information*)list_get(mapped_to_sort_list, 0))->esi_id;
 	 	list_destroy(mapped_to_sort_list);
 		break;
 	}
@@ -602,13 +625,22 @@ int schedule_esis() {
 			int last_estimated_burst1 = ((esi_information*)esi_inf1)->last_estimated_burst;
 			int last_estimated_burst2 = ((esi_information*)esi_inf2)->last_estimated_burst;
 
+			//next_estimated_burst_hrrn(waited_time, service_time) TODO
 			return last_estimated_burst1 >= last_estimated_burst2;
 
 		}
 
 		t_list* mapped_to_sort_list = list_map(g_ready_queue, obtain_esi_information);
 		list_sort(mapped_to_sort_list, comparator);
-		esi_fd = &((esi_information*) mapped_to_sort_list->head->data)->esi_id;
+
+		void show_esi_estimations(void* esi_inf) {
+
+			double estimation = ((esi_information*) esi_inf)->last_estimated_burst;
+			log_info(logger, "ESI %i tiene una estimación de %f", ((esi_information*) esi_inf)->esi_numeric_name, estimation);
+		}
+
+		list_iterate(mapped_to_sort_list, show_esi_estimations);
+		esi_fd = &((esi_information*) list_get(mapped_to_sort_list, 0))->esi_id;
 		list_destroy(mapped_to_sort_list);
 		break;
 	}
@@ -691,9 +723,11 @@ void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_q
 	if( esi_unlocked == -1) {
 
 		log_info(logger, "Ningún ESI estaba bloqueado por la clave %s", last_key_inquired);
+		/*move_esi_from_and_to_queue(g_ready_queue, g_execution_queue, executing_esi); TODO
+		reschedule_flag = 0;*/
 	} else {
 
-	list_add(g_ready_queue, (void*)&esi_unlocked);
+	move_esi_from_and_to_queue(g_blocked_queue, g_ready_queue, esi_unlocked);
 
 	log_info(logger, "El ESI %i se ha desbloqueado", obtain_esi_information_by_id(esi_unlocked)->esi_numeric_name);
 	}
