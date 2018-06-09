@@ -244,14 +244,14 @@ int main(void) {
 					if(response) {
 
 						send_protocol_answer(fd, PROTOCOL_PC_KEY_BLOCKED_BY_EXECUTING_ESI);
-						log_info(logger, "La clave %s que fue solicitada fue bloqueada por el ESI en ejecución");
+						log_info(logger, "La clave %s que fue solicitada fue bloqueada por el ESI en ejecución", last_key_inquired);
 
 						// sem_post(&mutex_coordinador);
 					}
 					else {
 
 						send_protocol_answer(fd, PROTOCOL_PC_KEY_NOT_BLOCKED_BY_EXECUTING_ESI);
-						log_info(logger, "La clave %s que fue solicitada no fue bloqueada por el ESI en ejecución");
+						log_info(logger, "La clave %s que fue solicitada no fue bloqueada por el ESI en ejecución", last_key_inquired);
 					}
 					break;
 
@@ -268,7 +268,6 @@ int main(void) {
 
 					// sem_wait(&mutex_coordinador);
 
-					remove_blocked_key_from_list(last_key_inquired);
 					update_blocked_esis(&update_blocked_esi_queue_flag);
 					send_protocol_answer(fd, PROTOCOL_PC_KEY_UNLOCKED_SUCCESFULLY);
 					log_info(logger,"Clave %s desbloqueada", last_key_inquired);
@@ -348,7 +347,7 @@ int main(void) {
 
 						if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(last_key_inquired, &update_blocked_esi_queue_flag);
 
-						if (unlock_esi_by_console_flag == 1) update_blocked_by_console_esi_queue();
+						if (unlock_esi_by_console_flag == 1) update_blocked_esi_queue(last_unlocked_key_by_console, &unlock_esi_by_console_flag);
 
 						if (new_esi_flag == 1) update_new_esi_queue(&new_esi_flag);
 
@@ -370,19 +369,22 @@ int main(void) {
 			} /*else sock_my_port(fd);*/
 		}
 
-		if(list_is_empty(g_execution_queue) && !list_is_empty(g_new_queue) && scheduler_paused_flag != 1) {
+		if(list_is_empty(g_execution_queue) && scheduler_paused_flag != 1) {
 
 			if (killed_esi_flag == 1) burn_esi_corpses(executing_esi);
 
 			if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(last_key_inquired, &update_blocked_esi_queue_flag);
 
-			if (unlock_esi_by_console_flag == 1) update_blocked_by_console_esi_queue();
+			if (unlock_esi_by_console_flag == 1) update_blocked_esi_queue(last_unlocked_key_by_console, &unlock_esi_by_console_flag);
 
-			if (new_esi_flag == 1) update_new_esi_queue(&new_esi_flag);
+			if (new_esi_flag == 1 && !list_is_empty(g_new_queue)) update_new_esi_queue(&new_esi_flag);
 
 			if (block_esi_by_console_flag == 1) block_by_console_procedure();
 
-			reschedule(&reschedule_flag, &executing_esi);
+			if(!list_is_empty(g_ready_queue)) {
+
+				reschedule(&reschedule_flag, &executing_esi);
+			}
 		}
 
 	}
@@ -638,7 +640,7 @@ bool key_is_blocked_by_executing_esi(char* key) {
 	return list_any_satisfy(g_locked_keys, condition);
 }
 
-int unlock_esis(char* unlocked_key) {
+int unlock_esi(char* unlocked_key) {
 
 	bool unlock_condition(void* esi_sexpecting) {
 
@@ -681,7 +683,7 @@ int unlock_esis(char* unlocked_key) {
 
 void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag) {
 
-	int esi_unlocked = unlock_esis(last_key_inquired);
+	int esi_unlocked = unlock_esi(last_key_inquired);
 
 	if( esi_unlocked == -1) {
 
@@ -692,6 +694,8 @@ void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_q
 
 	log_info(logger, "El ESI %i se ha desbloqueado", obtain_esi_information_by_id(esi_unlocked)->esi_numeric_name);
 	}
+
+	remove_blocked_key_from_list(last_key_inquired);
 
 	*update_blocked_esi_queue_flag = 0;
 
