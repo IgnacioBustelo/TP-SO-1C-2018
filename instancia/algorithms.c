@@ -55,9 +55,11 @@ int algorithm_circular(t_list* entry_table,key_value_t* key_value,t_list* replac
 				first_entry_of_continous_atomic_and_free_entries++;
 				continous_atomic_and_free_entries--;
 			}
+
 		return 1;
 		}
 	}
+
 	return 0;
 }
 
