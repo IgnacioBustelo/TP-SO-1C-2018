@@ -1,10 +1,10 @@
+#define _GNU_SOURCE
+
 #include <commons/string.h>
 #include <string.h>
 #include <stdio.h>
 
 #include "messenger.h"
-
-#define _GNU_SOURCE
 
 void messenger_show(char* log_level, const char* format,...) {
 	va_list args;
