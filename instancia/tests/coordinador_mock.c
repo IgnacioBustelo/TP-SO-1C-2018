@@ -55,7 +55,29 @@ void coordinador_mock_set_response(int fd_client) {
 	chunk_recv(fd_client, &status_received, sizeof(status_received));
 	chunk_recv(fd_client, &entries_used_received, sizeof(entries_used_received));
 
-	messenger_show("INFO", "Se recibio la operacion %d con un status %d y en la instancia se usan %d entradas", header, status_received, entries_used_received);
+	messenger_show("INFO", "Se ejecuto un SET con un status %d y en la instancia se usan %d entradas", status_received, entries_used_received);
+}
+
+void coordinador_mock_store_request(int fd_client, char* key) {
+	messenger_show("INFO", "Pedido de STORE %s", key);
+
+	chunk_t* chunk = chunk_create();
+
+	request_coordinador header = PROTOCOL_CI_STORE;
+
+	chunk_add(chunk, &header, sizeof(header));
+	chunk_add_variable(chunk, key, string_length(key) + 1);
+
+	chunk_send_and_destroy(fd_client, chunk);
+}
+
+void coordinador_mock_store_response(int fd_client) {
+	int header, status_received;
+
+	chunk_recv(fd_client, &header, sizeof(status_received));
+	chunk_recv(fd_client, &status_received, sizeof(status_received));
+
+	messenger_show("INFO", "Se ejecuto un STORE con un status %d", status_received);
 }
 
 void coordinador_mock_kill(int fd_client) {

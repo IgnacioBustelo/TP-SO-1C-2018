@@ -7,6 +7,10 @@ void coordinador_mock_set_request(int fd_client, char* key, char* value);
 
 void coordinador_mock_set_response(int fd_client);
 
+void coordinador_mock_store_request(int fd_client, char* key);
+
+void coordinador_mock_store_response(int fd_client);
+
 void coordinador_mock_kill(int fd_client);
 
 #endif
