@@ -259,6 +259,7 @@ int main(void) {
 				case PROTOCOL_CP_BLOCK_KEY:
 
 					add_new_key_blocker(last_key_inquired);
+
 					send_protocol_answer(fd, PROTOCOL_PC_KEY_BLOCKED_SUCCESFULLY);
 					log_info(logger,"Clave %s bloqueada", last_key_inquired);
 
@@ -546,9 +547,9 @@ void update_waiting_time_of_ready_esis() {
 
 void move_esi_from_and_to_queue(t_list* from_queue, t_list* to_queue, int esi_fd) {
 
-	take_esi_away_from_queue(from_queue, esi_fd);
 	int* esi = malloc(sizeof(int));
 	*esi = esi_fd;
+	take_esi_away_from_queue(from_queue, esi_fd);
 	list_add(to_queue, (void*)esi);
 }
 
