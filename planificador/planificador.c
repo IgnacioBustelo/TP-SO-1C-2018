@@ -22,7 +22,7 @@ static void set_last_real_burst_to_zero(int esi_fd);
 
 static void set_waiting_time_to_zero(int esi_fd);
 
-static int receive_coordinator_opcode(int coordinator_fd);
+static protocol_id receive_coordinator_opcode(int coordinator_fd);
 
 static char* receive_inquired_key(int coordinator_fd);
 
@@ -211,7 +211,7 @@ int main(void) {
 
 			} else if (fd == g_coordinator_fd) {
 
-				int opcode = receive_coordinator_opcode(fd);
+				protocol_id opcode = receive_coordinator_opcode(fd);
 
 				bool response;
 
@@ -282,7 +282,7 @@ int main(void) {
 
 			} else if (fd == executing_esi) {
 
-				int confirmation = receive_execution_result(fd);
+				protocol_id confirmation = receive_execution_result(fd);
 
 				switch (confirmation) {
 
@@ -290,7 +290,7 @@ int main(void) {
 
 					log_info(logger,"El ESI %i terminó de ejecutar una sentencia correctamente", obtain_esi_information_by_id(fd)->esi_numeric_name);
 
-					int script_end= receive_execution_result(fd);
+					protocol_id script_end= receive_execution_result(fd);
 					if(script_end == PROTOCOL_EP_FINISHED_SCRIPT) {
 
 						esi_finished(&finished_esi_flag);
@@ -492,7 +492,7 @@ void put_new_esi_on_new_queue(int new_client_fd) {
 void authorize_esi_execution(int esi_fd) {
 
 	protocol_id opcode = PROTOCOL_PE_EXEC;
-	if(send(esi_fd, &opcode, sizeof(opcode), 0) == -1) {
+	if(send(esi_fd, &opcode, sizeof(opcode), 0) == sizeof(opcode)) {
 
 		log_error(logger, "Fallo en la autorización del ESI a ejecutar");
 		sock_my_port(esi_fd);
@@ -511,7 +511,7 @@ void update_executing_esi(int esi_fd) {
 	executing_esi->last_real_burst++;
 }
 
-int receive_execution_result(int fd) {
+protocol_id receive_execution_result(int fd) {
 
 	protocol_id opcode;
 	if (recv(fd, &opcode, sizeof(opcode), MSG_WAITALL) != sizeof(opcode)) {
@@ -1017,10 +1017,10 @@ static void set_waiting_time_to_zero(int esi_fd) {
 	esi_inf->waited_bursts = 0;
 }
 
-static int receive_coordinator_opcode(int coordinator_fd) {
+static protocol_id receive_coordinator_opcode(int coordinator_fd) {
 
-	int opcode;
-	if(recv(coordinator_fd, &opcode, sizeof(int), MSG_WAITALL) != sizeof(int)) {
+	protocol_id opcode;
+	if(recv(coordinator_fd, &opcode, sizeof(opcode), MSG_WAITALL) != sizeof(opcode)) {
 
 		log_error(logger, "Fallo en la comunicación con el coordinador al recibir el código de operación");
 		kaboom_baby(coordinator_fd);
@@ -1049,7 +1049,7 @@ static void add_new_key_blocker(char* blocked_key) {
 
 static void send_protocol_answer(int coordinator_fd, protocol_id protocol) {
 
-	if (send(coordinator_fd, &protocol, sizeof(protocol), 0) == -1) {
+	if (send(coordinator_fd, &protocol, sizeof(protocol), 0) == sizeof(protocol)) {
 
 		log_error(logger, "Fallo en el envío del status de la clave al coordinador");
 	}

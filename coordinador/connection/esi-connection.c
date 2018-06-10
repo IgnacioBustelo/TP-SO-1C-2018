@@ -126,7 +126,7 @@ static struct esi_operation_t *esi_recv_operation(struct esi_t esi)
 {
 	esi_log_info(logger, "Esperando una operacion de ESI...");
 
-	int op_id;
+	protocol_id op_id;
 	if (!CHECK_RECV(esi.fd, &op_id)) {
 		esi_log_info(logger, "Finaliza la ejecucion del ESI.");
 		return NULL;
@@ -148,7 +148,7 @@ static struct esi_operation_t *esi_recv_operation(struct esi_t esi)
 		break;
 	case PROTOCOL_EC_STORE:
 		operation->type = ESI_STORE;
-		esi_log_info(logger, "Codigo de operacion recibida.");
+		esi_log_info(logger, "Codigo de operacion STORE recibida.");
 		success = esi_recv_store_args(esi, operation);
 		break;
 	default:
@@ -236,19 +236,19 @@ static bool esi_recv_store_args(struct esi_t esi, struct esi_operation_t *operat
 
 bool esi_send_execution_success(int fd)
 {
-	int msg = PROTOCOL_CE_EVERYTHING_OK;
+	protocol_id msg = PROTOCOL_CE_EVERYTHING_OK;
 	return CHECK_SEND(fd, &msg);
 }
 
 bool esi_send_notify_block(int fd)
 {
-	int msg = PROTOCOL_CE_YOU_ARE_BLOCKED;
+	protocol_id msg = PROTOCOL_CE_YOU_ARE_BLOCKED;
 	return CHECK_SEND(fd, &msg);
 }
 
 bool esi_send_illegal_operation(int fd)
 {
-	int msg = PROTOCOL_CE_ILLEGAL_OPERATION;
+	protocol_id msg = PROTOCOL_CE_ILLEGAL_OPERATION;
 	return CHECK_SEND(fd, &msg);
 }
 

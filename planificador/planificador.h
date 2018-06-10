@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include <semaphore.h>
 
+#include "../protocolo/protocolo.h"
+
 #define MAXCONN 20
 
 sem_t mutex_coordinador;
@@ -130,7 +132,7 @@ void update_executing_esi(int esi_fd);
  * Devuelve el resultado de la ejecución de parte de un ESI. Podría pasar que salga bien, que se haya bloqueado o que falle por alguna razón
  */
 
-int receive_execution_result(int fd);
+protocol_id receive_execution_result(int fd);
 
 /*
  * Dice si determinada clave ya fue tomada por un ESI (hizo un GET)

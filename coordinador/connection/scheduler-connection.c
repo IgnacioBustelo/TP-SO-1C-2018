@@ -65,7 +65,7 @@ void handle_scheduler_connection(int fd)
 
 enum key_state_t scheduler_recv_key_state(char *key)
 {
-	int op_code = PROTOCOL_CP_IS_THIS_KEY_BLOCKED;
+	protocol_id op_code = PROTOCOL_CP_IS_THIS_KEY_BLOCKED;
 	size_t key_size = strlen(key) + 1;
 
 	struct { void *block; size_t block_size; } blocks[] = {

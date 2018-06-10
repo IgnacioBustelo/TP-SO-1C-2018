@@ -83,8 +83,8 @@ int main(int argc, char **argv) {
 
     	send_serialized_package(coordinator_fd_, package, package_size);
 
-    	int execution_result = wait_for_execution_result(coordinator_fd_);
-    	int execution_result_to_scheduler;
+    	protocol_id execution_result = wait_for_execution_result(coordinator_fd_);
+    	protocol_id execution_result_to_scheduler;
 
     	switch(execution_result) {
 
@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
     		read = getline(&line, &len, fp);
 
     		if(execution_result_to_scheduler == PROTOCOL_EP_EXECUTION_SUCCESS) {
-        	int script_end;
+        	protocol_id script_end;
 
     		if(read == -1) {
 
@@ -147,7 +147,7 @@ void* obtain_package_from_line(char* line, size_t* package_size) {
 
     if(parsed.valido){
 
-    	int operation;
+    	protocol_id operation;
 
         switch(parsed.keyword){
 
@@ -200,8 +200,8 @@ void* obtain_package_from_line(char* line, size_t* package_size) {
 
 void wait_for_execution_order(int scheduler_fd) {
 
-    int execution_order;
-	if(recv(scheduler_fd, &execution_order, sizeof(execution_order), MSG_WAITALL) == !sizeof(execution_order)) {
+    protocol_id execution_order;
+	if(recv(scheduler_fd, &execution_order, sizeof(execution_order), MSG_WAITALL) != sizeof(execution_order)) {
 
 		log_error(logger, "Fallo en el receive de la orden de ejecución");
 		exit_gracefully(EXIT_FAILURE);
@@ -214,10 +214,10 @@ void wait_for_execution_order(int scheduler_fd) {
 	}
 }
 
-int wait_for_execution_result(int coordinador_fd_) {
+protocol_id wait_for_execution_result(int coordinador_fd_) {
 
-	int execution_result;
-	if (recv(coordinator_fd_, &execution_result, sizeof(execution_result), MSG_WAITALL) == !sizeof(execution_result)) {
+	protocol_id execution_result;
+	if (recv(coordinator_fd_, &execution_result, sizeof(execution_result), MSG_WAITALL) != sizeof(execution_result)) {
 
 		log_error(logger, "Fallo en el receive del resultado de ejecución");
 		exit_gracefully(EXIT_FAILURE);
