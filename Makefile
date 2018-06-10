@@ -14,8 +14,9 @@ $(LIBS_DIRS):
 	cd $@ && sudo $(MAKE) install
 
 $(PROG_DIRS):
-	@echo "\033[0;33m"
+	@echo "**********************************"
 	@echo "**********$(basename $@)**********"
+	@echo "**********************************"
 	$(MAKE) -C $@
 
 .PHONY: all clean $(PROG_DIRS) $(LIBS_DIRS) submodules
