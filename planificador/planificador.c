@@ -38,9 +38,9 @@ static void remove_blocked_key_from_list(char* unlocked_key);
 
 static void esi_finished(int* flag);
 
-static double next_estimated_burst_sjf(double alpha, int last_real_burst, double last_estimated_burst);
+static float next_estimated_burst_sjf(float alpha, int last_real_burst, float last_estimated_burst);
 
-static double next_estimated_burst_hrrn(int waited_time, double service_time);
+static float next_estimated_burst_hrrn(int waited_time, float service_time);
 
 static void update_esi_information_next_estimated_burst(int esi_fd);
 
@@ -418,7 +418,7 @@ esi_information* create_esi_information(int esi_id, int esi_numeric_name) {
 	esi_information* esi_inf = malloc(sizeof(esi_information));
 	esi_inf->esi_id = esi_id;
 	esi_inf->esi_numeric_name = esi_numeric_name;
-	esi_inf->last_estimated_burst = (double)setup.initial_estimation;
+	esi_inf->last_estimated_burst = (float)setup.initial_estimation;
 	esi_inf->last_real_burst = 0;
 	esi_inf->waited_bursts = 0;
 	return esi_inf;
@@ -636,11 +636,23 @@ int schedule_esis() {
 			esi_information *esi1 = obtain_esi_information_by_id(*esi_fd1);
 			esi_information *esi2 = obtain_esi_information_by_id(*esi_fd2);
 
-			int last_estimated_burst1 = esi1->last_estimated_burst;
-			int last_estimated_burst2 = esi2->last_estimated_burst;
+			float last_estimated_burst1 = esi1->last_estimated_burst;
+			int last_real_burst1 = esi1->last_real_burst;
 
-			//next_estimated_burst_hrrn(waited_time, service_time) TODO
-			return last_estimated_burst1 >= last_estimated_burst2;
+			float last_estimated_burst2 = esi2->last_estimated_burst;
+			int last_real_burst2 = esi2->last_real_burst;
+
+			float result1, result2;
+
+			result1 = last_real_burst1 == 0
+								? last_estimated_burst1
+								: next_estimated_burst_hrrn(esi1->waited_bursts, next_estimated_burst_sjf(setup.alpha, last_real_burst1, last_estimated_burst1));
+
+			result1 = last_real_burst1 == 0
+					            ? last_estimated_burst1
+					            : next_estimated_burst_hrrn(esi1->waited_bursts, next_estimated_burst_sjf(setup.alpha, last_real_burst1, last_estimated_burst1));
+
+			return result1 >= result2;
 
 		}
 
@@ -650,7 +662,12 @@ int schedule_esis() {
 			int *esi_fd = (int *)elem;
 			esi_information *esi = obtain_esi_information_by_id(*esi_fd);
 
-			double estimation = esi->last_estimated_burst;
+			float last_estimated_burst = esi->last_estimated_burst;
+			int last_real_burst = esi->last_real_burst;
+
+			float estimation = last_real_burst == 0
+					            ? last_estimated_burst
+					            : next_estimated_burst_hrrn(esi->waited_bursts, next_estimated_burst_sjf(setup.alpha, last_real_burst, last_estimated_burst));
 
 			log_info(logger, "ESI %i tiene una estimación de %f", esi->esi_numeric_name, estimation);
 		}
@@ -1096,13 +1113,13 @@ static void remove_blocked_key_from_list(char* unlocked_key) {
 	list_remove_and_destroy_by_condition(g_locked_keys, remove_condition, key_blocker_destroyer);
 }
 
-static double next_estimated_burst_sjf(double alpha, int last_real_burst, double last_estimated_burst) {
+static float next_estimated_burst_sjf(float alpha, int last_real_burst, float last_estimated_burst) {
 
 	return alpha*last_real_burst + (1 - alpha)*last_estimated_burst;
 
 }
 
-static double next_estimated_burst_hrrn(int waited_time, double next_service_time) {
+static float next_estimated_burst_hrrn(int waited_time, float next_service_time) {
 
 	return waited_time/next_service_time;
 }

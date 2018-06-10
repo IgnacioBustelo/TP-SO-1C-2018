@@ -96,7 +96,7 @@ static void set_distribution(t_log* logger, t_planificador_config* setup, char* 
 static void verify_alpha(t_log* logger, t_planificador_config *setup, int alpha) {
 
 	if (alpha >= 0 && alpha <= 100) {
-		setup->alpha = (double)alpha/100;
+		setup->alpha = (float)alpha/100;
 	} else {
 		log_error(logger, "Se intento usar un alpha = &i y es inapropiado.", alpha/100);
 		exit_gracefully(EXIT_FAILURE);
