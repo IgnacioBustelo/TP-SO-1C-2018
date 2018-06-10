@@ -83,6 +83,8 @@ int main(int argc, char **argv) {
 
     	send_serialized_package(coordinator_fd_, package, package_size);
 
+    	free(package);
+
     	protocol_id execution_result = wait_for_execution_result(coordinator_fd_);
     	protocol_id execution_result_to_scheduler;
 
@@ -194,8 +196,10 @@ void* obtain_package_from_line(char* line, size_t* package_size) {
 
     destruir_operacion(parsed);
 
-    return build_package(package);
+    void *load = build_package(package);
+    destroy_package(package);
 
+    return load;
 }
 
 void wait_for_execution_order(int scheduler_fd) {
