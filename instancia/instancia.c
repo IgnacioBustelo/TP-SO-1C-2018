@@ -171,6 +171,52 @@ int	instance_dump(t_list* stored_keys) {
 	return status;
 }
 
+/*
+
+TODO: Implementar
+
+1) bool entry_table_is_compacted -> Determina si el Storage esta compactado o no
+
+2) entry_t* entry_table_get_next_to_compact() -> Devuelve la proxima entrada a compactar
+
+3)
+
+int instance_compact() {
+	messenger_show("WARNING", "Inicio de compactacion de la Instancia");
+
+	int status = 1;
+
+	while(!entry_table_is_compacted()) {
+		entry_t* entry_to_compact = entry_table_get_next_to_compact();
+
+		void* buffer = storage_retrieve(entry_to_compact->number, entry_to_compact->size);
+
+		entry_table_delete(entry_to_compact->number);
+
+		char* string_buffer = messenger_bytes_to_string(buffer, entry_to_compact->size);
+
+		key_value_t* key_value_buffer = key_value_create(entry_to_compact->key, string_buffer);
+
+		instance_set(key_value_buffer, NULL);
+
+		messenger_show("WARNING", "Se traslado la clave %s", key_value_buffer->key);
+
+		key_value_destroy(key_value_buffer);
+
+		free(string_buffer);
+
+		free(buffer);
+
+		free(entry_to_compact);
+	}
+
+	messenger_show("WARNING", "Fin de compactacion de la Instancia");
+
+	return status;
+}
+
+*/
+
 void instance_main() {
 	messenger_show("INFO", "Comienzo de actividades de la Instancia");
 
