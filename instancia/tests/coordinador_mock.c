@@ -1,4 +1,4 @@
-#include <commons/string.h>
+	#include <commons/string.h>
 
 #include "../../libs/chunker.h"
 #include "../../libs/messenger.h"
@@ -48,7 +48,7 @@ void coordinador_mock_set_request(int fd_client, char* key, char* value) {
 	chunk_send_and_destroy(fd_client, chunk);
 }
 
-void coordinador_mock_set_response(int fd_client) {
+int coordinador_mock_set_response(int fd_client) {
 	int header, status_received, entries_used_received;
 
 	chunk_recv(fd_client, &header, sizeof(status_received));
@@ -56,6 +56,8 @@ void coordinador_mock_set_response(int fd_client) {
 	chunk_recv(fd_client, &entries_used_received, sizeof(entries_used_received));
 
 	messenger_show("INFO", "Se ejecuto un SET con un status %d y en la instancia se usan %d entradas", status_received, entries_used_received);
+
+	return status_received;
 }
 
 void coordinador_mock_store_request(int fd_client, char* key) {
@@ -71,13 +73,15 @@ void coordinador_mock_store_request(int fd_client, char* key) {
 	chunk_send_and_destroy(fd_client, chunk);
 }
 
-void coordinador_mock_store_response(int fd_client) {
+int coordinador_mock_store_response(int fd_client) {
 	int header, status_received;
 
 	chunk_recv(fd_client, &header, sizeof(status_received));
 	chunk_recv(fd_client, &status_received, sizeof(status_received));
 
 	messenger_show("INFO", "Se ejecuto un STORE con un status %d", status_received);
+
+	return status_received;
 }
 
 void coordinador_mock_kill(int fd_client) {

@@ -49,7 +49,7 @@ void instance_init(char* process_name, char* logger_route, char* log_level, char
 }
 
 int instance_set(key_value_t* key_value, t_list* replaced_keys) {
-	int status = 1;
+	int status = INSTANCE_SUCCESS;
 
 	// TODO: Chequear tambien que haya suficiente entradas atomicas para reemplazar
 	// Nice to have => Que lo tenga entry_table_haSSSSSSS_entries
@@ -109,10 +109,22 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 	}
 
 	else {
+		status = INSTANCE_SET_ERROR;
+
 		messenger_show("ERROR", "No se puede ingresar la clave en la tabla de entradas");
+
+		return status;
 	}
 
-	storage_set(next_entry, key_value->value, key_value->size);
+	status = storage_set(next_entry, key_value->value, key_value->size);
+
+	if(status != STRG_SUCCESS) {
+		status = INSTANCE_SET_ERROR;
+
+		messenger_show("ERROR", "No se puede ingresar el valor de la clave %s en el Storage", key_value->key);
+
+		return status;
+	}
 
 	messenger_show("INFO", "Se inserto el valor '%s' en el Storage", key_value->value);
 

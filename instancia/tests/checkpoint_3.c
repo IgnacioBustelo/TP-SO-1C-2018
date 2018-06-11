@@ -13,18 +13,34 @@ char**	values;
 void client_server_execute_server(int fd_client) {
 	coordinador_mock_handshake(fd_client, total_entries, entry_size);
 
-	int i;
+	int i, status;
 
 	for(i = 1; i < key_amount; i++) {
 		char* key = string_from_format("clave_%d", i);
 
 		coordinador_mock_set_request(fd_client, key, values[i]);
 
-		coordinador_mock_set_response(fd_client);
+		status = coordinador_mock_set_response(fd_client);
+
+		if(status == 0) {
+			free(key);
+
+			messenger_show("ERROR", "Ocurrio un error en la Instancia cuando recibio el pedido de SET");
+
+			break;
+		}
 
 		coordinador_mock_store_request(fd_client, key);
 
-		coordinador_mock_store_response(fd_client);
+		status = coordinador_mock_store_response(fd_client);
+
+		if(status == 0) {
+			free(key);
+
+			messenger_show("ERROR", "Ocurrio un error en la Instancia cuando recibio el pedido de STORE");
+
+			break;
+		}
 
 		free(key);
 	}

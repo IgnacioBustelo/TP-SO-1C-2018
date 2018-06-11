@@ -39,26 +39,34 @@ int main(int argc, char* argv[]) {
 		int length = string_length(argv[i]);
 		int required = required_entries(length);
 
-		if(entries_left >= required) {
-			messenger_show("INFO", "El valor '%s' de tamanio %d ocupa %d entrada/s y puede insertarse en el Storage", argv[i], length, required);
+		if(length > storage->entries) {
+			messenger_show("WARNING", "El valor %s'%s'%s no entra en el Storage", COLOR_RED, argv[i], COLOR_YELLOW);
 
-			storage_set(next_entry, argv[i], length);
-
-			next_entry += required;
-
-			entries_left -= required;
-
-			messenger_show("INFO", "Queda/n %d entrada/s libre/s y el proximo valor se insertara en la entrada %d", entries_left, next_entry);
+			continue;
 		}
 
-		else {
-			messenger_show("WARNING", "El valor '%s' de tamanio %d no entra en el Storage porque ocupa %d entradas y quedan %d", argv[i], length, required, entries_left);
+		int status = storage_set(next_entry, argv[i], length);
+
+		if(status != STRG_SUCCESS) {
+			messenger_show("WARNING", "Ya no se pueden ingresar valores en la tabla de entradas");
+
+			break;
 		}
+
+		messenger_show("INFO", "Insercion del valor %s'%s'%s en el Storage", COLOR_CYAN, argv[i], COLOR_RESET);
+
+		next_entry += required;
+
+		entries_left -= required;
+
+		messenger_show("INFO", "Queda/n %d entrada/s libre/s y el proximo valor se insertara en la entrada %d", entries_left, next_entry);
 	}
 
-	messenger_show("INFO", "Fin de la prueba de insercion en el Storage");
+	messenger_show("INFO", "Estado final del Storage");
 
 	storage_show();
+
+	messenger_show("INFO", "Fin de la prueba de insercion en el Storage");
 
 	storage_destroy();
 }
