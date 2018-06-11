@@ -17,8 +17,8 @@ struct setup_t setup;
 
 struct instance_list_t *instance_list;
 
-static bool instance_handle_set_request(int fd, char *name, struct request_node_t *request);
-static bool instance_handle_store_request(int fd, char *name, struct request_node_t *request);
+static bool instance_handle_set_request(struct instance_t *instance, char *name, struct request_node_t *request);
+static bool instance_handle_store_request(struct instance_t *instance, char *name, struct request_node_t *request);
 static char *instance_recv_name(int fd);
 static bool instance_recv_set_execution_status(int fd, int *status_code, size_t *used_entries);
 static bool instance_recv_store_execution_status(int fd, int *status_code);
@@ -36,6 +36,10 @@ __attribute__((destructor)) void destroy_instance_list(void) {
 }
 
 static char *instance_recv_name(int fd);
+
+/* TODO:
+ *   - Reasignar Instancia si se desconecta cuando se esta procesando una operacion.
+ */
 
 void handle_instance_connection(int fd)
 {
@@ -68,10 +72,10 @@ void handle_instance_connection(int fd)
 
 		switch(request->type) {
 		case INSTANCE_SET:
-			error = !instance_handle_set_request(fd, name, request);
+			error = !instance_handle_set_request(instance, name, request);
 			break;
 		case INSTANCE_STORE:
-			error = !instance_handle_store_request(fd, name, request);
+			error = !instance_handle_store_request(instance, name, request);
 			break;
 		}
 
@@ -82,9 +86,9 @@ void handle_instance_connection(int fd)
 	free(name);
 }
 
-static bool instance_handle_set_request(int fd, char *name, struct request_node_t *request)
+static bool instance_handle_set_request(struct instance_t *instance, char *name, struct request_node_t *request)
 {
-	if (!instance_send_set_instruction(fd, request->set.key, request->set.value)) {
+	if (!instance_send_set_instruction(instance->fd, request->set.key, request->set.value)) {
 		log_error(logger, "[Instancia %s] Error al enviar instruccion SET!", name);
 		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", name);
 		esi_send_notify_block(request->requesting_esi_fd);
@@ -93,14 +97,16 @@ static bool instance_handle_set_request(int fd, char *name, struct request_node_
 	}
 
 	int status;
-	size_t used_entries;	// TODO: Hacer algo con eso.
-	if (!instance_recv_set_execution_status(fd, &status, &used_entries)) {
+	size_t used_entries;
+	if (!instance_recv_set_execution_status(instance->fd, &status, &used_entries)) {
 		log_error(logger, "[Instancia %s] Error al recibir resultado de ejecucion!", name);
 		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", name);
 		esi_send_notify_block(request->requesting_esi_fd);
 
 		return false;
 	}
+
+	instance->used_entries += used_entries;
 
 	/* status:
 	 *   (1) success.
@@ -122,9 +128,9 @@ static bool instance_handle_set_request(int fd, char *name, struct request_node_
 	}
 }
 
-static bool instance_handle_store_request(int fd, char *name, struct request_node_t *request)
+static bool instance_handle_store_request(struct instance_t *instance, char *name, struct request_node_t *request)
 {
-	if (!instance_send_store_instruction(fd, request->store.key)) {
+	if (!instance_send_store_instruction(instance->fd, request->store.key)) {
 		log_error(logger, "[Instancia %s] Error al enviar instruccion STORE!", name);
 		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", name);
 		esi_send_notify_block(request->requesting_esi_fd);
@@ -133,7 +139,7 @@ static bool instance_handle_store_request(int fd, char *name, struct request_nod
 	}
 
 	int status;
-	if (!instance_recv_store_execution_status(fd, &status)) {
+	if (!instance_recv_store_execution_status(instance->fd, &status)) {
 		log_error(logger, "[Instancia %s] Error al recibir resultado de ejecucion!", name);
 		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", name);
 		esi_send_notify_block(request->requesting_esi_fd);

@@ -14,6 +14,10 @@ static struct instance_t *instance_list_node_create(char *name, int fd);
 static void instance_list_node_destroy(struct instance_t *victim);
 static bool string_equals(char *actual, char *expected);
 
+/* TODO:
+ *   - Checkear si la instancia tiene espacio disponible.
+ */
+
 struct instance_list_t *instance_list_create(void)
 {
 	struct instance_list_t *instance_list = malloc(sizeof(*instance_list));
@@ -68,6 +72,16 @@ struct instance_t *instance_list_remove(struct instance_list_t *instance_list, c
 	return node;
 }
 
+struct instance_t *instance_list_first(struct instance_list_t *instance_list)
+{
+	bool is_connected_instance(void *_elem) {
+		struct instance_t *elem = (struct instance_t *)_elem;
+		return elem->fd != DISCONNECTED;
+	}
+
+	return list_find(instance_list->elements, is_connected_instance);
+}
+
 struct instance_t *instance_list_push(struct instance_list_t *instance_list, struct instance_t *elem)
 {
 	list_add(instance_list->elements, elem);
@@ -81,6 +95,11 @@ struct instance_t *instance_list_pop(struct instance_list_t *instance_list)
 		return elem->fd != DISCONNECTED;
 	}
 	return list_remove_by_condition(instance_list->elements, is_connected_instance);
+}
+
+void instance_list_sort(struct instance_list_t *instance_list, bool (*comparator)(void *, void *))
+{
+	list_sort(instance_list->elements, comparator);
 }
 
 bool instance_list_delete(struct instance_list_t *instance_list, char *name)
@@ -100,6 +119,7 @@ static struct instance_t *instance_list_node_create(char *name, int fd)
 	struct instance_t *node = malloc(sizeof(*node));
 	node->name = strdup(name);
 	node->fd = fd;
+	node->used_entries = 0;
 	node->requests = request_list_create();
 
 	return node;

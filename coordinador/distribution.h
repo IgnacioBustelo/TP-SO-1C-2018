@@ -5,6 +5,6 @@
 
 #include "instance-list/instance-list.h"
 
-struct instance_t *equitative_load(struct instance_list_t *instance_list, char *key);
+struct instance_t *dispatch(struct instance_list_t *instance_list, char *key);
 
 #endif /* COORDINADOR_DISTRIBUTION_H_ */

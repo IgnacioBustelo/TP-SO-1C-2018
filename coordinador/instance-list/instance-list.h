@@ -16,6 +16,7 @@ struct instance_list_t {
 struct instance_t {
 	char *name;
 	int fd;
+	size_t used_entries;
 	struct request_list_t *requests;
 };
 
@@ -24,8 +25,10 @@ void instance_list_destroy(struct instance_list_t *victim);
 struct instance_t *instance_list_get(struct instance_list_t *instance_list, char *name);
 struct instance_t *instance_list_add(struct instance_list_t *instance_list, char *name, int fd);
 struct instance_t* instance_list_remove(struct instance_list_t *instance_list, char *name);
+struct instance_t *instance_list_first(struct instance_list_t *instance_list);
 struct instance_t *instance_list_push(struct instance_list_t *instance_list, struct instance_t *elem);
 struct instance_t *instance_list_pop(struct instance_list_t *instance_list);
+void instance_list_sort(struct instance_list_t *instance_list, bool (*comparator)(void *, void *));
 bool instance_list_delete(struct instance_list_t *instance_list, char *name);
 
 #endif /* COORDINADOR_INSTANCE_LIST_H_ */
