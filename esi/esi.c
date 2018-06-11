@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
 
     	}
 
-    	if (send(scheduler_fd_, &execution_result_to_scheduler, sizeof(execution_result_to_scheduler), 0) == -1) {
+    	if (send(scheduler_fd_, &execution_result_to_scheduler, sizeof(execution_result_to_scheduler), 0) == sizeof(execution_result_to_scheduler)) {
 
     		log_error(logger, "Error al enviar el resultado de ejecución al planificador");
     		free(line);
