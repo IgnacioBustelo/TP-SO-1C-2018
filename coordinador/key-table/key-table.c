@@ -7,7 +7,7 @@
 #include "key-table.h"
 
 struct key_table_data_t {
-	char *instance_name;
+	struct instance_t *instance;
 };
 
 struct key_table_t {
@@ -25,13 +25,13 @@ __attribute__((destructor)) void destroy_key_table(void) {
 	// TODO: Destroy key table.
 }
 
-bool key_table_create_key(char *key)
+bool key_table_create_key(char *key, struct instance_t *instance)
 {
 	struct key_table_data_t *data = malloc(sizeof(*data));
-	data->instance_name = strdup(key);
+	data->instance = instance;
 
 	if (!dictionary_has_key(key_table->table, key)) {
-		dictionary_put(key_table->table, key, data);
+		dictionary_put(key_table->table, strdup(key), data);
 		return true;
 	} else {
 		return false;
@@ -43,8 +43,13 @@ struct key_table_data_t *key_table_get(char *key)
 	return dictionary_get(key_table->table, key);
 }
 
-char *key_table_get_instance_name(char *key)
+void key_table_remove(char *key)
+{
+	dictionary_remove_and_destroy(key_table->table, key, free);
+}
+
+struct instance_t *key_table_get_instance(char *key)
 {
 	struct key_table_data_t *data = key_table_get(key);
-	return data != NULL ? data->instance_name : NULL;
+	return data != NULL ? data->instance : NULL;
 }

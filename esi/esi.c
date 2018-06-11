@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
     size_t len = 0;
     ssize_t read;
 
-    fp = fopen(argv[1], "r");
+    fp = fopen(argv[argc - 1], "r");
 
     if (fp == NULL){
 
@@ -83,8 +83,10 @@ int main(int argc, char **argv) {
 
     	send_serialized_package(coordinator_fd_, package, package_size);
 
-    	int execution_result = wait_for_execution_result(coordinator_fd_);
-    	int execution_result_to_scheduler;
+    	free(package);
+
+    	protocol_id execution_result = wait_for_execution_result(coordinator_fd_);
+    	protocol_id execution_result_to_scheduler;
 
     	switch(execution_result) {
 
@@ -118,7 +120,7 @@ int main(int argc, char **argv) {
     		read = getline(&line, &len, fp);
 
     		if(execution_result_to_scheduler == PROTOCOL_EP_EXECUTION_SUCCESS) {
-        	int script_end;
+        	protocol_id script_end;
 
     		if(read == -1) {
 
@@ -147,7 +149,7 @@ void* obtain_package_from_line(char* line, size_t* package_size) {
 
     if(parsed.valido){
 
-    	int operation;
+    	protocol_id operation;
 
         switch(parsed.keyword){
 
@@ -194,14 +196,16 @@ void* obtain_package_from_line(char* line, size_t* package_size) {
 
     destruir_operacion(parsed);
 
-    return build_package(package);
+    void *load = build_package(package);
+    destroy_package(package);
 
+    return load;
 }
 
 void wait_for_execution_order(int scheduler_fd) {
 
-    int execution_order;
-	if(recv(scheduler_fd, &execution_order, sizeof(execution_order), MSG_WAITALL) == !sizeof(execution_order)) {
+    protocol_id execution_order;
+	if(recv(scheduler_fd, &execution_order, sizeof(execution_order), MSG_WAITALL) != sizeof(execution_order)) {
 
 		log_error(logger, "Fallo en el receive de la orden de ejecución");
 		exit_gracefully(EXIT_FAILURE);
@@ -214,10 +218,10 @@ void wait_for_execution_order(int scheduler_fd) {
 	}
 }
 
-int wait_for_execution_result(int coordinador_fd_) {
+protocol_id wait_for_execution_result(int coordinador_fd_) {
 
-	int execution_result;
-	if (recv(coordinator_fd_, &execution_result, sizeof(execution_result), MSG_WAITALL) == !sizeof(execution_result)) {
+	protocol_id execution_result;
+	if (recv(coordinator_fd_, &execution_result, sizeof(execution_result), MSG_WAITALL) != sizeof(execution_result)) {
 
 		log_error(logger, "Fallo en el receive del resultado de ejecución");
 		exit_gracefully(EXIT_FAILURE);
@@ -228,8 +232,13 @@ int wait_for_execution_result(int coordinador_fd_) {
 
 void exit_gracefully(int status) {
 
-	log_info(logger, "La ejecución del ESI finalizó");
+	if(status == EXIT_SUCCESS) {
 
+	log_info(logger, "La ejecución del ESI finalizó");
+	} else {
+
+		log_error(logger, "La ejecución del ESI falló inesperadamente");
+	}
 	log_destroy(logger);
 
 	close(coordinator_fd_);

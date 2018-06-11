@@ -1,7 +1,6 @@
 #include <commons/string.h>
 
 #include "../../libs/mocks/client_server.h"
-#include "../bootstrap.h"
 #include "../coordinator_api.h"
 #include "../entry_table.h"
 #include "../instancia.h"
@@ -23,6 +22,10 @@ void client_server_execute_server(int fd_client) {
 
 		coordinador_mock_set_response(fd_client);
 
+		coordinador_mock_store_request(fd_client, key);
+
+		coordinador_mock_store_response(fd_client);
+
 		free(key);
 	}
 
@@ -32,13 +35,11 @@ void client_server_execute_server(int fd_client) {
 void client_server_execute_client(int fd_server) {
 	fd_coordinador = fd_server;
 
-	bootstrap_start("Instancia", "../instancia.log", "INFO", "../instancia.cfg");
+	instance_init("Instancia", "../instancia.log", "INFO", "../instancia.cfg");
 
 	instance_main();
 
-	entry_table_print_table();
-
-	storage_show();
+	instance_show();
 
 	instance_die();
 }
@@ -47,7 +48,7 @@ int main(int argc, char* argv[]) {
 	server_name = "Coordinador";
 	client_name = "Instancia 1";
 
-	total_entries = 32;
+	total_entries = 16;
 	entry_size = 4;
 	key_amount = argc;
 

@@ -69,19 +69,6 @@ static key_value_t* recover_key_value(char* file_name) {
 	return recovered_key_value;
 }
 
-void dumper_init(char* mount_point) {
-	dumper = malloc(sizeof(dumper_t));
-
-	struct stat storage_stat = {0};
-
-	if (stat(mount_point, &storage_stat) == -1) {
-	    mkdir(mount_point, S_IRWXU);
-	}
-
-	dumper->mount_point = mount_point;
-	dumper->file_dictionary = dictionary_create();
-}
-
 int dumper_create_key_value(char* key) {
 	char* file_name = get_key_value_file_name(key);
 
@@ -106,8 +93,25 @@ void dumper_remove_key_value(char* key) {
 	free(file_name);
 }
 
-void dumper_store(int fd_key, void* data, size_t size) {
+void dumper_init(char* mount_point) {
+	dumper = malloc(sizeof(dumper_t));
+
+	struct stat storage_stat;
+
+	if (stat(mount_point, &storage_stat) == -1) {
+	    mkdir(mount_point, S_IRWXU);
+	}
+
+	dumper->mount_point = mount_point;
+	dumper->file_dictionary = dictionary_create();
+}
+
+void dumper_store(char* key, void* data, size_t size) {
+	int fd_key = dictionary_has_key(dumper->file_dictionary, key) ? (int) dictionary_get(dumper->file_dictionary, key) : dumper_create_key_value(key);
+
 	ftruncate(fd_key, size);
+
+	// TODO: Podria poner este mmap en el dictionary e inicializarlo cuando se añade la clave, y munmapearlo cuando se elimina
 
 	void* mapped_memory = mmap(NULL, size, PROT_WRITE | PROT_READ | PROT_EXEC, MAP_SHARED, fd_key, 0);
 
@@ -146,7 +150,7 @@ void dumper_show() {
 
 		char* content_string = messenger_bytes_to_string(content, content_size);
 
-		messenger_show("DEBUG", "FD: %d - Clave: %s - Valor: %s - Tamanio = %d", (int) value, key, content_string, content_size + 1);
+		messenger_show("DEBUG", "FD: %d - Clave: %s - Valor: %s - Tamanio = %d", (int) value, key, content_string, content_size);
 
 		free(content_string);
 

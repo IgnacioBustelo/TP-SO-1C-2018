@@ -8,6 +8,7 @@
 #include <commons/collections/queue.h>
 
 #include "../defines.h"
+#include "../instance-list/instance-list.h"
 #include "../key-table/key-table.h"
 #include "../../protocolo/protocolo.h"
 
@@ -64,7 +65,7 @@ void handle_scheduler_connection(int fd)
 
 enum key_state_t scheduler_recv_key_state(char *key)
 {
-	int op_code = PROTOCOL_CP_IS_THIS_KEY_BLOCKED;
+	protocol_id op_code = PROTOCOL_CP_IS_THIS_KEY_BLOCKED;
 	size_t key_size = strlen(key) + 1;
 
 	struct { void *block; size_t block_size; } blocks[] = {
@@ -86,6 +87,11 @@ enum key_state_t scheduler_recv_key_state(char *key)
 	if (blocked_state_response == PROTOCOL_PC_KEY_IS_NOT_BLOCKED) {
 		key_state = KEY_UNBLOCKED;
 	} else if (blocked_state_response == PROTOCOL_PC_KEY_IS_BLOCKED) {
+		int blocked_by_executing_esi_op_code = PROTOCOL_CP_IS_KEY_BLOCKED_BY_EXECUTING_ESI;
+		if (!CHECK_SEND(scheduler_fd, &blocked_by_executing_esi_op_code)) {
+			scheduler_exit();
+		}
+
 		protocol_id blocked_by_executing_esi_response;
 
 		if (!CHECK_RECV(scheduler_fd, &blocked_by_executing_esi_response)) {
@@ -126,8 +132,8 @@ static bool scheduler_send_key_status(void)
 
 	enum key_state { KEY_NOT_EXIST, KEY_UNINITIALIZED, KEY_INITIALIZED };
 
-	char *instance_name = key_table_get_instance_name(key);
-	if (instance_name == NULL) {
+	struct instance_t *instance = key_table_get_instance(key);
+	if (instance == NULL) {
 		free(key);
 		int key_state = KEY_NOT_EXIST;
 
@@ -141,12 +147,12 @@ static bool scheduler_send_key_status(void)
 		return false;
 	}
 
-	size_t instance_name_size = strlen(instance_name) + 1;
+	size_t instance_name_size = strlen(instance->name) + 1;
 	if (!CHECK_SEND(scheduler_fd, &instance_name_size)) {
 		free(key);
 		return false;
 	}
-	if (!CHECK_SEND_WITH_SIZE(scheduler_fd, instance_name, instance_name_size)) {
+	if (!CHECK_SEND_WITH_SIZE(scheduler_fd, instance->name, instance_name_size)) {
 		free(key);
 		return false;
 	}
@@ -166,11 +172,22 @@ bool scheduler_block_key(void)
 	return response == PROTOCOL_PC_KEY_BLOCKED_SUCCESFULLY;
 }
 
-bool scheduler_unblock_key(void)
+bool scheduler_unblock_key(char *key)
 {
 	protocol_id request = PROTOCOL_CP_UNLOCK_KEY;
-	if (!CHECK_SEND(scheduler_fd, &request)) {
-		return false;
+	size_t key_size = strlen(key) + 1;
+
+	struct { void *block; size_t block_size; } blocks[] = {
+		{ &request, sizeof(request) },
+		{ &key_size, sizeof(key_size) },
+		{ key, key_size },
+	};
+
+	int i;
+	for (i = 0; i < sizeof(blocks) / sizeof(*blocks); i++) {
+		if (!CHECK_SEND_WITH_SIZE(scheduler_fd, blocks[i].block, blocks[i].block_size)) {
+			return false;
+		}
 	}
 
 	protocol_id response = scheduler_pending_protocol_recv();

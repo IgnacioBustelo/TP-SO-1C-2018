@@ -3,7 +3,7 @@ RM = rm -f
 
 TARGET = instancia
 SRC = $(wildcard *.c)
-SRC += ../libs/conector.c ../libs/chunker.c ../libs/configurator.c ../libs/messenger.c ../libs/logger.c
+SRC += ../libs/conector.c ../libs/chunker.c ../libs/configurator.c ../libs/messenger.c ../libs/logger.c tests/utils.c
 OBJ = $(SRC:.c=.o)
 HEADER = $(SRC:.c=.h)
 

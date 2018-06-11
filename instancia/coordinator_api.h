@@ -19,12 +19,18 @@ int fd_coordinador;
 
 void				coordinator_api_connect(char* host, int port);
 
-void				coordinator_api_handshake(char* instance_name, storage_setup_t* setup); // Lo hace Nico
+void				coordinator_api_handshake(char* instance_name, storage_setup_t* setup);
 
 request_coordinador	coordinator_api_receive_header();
 
-key_value_t*		coordinator_api_receive_set(); // Hablado con Fer
+key_value_t*		coordinator_api_receive_set();
 
-void				coordinator_api_notify_set(int status, size_t entries_used); // Lo hace Santi
+char*				coordinator_api_receive_store();
+
+void				coordinator_api_notify_header(request_instancia header);
+
+void				coordinator_api_notify_status(request_instancia header, int status);
+
+void				coordinator_api_notify_set(int status, size_t entries_used);
 
 #endif

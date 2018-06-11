@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <parsi/parser.h>
 
+#include "../protocolo/protocolo.h"
+
 /*
  * Obtiene el paquete que tiene que enviar al coordinador a partir de una línea del archivo
  */
@@ -24,7 +26,7 @@ void wait_for_execution_order(int scheduler_fd);
  * El ESI se queda bloqueado esperando el resultado de ejecución de parte del coordinador
  */
 
-int wait_for_execution_result(int coordinador_fd_);
+protocol_id wait_for_execution_result(int coordinador_fd_);
 
 /*
  * Se finaliza el programa satisfactoriamente o no

@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
 
 	do {
 
-		alarm(time);
+		event_handler_alarm(time);
 
 		pause();
 

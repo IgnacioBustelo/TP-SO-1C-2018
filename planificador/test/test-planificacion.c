@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include "../planificador.h"
 
-typedef enum { FIFO, SJFCD, SJFSD, HRRN } t_scheduling_algorithm;
+typedef enum { ALG_FIFO, ALG_SJFCD, ALG_SJFSD, ALG_HRRN } t_scheduling_algorithm;
 
 /* Local functions */
 
@@ -37,10 +37,10 @@ int main() {
 	list_add(ready_queue, (void*)esi_id3);
 	list_add(ready_queue, (void*)esi_id4);
 
-	schedule_esis_test(FIFO, ready_queue, esi_bursts);
-	schedule_esis_test(SJFCD, ready_queue, esi_bursts);
-	schedule_esis_test(SJFSD, ready_queue, esi_bursts);
-	schedule_esis_test(HRRN, ready_queue, esi_bursts);
+	schedule_esis_test(ALG_FIFO, ready_queue, esi_bursts);
+	schedule_esis_test(ALG_SJFCD, ready_queue, esi_bursts);
+	schedule_esis_test(ALG_SJFSD, ready_queue, esi_bursts);
+	schedule_esis_test(ALG_HRRN, ready_queue, esi_bursts);
 
 	return EXIT_SUCCESS;
 
@@ -52,12 +52,12 @@ static int schedule_esis_test(t_scheduling_algorithm algorithm, t_list* ready_qu
 
 	switch(algorithm) {
 
-	case FIFO:
+	case ALG_FIFO:
 		esi_fd = (int*)ready_queue->head->data;
 		break;
 
-	case SJFCD:
-	case SJFSD: {
+	case ALG_SJFCD:
+	case ALG_SJFSD: {
 
 		void* obtain_esi_information(void* esi_fd) {
 
@@ -81,7 +81,7 @@ static int schedule_esis_test(t_scheduling_algorithm algorithm, t_list* ready_qu
 		break;
 	}
 
-	case HRRN: {
+	case ALG_HRRN: {
 
 		void* obtain_esi_information(void* esi_fd) {
 

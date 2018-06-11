@@ -49,6 +49,15 @@ static bool esi_recv_store_args(struct esi_t esi, struct esi_operation_t *operat
 static void esi_operation_destroy(struct esi_operation_t *victim);
 static int esi_get_id(void);
 
+t_log *operation_logger;
+__attribute__((constructor)) void operation_logger_init(void) {
+	operation_logger = log_create("operaciones.log", "Coordinador", true, LOG_LEVEL_INFO);
+}
+
+__attribute__((destructor)) void operation_logger_destroy(void) {
+	log_destroy(operation_logger);
+}
+
 void handle_esi_connection(int fd)
 {
 	struct esi_t esi;
@@ -61,25 +70,25 @@ void handle_esi_connection(int fd)
 	for (operation = esi_recv_operation(esi); operation != NULL; operation = esi_recv_operation(esi)) {
 		if (!handle_esi_operation(esi, operation)) {
 			esi_operation_destroy(operation);
+			log_error(logger, "[ESI %d] Finalizando comunicacion...", esi.id);
 			break;
 		}
 		esi_operation_destroy(operation);
 	}
-
-	log_error(logger, "[ESI %d] Finalizando comunicacion...", esi.id);
 }
 
 #define esi_log_info(logger, fmt, args...) log_info(logger, "[ESI %d] " fmt, esi.id, ##args)
 #define esi_log_error(logger, fmt, args...) log_error(logger, "[ESI %d] " fmt, esi.id, ##args)
 
+#define esi_log_operation(fmt, args...) log_info(operation_logger, "ESI %d\t" fmt, esi.id, ##args)
+
 static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *operation)
 {
 	/* TODO:
-	 *   - Log de operaciones.
 	 *   - Manejar desconexion del planificador.
 	 */
 	if (operation->type == ESI_GET) {
-		esi_log_info(logger, "GET %s", operation->get.key);
+		esi_log_operation("GET %s", operation->get.key);
 		switch (scheduler_recv_key_state(operation->get.key)) {
 		case KEY_UNBLOCKED:
 		case KEY_BLOCKED_BY_EXECUTING_ESI:
@@ -93,17 +102,19 @@ static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *opera
 			break;
 		}
 	} else {
+		char *key = operation->type == ESI_SET ? operation->set.key : operation->store.key;
+
 		esi_log_info(logger, "Seleccionando una Instancia para ejecutar la operacion...");
-		struct instance_t *instance = equitative_load(instance_list);
+		struct instance_t *instance = equitative_load(instance_list, key);
 		if (instance == NULL) {
 			/* TODO: Bloquear el ESI. */
 			return false;
 		}
 		if (operation->type == ESI_SET) {
-			esi_log_info(logger, "SET %s \"%s\"", operation->set.key, operation->set.value);
+			esi_log_operation("SET %s \"%s\"", operation->set.key, operation->set.value);
 			request_list_push_set(instance->requests, esi.fd, operation->set.key, operation->set.value);
 		} else /* operation->type == ESI_STORE */ {
-			esi_log_info(logger, "STORE %s", operation->store.key);
+			esi_log_operation("STORE %s", operation->store.key);
 			request_list_push_store(instance->requests, esi.fd, operation->store.key);
 		}
 	}
@@ -115,9 +126,9 @@ static struct esi_operation_t *esi_recv_operation(struct esi_t esi)
 {
 	esi_log_info(logger, "Esperando una operacion de ESI...");
 
-	int op_id;
+	protocol_id op_id;
 	if (!CHECK_RECV(esi.fd, &op_id)) {
-		esi_log_error(logger, "Error al recibir operacion!");
+		esi_log_info(logger, "Finaliza la ejecucion del ESI.");
 		return NULL;
 	}
 
@@ -137,7 +148,7 @@ static struct esi_operation_t *esi_recv_operation(struct esi_t esi)
 		break;
 	case PROTOCOL_EC_STORE:
 		operation->type = ESI_STORE;
-		esi_log_info(logger, "Codigo de operacion recibida.");
+		esi_log_info(logger, "Codigo de operacion STORE recibida.");
 		success = esi_recv_store_args(esi, operation);
 		break;
 	default:
@@ -225,19 +236,19 @@ static bool esi_recv_store_args(struct esi_t esi, struct esi_operation_t *operat
 
 bool esi_send_execution_success(int fd)
 {
-	int msg = PROTOCOL_CE_EVERYTHING_OK;
+	protocol_id msg = PROTOCOL_CE_EVERYTHING_OK;
 	return CHECK_SEND(fd, &msg);
 }
 
 bool esi_send_notify_block(int fd)
 {
-	int msg = PROTOCOL_CE_YOU_ARE_BLOCKED;
+	protocol_id msg = PROTOCOL_CE_YOU_ARE_BLOCKED;
 	return CHECK_SEND(fd, &msg);
 }
 
 bool esi_send_illegal_operation(int fd)
 {
-	int msg = PROTOCOL_CE_ILLEGAL_OPERATION;
+	protocol_id msg = PROTOCOL_CE_ILLEGAL_OPERATION;
 	return CHECK_SEND(fd, &msg);
 }
 

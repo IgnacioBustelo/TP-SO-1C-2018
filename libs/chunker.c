@@ -33,6 +33,17 @@ void chunk_add_variable(chunk_t* chunk, void* content, size_t content_size) {
 	chunk_add(chunk, content, content_size);
 }
 
+void chunk_add_list(chunk_t* chunk, t_list* list, void(*packager)(chunk_t*, void*)) {
+	size_t size = list_size(list);
+
+	chunk_add(chunk, &size, sizeof(size_t));
+
+	int i;
+	for(i = 0; i < size; i++) {
+		packager(chunk, list_get(list, i));
+	}
+}
+
 void chunk_show(chunk_t* chunk) {
 	char* chunk_string = messenger_bytes_to_string(chunk->bytes, chunk->current_size);
 
@@ -88,8 +99,6 @@ void chunk_recv(int fd, void* receiver, size_t size) {
 void chunk_recv_variable(int fd, void** receiver) {
 	size_t size;
 
-	messenger_show("DEBUG", "Se va a recibir un cacho serializado de memoria de tamano variable");
-
 	recv(fd, &size, sizeof(size), MSG_WAITALL);
 
 	*receiver = malloc(size);
@@ -97,4 +106,17 @@ void chunk_recv_variable(int fd, void** receiver) {
 	recv(fd, *receiver, size, MSG_WAITALL);
 
 	messenger_show("DEBUG", "Se recibio un cacho variable serializado de memoria de tamano %d", size);
+}
+
+void chunk_recv_list(int fd, t_list** receiver, void*(*unpackager)(int)) {
+	size_t size;
+
+	*receiver = list_create();
+
+	chunk_recv(fd, &size, sizeof(size));
+
+	int i;
+	for(i = 0; i < size; i++) {
+		list_add(*receiver, unpackager(fd));
+	}
 }

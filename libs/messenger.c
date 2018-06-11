@@ -1,5 +1,8 @@
+#define _GNU_SOURCE
+
 #include <commons/string.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "messenger.h"
 
@@ -8,7 +11,9 @@ void messenger_show(char* log_level, const char* format,...) {
 
 	va_start(args, format);
 
-	char* message = string_from_vformat(format, args);
+	char* message;
+
+	vasprintf(&message, format, args);
 
 	messenger_show_method(log_level, message);
 

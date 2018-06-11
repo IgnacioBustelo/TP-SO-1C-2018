@@ -1,5 +1,7 @@
 #include <signal.h>
+#include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "../libs/messenger.h"
 #include "event_handler.h"
@@ -36,4 +38,8 @@ void event_handler_action(int signal) {
 
 		default			: /* TODO: No se... */				break;
 	}
+}
+
+void event_handler_alarm(int time) {
+	alarm(time);
 }

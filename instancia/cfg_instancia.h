@@ -11,9 +11,9 @@ char*	cfg_instancia_get_coordinador_ip();
 
 int		cfg_instancia_get_coordinador_port();
 
-char*	cfg_instancia_get_replacement_algorithm_name();
+char	cfg_instancia_get_replacement_algorithm_id();
 
-void	cfg_instancia_invoke_replacement_algorithm();
+char*	cfg_instancia_get_replacement_algorithm_name();
 
 char*	cfg_instancia_get_mount_point();
 

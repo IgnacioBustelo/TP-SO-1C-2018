@@ -34,5 +34,6 @@ void request_list_destroy(struct request_list_t *list);
 struct request_node_t *request_list_push_set(struct request_list_t *request_list, int esi_fd, char *key, char *value);
 struct request_node_t *request_list_push_store(struct request_list_t *request_list, int esi_fd, char *key);
 struct request_node_t *request_list_pop(struct request_list_t *request_list);
+void request_node_destroy(struct request_node_t *node);
 
 #endif /* COORDINADOR_INSTANCE_REQUEST_LIST_H_ */

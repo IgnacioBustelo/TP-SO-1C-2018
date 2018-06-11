@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "tests/utils.h"
 #include "entry_table.h"
 #include "globals.h"
 
@@ -29,6 +30,29 @@ bool ascending(void * a, void *b){
 	entry_t * e1 = (entry_t*)a;
 	entry_t * e2 = (entry_t*)b;
 	return e1->number>e2->number?false:true;
+}
+
+entry_t* entry_table_get_entry(char* key) {
+
+	for (int i=0; i<list_size(entry_table);i++)
+			{
+				entry_t * entry = (entry_t*) list_get(entry_table,i);
+				if (!strcmp(key,entry->key))
+					return entry;
+			}
+	return NULL;
+}
+
+
+entry_t* entry_table_get_entry_by_entry_number(int number) {
+
+	for (int i=0; i<list_size(entry_table);i++)
+			{
+				entry_t * entry = (entry_t*) list_get(entry_table,i);
+				if (entry->number==number)
+					return entry;
+			}
+	return NULL;
 }
 
 int entry_table_next_entry(key_value_t* key_value){
@@ -92,7 +116,9 @@ bool entry_table_have_entries(key_value_t* key_value)
 
 int entry_table_entries_needed(key_value_t * key_value)
 {
-	return key_value->size/get_entry_size()+1;
+		int entries=(key_value->size/get_entry_size());
+		return key_value->size%get_entry_size()==0?entries:entries+1;
+	//return key_value->size/get_entry_size()+1;
 }
 
 entry_t * convert_key_value_t_to_entry_t(key_value_t * key_value){
@@ -110,7 +136,7 @@ bool entry_table_delete(key_value_t * key_value)
 		if (!strcmp(key_value->key,entry->key))
 		{
 			list_remove(entry_table,i);
-			entries_left=+(entry->size/get_entry_size())+1;
+			entries_left+=entry_table_entries_needed(key_value);
 			return true;
 		}
 	}
@@ -122,5 +148,31 @@ void entry_table_print_table(){
 		{
 		entry_t * entry=(entry_t *) list_get(entry_table,i);
 		printf("Registro %d, KEY: %s, TAMANIO: %d y tiene INDICE STORAGE: %d \n",i,entry->key,entry->size,entry->number);
+		}
+}
+
+int entry_table_atomic_entries_count()
+{
+	int atomic_entries=0;
+	for (int i=0; i<list_size(entry_table);i++)
+		{
+			entry_t * entry = (entry_t*) list_get(entry_table,i);
+			if (entry_table_is_entry_atomic(entry))
+				atomic_entries+=1;
+
+		}
+	return atomic_entries;
+}
+
+bool entry_table_is_entry_atomic(entry_t * entry)
+{
+	return entry->size <= get_entry_size();
+}
+
+void entry_table_delete_few(t_list* keys){
+	for(int i=0;i<list_size(keys);i++)
+		{
+		key_value_t* key_value= key_value_generator(list_get(keys,i),0);
+			entry_table_delete(key_value);
 		}
 }

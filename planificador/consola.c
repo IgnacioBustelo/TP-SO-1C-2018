@@ -387,7 +387,7 @@ void detect_and_show_all_deadlocks(t_list* locked_keys, t_list* esi_requests, t_
 
 void send_key_to_coordinator(char* key) {
 
-	int operation = PROTOCOL_PC_KEY_STATUS;
+	protocol_id operation = PROTOCOL_PC_KEY_STATUS;
 	size_t package_size = sizeof(operation) + sizeof(size_t) + strlen(key) + 1;
 	package_t* package = create_package(package_size);
 	add_content(package, &operation, sizeof(operation));
@@ -398,7 +398,7 @@ void send_key_to_coordinator(char* key) {
 
 void receive_and_print_key_status() {
 
-	int operation_code;
+	protocol_id operation_code;
 	int key_state;
 
 	recv_package(g_coordinator_fd, &operation_code, sizeof(int));
