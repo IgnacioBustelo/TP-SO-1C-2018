@@ -57,6 +57,8 @@ request_coordinador coordinator_api_receive_header() {
 }
 
 key_value_t* coordinator_api_receive_set() {
+	// TODO: Recibir status para saber si la clave es nueva o no
+
 	char *key, *value;
 
 	chunk_recv_variable(fd_coordinador, (void**) &key);

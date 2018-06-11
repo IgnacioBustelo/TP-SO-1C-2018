@@ -17,7 +17,7 @@ char* color_get() {
 	bool is_server = pthread_equal(current_thread_id, server_thread);
 	bool is_client = pthread_equal(current_thread_id, client_thread);
 
-	return (is_server) ? COLOR_RED : (is_client) ? COLOR_CYAN : COLOR_RESET;
+	return (is_server) ? COLOR_GREEN : (is_client) ? COLOR_CYAN : COLOR_RESET;
 }
 
 static void set_server(void* args) {

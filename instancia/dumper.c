@@ -96,7 +96,7 @@ void dumper_remove_key_value(char* key) {
 void dumper_init(char* mount_point) {
 	dumper = malloc(sizeof(dumper_t));
 
-	struct stat storage_stat = {0};
+	struct stat storage_stat;
 
 	if (stat(mount_point, &storage_stat) == -1) {
 	    mkdir(mount_point, S_IRWXU);
@@ -150,7 +150,7 @@ void dumper_show() {
 
 		char* content_string = messenger_bytes_to_string(content, content_size);
 
-		messenger_show("DEBUG", "FD: %d - Clave: %s - Valor: %s - Tamanio = %d", (int) value, key, content_string, content_size + 1);
+		messenger_show("DEBUG", "FD: %d - Clave: %s - Valor: %s - Tamanio = %d", (int) value, key, content_string, content_size);
 
 		free(content_string);
 

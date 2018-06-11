@@ -11,6 +11,10 @@ int		instance_set(key_value_t* key_value, t_list* replaced_keys);
 
 int		instance_store(char* key);
 
+int		instance_dump(t_list* stored_keys);
+
+int		instance_compact();
+
 void	instance_main();
 
 void	instance_show();

@@ -14,18 +14,16 @@ char* cfg_instancia_fields[FIELDS] = {
 	"INTERVALO_DUMP"
 };
 
-static char cfg_instancia_choose_algorithm() {
-	char* algorithm = config_get_string_value(config, FIELD(2));
-
-	if(string_equals_ignore_case(algorithm, "CIRC")) {
+static char get_algorithm_id(char* name) {
+	if(string_equals_ignore_case(name, "CIRC")) {
 
 		return 'C'; // Circular
 
-	} else if(string_equals_ignore_case(algorithm, "LRU")) {
+	} else if(string_equals_ignore_case(name, "LRU")) {
 
 		return 'L'; // Least Recently Used
 
-	} else if(string_equals_ignore_case(algorithm, "BSU")) {
+	} else if(string_equals_ignore_case(name, "BSU")) {
 
 		return 'B'; // Biggest Space Used
 
@@ -47,8 +45,12 @@ int cfg_instancia_get_coordinador_port() {
 	return config_get_int_value(config, FIELD(1));
 }
 
+char cfg_instancia_get_replacement_algorithm_id() {
+	return get_algorithm_id(config_get_string_value(config, FIELD(2)));
+}
+
 char* cfg_instancia_get_replacement_algorithm_name() {
-	switch (cfg_instancia_choose_algorithm()) {
+	switch (cfg_instancia_get_replacement_algorithm_id()) {
 		case 'C':	return "Algoritmo Circular";	break;
 
 		case 'L':	return "Least Recently Used";	break;
@@ -56,18 +58,6 @@ char* cfg_instancia_get_replacement_algorithm_name() {
 		case 'B':	return "Biggest Space Used";	break;
 
 		default:	return "Desconocido";			break;
-	}
-}
-
-void cfg_instancia_invoke_replacement_algorithm() {
-	switch (cfg_instancia_choose_algorithm()) {
-		case 'C':	/*TODO: Desarrollar algoritmo Circular*/				break;
-
-		case 'L':	/*TODO: Desarrollar algoritmo Least Recently Used*/		break;
-
-		case 'B':	/*TODO: Desarrollar algoritmo Biggest Space Used*/		break;
-
-		default:	/*TODO: Generar error*/									break;
 	}
 }
 

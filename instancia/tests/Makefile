@@ -1,6 +1,9 @@
 CC = gcc -Wall
 
 TARGET = cfg storage dumper recover entry_table_test handshake receive_set notify_set die checkpoint_3 algorithms_test
+
+.PHONY = clean $(TARGET)
+
 LIBS = -lcommons -lpthread
 
 DEPS = ../../libs/messenger.h ../../libs/mocks/printfer.h
@@ -8,9 +11,10 @@ COORDINADOR_DEPS = coordinador_mock.h ../coordinator_api.h ../globals.h ../../li
 
 SRC = $(DEPS:.h=.c)
 
-.PHONY = clean $(TARGET)
-
 all: $(TARGET)
+
+%: %.c $(DEPS) $(SRC)
+	$(CC) $< $(SRC) -o $@ $(LIBS)
 
 cfg: DEPS += ../cfg_instancia.h ../../libs/configurator.h ../../libs/mocks/default_color.h
 
@@ -33,9 +37,6 @@ notify_set: DEPS += $(COORDINADOR_DEPS)
 die: DEPS += ../event_handler.h ../../libs/mocks/color.h
 
 checkpoint_3: DEPS += $(COORDINADOR_DEPS) ../algorithms.h ../cfg_instancia.h ../../libs/configurator.h ../dumper.h ../event_handler.h ../entry_table.h ../instancia.h ../storage.h utils.h
-
-%: %.c $(DEPS) $(SRC)
-	$(CC) $< $(SRC) -o $@ $(LIBS)
 
 clean:
 	rm -rf files backup $(TARGET)

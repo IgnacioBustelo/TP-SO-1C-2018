@@ -18,19 +18,39 @@ int main(int argc, char* argv[]) {
 
 	messenger_show("INFO", "Se inicio el Dumper del Storage en el punto de montaje %s", dumper->mount_point);
 
+	messenger_show("INFO", "Prueba para insertar valores de claves en el punto de montaje");
+
 	for(i = 1; i < argc; i++) {
-		char* key = string_from_format("clave_%0.*d", max_keys, i);
+		char* key = string_from_format("archivo_%0.*d", max_keys, i);
 
 		int length = string_length(argv[i]);
 
 		dumper_store(key, argv[i], length);
 
-		messenger_show("INFO", "Insercion del valor %s en el path %s%s, ocupando %d byte/s", argv[i], dumper->mount_point, key, length);
+		messenger_show("INFO", "Insercion del valor %s%s%s en el path %s%s, ocupando %d byte/s", COLOR_CYAN, argv[i], COLOR_RESET, dumper->mount_point, key, length);
 
 		free(key);
 	}
 
 	messenger_show("INFO", "Se persistieron todas las claves");
+
+	dumper_show();
+
+	messenger_show("INFO", "Borrado de claves pares del punto de montaje");
+
+	for(i = 1; i < argc; i++) {
+		char* key = string_from_format("archivo_%0.*d", max_keys, i);
+
+		if(i % 2 == 0) {
+			dumper_remove_key_value(key);
+
+			messenger_show("INFO", "Eliminacion de la clave %s%s%s del punto de montaje", COLOR_RED, key, COLOR_RESET);
+		}
+
+		free(key);
+	}
+
+	messenger_show("INFO", "Se elminaron las claves pares del punto de montaje");
 
 	dumper_show();
 

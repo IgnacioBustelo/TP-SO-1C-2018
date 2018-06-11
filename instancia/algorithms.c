@@ -1,6 +1,21 @@
 #include <stdio.h>
 #include "algorithms.h"
+#include "globals.h"
 
+
+void algorithms_exec(char algorithm_id, t_list* entry_table, key_value_t* key_value, t_list* replaced_keys) {
+	// TODO: Habra una forma en C de evitar type test en tiempo de ejecucion?
+
+	switch (algorithm_id) {
+		case 'C':	algorithm_circular(entry_table, key_value, replaced_keys);	break;
+
+		case 'L':	/*TODO: Desarrollar algoritmo Least Recently Used*/			break;
+
+		case 'B':	/*TODO: Desarrollar algoritmo Biggest Space Used*/			break;
+
+		default:	/*TODO: Generar error*/										break;
+	}
+}
 
 void algorithm_circular_set_pointer(int index){
 	algorithm_circular_pointer=index;

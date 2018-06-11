@@ -18,18 +18,20 @@ typedef struct{
 
 int algorithm_circular_pointer;
 
-int algorithm_circular(t_list* entry_table,key_value_t* key_value, t_list* replaced_keys);
+void		algorithms_exec(char algorithm_id, t_list* entry_table, key_value_t* key_value, t_list* replaced_keys);
 
-void algorithm_lru(t_list* entry_table, t_list* replaced_keys);
+int			algorithm_circular(t_list* entry_table,key_value_t* key_value, t_list* replaced_keys);
 
-bool new_value_fits(key_value_t* key_value);//Se fija si el tamanio del nuevo key_value entra entre todas las entradas atomicas que hay y los lugares libres dentro de la tabla
+void		algorithm_lru(t_list* entry_table, t_list* replaced_keys); // TODO: Hacer Least Recently Used
 
-status_t * convert_entry_t_to_status_t(entry_t * entry);
+bool		new_value_fits(key_value_t* key_value); // Se fija si el tamanio del nuevo key_value entra entre todas las entradas atomicas que hay y los lugares libres dentro de la tabla
 
-void entry_table_status_print_table(t_list* entry_table_status);
+status_t*	convert_entry_t_to_status_t(entry_t * entry);
 
-t_list* original_entry_table_migration_to_complete_one();
+void		entry_table_status_print_table(t_list* entry_table_status);
 
-void    algorithm_circular_set_pointer(int index);
+t_list*		original_entry_table_migration_to_complete_one();
+
+void		algorithm_circular_set_pointer(int index);
 
 #endif
