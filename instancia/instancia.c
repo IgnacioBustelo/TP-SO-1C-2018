@@ -55,6 +55,12 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 	// Nice to have => Que lo tenga entry_table_haSSSSSSS_entries
 
 	if(!entry_table_have_entries(key_value) /* && entry_table_has_atomic_values() */) {
+		void replace_and_show_key(void* key) {
+			dumper_remove_key_value((char*) key);
+
+			messenger_show("WARNING", "La clave %s fue reemplazada por %s", (char*) key, key_value->key);
+		}
+
 		messenger_show("WARNING", "La Instancia debe ejecutar un reemplazo");
 
 		/* TODO: Reemplazar por algo mas polimorfico:
@@ -75,7 +81,7 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 
 		entry_table_delete_few(replaced_keys);
 
-		list_iterate(replaced_keys, (void*) dumper_remove_key_value);
+		list_iterate(replaced_keys, (void*) replace_and_show_key);
 
 		messenger_show("INFO", "Reemplazo ejecutado correctamente");
 	}

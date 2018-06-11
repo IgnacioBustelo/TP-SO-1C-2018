@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
 	server_name = "Coordinador";
 	client_name = "Instancia 1";
 
-	total_entries = 16;
+	total_entries = 8;
 	entry_size = 4;
 	key_amount = argc;
 
