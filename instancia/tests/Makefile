@@ -1,6 +1,6 @@
 CC = gcc -Wall
 
-TARGET = cfg storage dumper recover entry_table_test handshake receive_set notify_set die checkpoint_3 algorithms_test
+TARGET = cfg storage dumper dump recover entry_table_test handshake receive_set notify_set die checkpoint_3 algorithms_test
 
 .PHONY = clean $(TARGET)
 
@@ -22,11 +22,13 @@ storage: DEPS += ../globals.h ../storage.h ../../libs/mocks/default_color.h
 
 dumper: DEPS += ../dumper.h ../globals.h ../../libs/mocks/default_color.h
 
+dump: DEPS += ../dumper.h ../globals.h ../event_handler.h ../../libs/mocks/color.h ../../libs/mocks/default_color.h
+
 recover: DEPS += ../dumper.h ../globals.h ../../libs/mocks/default_color.h
 
 entry_table_test: DEPS += ./utils.h ../entry_table.h ../globals.h ../../libs/mocks/default_color.h
 
-algorithms_test: DEPS += ./utils.h ../entry_table.h ../globals.h ../../libs/mocks/default_color.h ../algorithms.h
+algorithms_test: DEPS += ./utils.h ../algorithms.h ../entry_table.h ../globals.h ../../libs/mocks/default_color.h
 
 handshake: DEPS += $(COORDINADOR_DEPS)
 
@@ -39,4 +41,4 @@ die: DEPS += ../event_handler.h ../../libs/mocks/color.h
 checkpoint_3: DEPS += $(COORDINADOR_DEPS) ../algorithms.h ../cfg_instancia.h ../../libs/configurator.h ../dumper.h ../event_handler.h ../entry_table.h ../instancia.h ../storage.h utils.h
 
 clean:
-	rm -rf files backup $(TARGET)
+	rm -rf files backup dumped_keys $(TARGET)
