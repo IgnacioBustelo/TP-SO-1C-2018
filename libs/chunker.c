@@ -33,7 +33,7 @@ void chunk_add_variable(chunk_t* chunk, void* content, size_t content_size) {
 	chunk_add(chunk, content, content_size);
 }
 
-void chunk_add_list(chunk_t* chunk, t_list* list, void(*packager)(chunk_t*, void*)) {
+void chunk_add_list(chunk_t* chunk, t_list* list, void(*packager)(chunk_t* chunk, void* content)) {
 	size_t size = list_size(list);
 
 	chunk_add(chunk, &size, sizeof(size_t));
@@ -69,54 +69,121 @@ void chunk_destroy(chunk_t* chunk) {
 	free(chunk);
 }
 
-void chunk_send(int fd, void* serialized_chunk, size_t chunk_size) {
-	messenger_show("DEBUG", "Se enviaron %d bytes", chunk_size);
+int chunk_send(int fd, void* serialized_chunk, size_t chunk_size) {
+	int bytes_sent;
 
-	int bytes_sent = send(fd, serialized_chunk, chunk_size, 0);
+	messenger_show("DEBUG", "Se enviaran %d bytes", chunk_size);
 
-	if(bytes_sent < chunk_size) {
-		chunk_send(fd, serialized_chunk + bytes_sent, chunk_size - bytes_sent);
+	bytes_sent = send(fd, serialized_chunk, chunk_size, 0);
+
+	if(bytes_sent == -1) {
+		messenger_show("ERROR", "Error enviando datos");
+
+		return -1;
+	}
+
+	else if(bytes_sent < chunk_size) {
+		messenger_show("DEBUG", "Faltan enviar %d bytes", bytes_sent);
+
+		return chunk_send(fd, serialized_chunk + bytes_sent, chunk_size - bytes_sent);
+	}
+
+	else {
+		return bytes_sent;
 	}
 }
 
-void chunk_send_and_destroy(int fd, chunk_t* chunk) {
+int chunk_send_and_destroy(int fd, chunk_t* chunk) {
+	int bytes_sent;
 	size_t size = chunk->current_size;
 	void* serialized_chunk = chunk_build(chunk);
 
 	chunk_destroy(chunk);
 
-	chunk_send(fd, serialized_chunk, size);
+	bytes_sent = chunk_send(fd, serialized_chunk, size);
 
 	free(serialized_chunk);
+
+	return bytes_sent;
 }
 
-void chunk_recv(int fd, void* receiver, size_t size) {
-	recv(fd, receiver, size, MSG_WAITALL);
+int chunk_recv(int fd, void* receiver, size_t size) {
+	int bytes_received = recv(fd, receiver, size, MSG_WAITALL);
 
-	messenger_show("DEBUG", "Se recibio un cacho serializado de memoria de tamano %d", size);
+	if(bytes_received != -1) {
+		messenger_show("DEBUG", "Se recibio un cacho serializado de memoria de tamano %d, despues de haber recibido %d bytes", size, bytes_received);
+
+		return bytes_received;
+	}
+
+	else {
+		messenger_show("ERROR", "Fallo recibiendo un paquete de tamanio %d", size);
+
+		return -1;
+	}
 }
 
-void chunk_recv_variable(int fd, void** receiver) {
+int chunk_recv_variable(int fd, void** receiver) {
+	int bytes_received;
 	size_t size;
 
-	recv(fd, &size, sizeof(size), MSG_WAITALL);
+	bytes_received = chunk_recv(fd, &size, sizeof(size));
+
+	if(bytes_received == -1) {
+		messenger_show("ERROR", "Fallo recibiendo el tamanio del paquete de tamanio variable");
+
+		return -1;
+	}
 
 	*receiver = malloc(size);
 
-	recv(fd, *receiver, size, MSG_WAITALL);
+	bytes_received = chunk_recv(fd, *receiver, size);
+
+	if(bytes_received == -1) {
+		messenger_show("ERROR", "Fallo recibiendo el paquete de tamanio variable");
+
+		return -1;
+	}
 
 	messenger_show("DEBUG", "Se recibio un cacho variable serializado de memoria de tamano %d", size);
+
+	return bytes_received;
 }
 
-void chunk_recv_list(int fd, t_list** receiver, void*(*unpackager)(int)) {
+int chunk_recv_list(int fd, t_list** receiver, void*(*unpackager)(int fd, int* bytes_received)) {
+	int bytes_received;
 	size_t size;
 
 	*receiver = list_create();
 
-	chunk_recv(fd, &size, sizeof(size));
+	bytes_received = chunk_recv(fd, &size, sizeof(size));
+
+	if(bytes_received == -1) {
+		messenger_show("ERROR", "Fallo recibiendo la cantidad de nodos de la lista");
+
+		return bytes_received;
+	}
 
 	int i;
 	for(i = 0; i < size; i++) {
-		list_add(*receiver, unpackager(fd));
+		int current_received_bytes;
+
+		void* received_data = unpackager(fd, &current_received_bytes);
+
+		if(current_received_bytes == -1) {
+			list_destroy(*receiver);
+
+			messenger_show("ERROR", "Fallo recibiendo la cantidad de nodos de la lista");
+
+			return -1;
+		}
+
+		bytes_received += current_received_bytes;
+
+		list_add(*receiver, received_data);
 	}
+
+	messenger_show("DEBUG", "Se recibio una lista tamano %d", bytes_received);
+
+	return bytes_received;
 }

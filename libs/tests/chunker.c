@@ -98,10 +98,10 @@ void client_server_execute_server(int fd_client) {
 }
 
 void client_server_execute_client(int fd_server) {
-	void* unpackager(int fd_server) {
+	void* unpackager(int fd_server, int* bytes_recieved) {
 		void* subject;
 
-		chunk_recv_variable(fd_server, &subject);
+		*bytes_recieved = chunk_recv_variable(fd_server, &subject);
 
 		return subject;
 	}
