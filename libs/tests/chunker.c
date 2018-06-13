@@ -74,7 +74,7 @@ void client_server_execute_server(int fd_client) {
 
 	messenger_show("INFO", "Empaquetando el apellido");
 
-	chunk_add_variable(chunk, student_send->surname, string_length(student_send->name) + 1);
+	chunk_add_variable(chunk, student_send->surname, string_length(student_send->surname) + 1);
 
 	messenger_show("INFO", "Empaquetado el apellido");
 
