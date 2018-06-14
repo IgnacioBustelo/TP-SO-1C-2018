@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <ctype.h>
+#include <commons/collections/list.h>
 
 #include "defines.h"
 #include "instance-list/instance-list.h"
@@ -16,6 +18,8 @@ static struct instance_t *equitative_load(struct instance_list_t *instance_list,
 
 static bool sort_by_used_space(void *a, void *b);
 static struct instance_t *least_space_used(struct instance_list_t *instance_list, char *key);
+
+static struct instance_t *key_explicit(struct instance_list_t *instance_list, char *key);
 
 /* TODO:
  *   - Loguear mas informaciones.
@@ -37,10 +41,8 @@ struct instance_t *dispatch(struct instance_list_t *instance_list, char *key)
 		return equitative_load(instance_list, key);
 	case LSU:
 		return least_space_used(instance_list, key);
-
-//  TODO:
-//	case KE:
-//		return key_explicit(instance_list, key);
+	case KE:
+		return key_explicit(instance_list, key);
 	}
 
 	fprintf(stderr, "BUGGED: in %s from %s (line: %d) \n", __func__, __FILE__, __LINE__);
@@ -75,10 +77,27 @@ static struct instance_t *least_space_used(struct instance_list_t *instance_list
 	synchronized(instance_list->lock) {
 		instance_list_sort(instance_list, sort_by_used_space);
 		next_instance = instance_list_first(instance_list);
-		if (next_instance != NULL) {
-			key_table_create_key(key, next_instance);
-		}
+	}
+	if (next_instance != NULL) {
+		key_table_create_key(key, next_instance);
 	}
 
 	return next_instance;
+}
+
+static struct instance_t *key_explicit(struct instance_list_t *instance_list, char *key)
+{
+	char first_char = tolower(key[0]);
+	int index = (first_char - 'a') * instance_list_size(instance_list) / ('z' - 'a' + 1);
+
+	struct instance_t *instance;
+
+	synchronized(instance_list->lock) {
+		instance = instance_list_get_by_index(instance_list, index);
+	}
+	if (instance != NULL) {
+		key_table_create_key(key, instance);
+	}
+
+	return instance;
 }

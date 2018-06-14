@@ -22,7 +22,9 @@ struct instance_t {
 
 struct instance_list_t *instance_list_create(void);
 void instance_list_destroy(struct instance_list_t *victim);
-struct instance_t *instance_list_get(struct instance_list_t *instance_list, char *name);
+size_t instance_list_size(struct instance_list_t *instance_list);
+struct instance_t *instance_list_get_by_name(struct instance_list_t *instance_list, char *name);
+struct instance_t *instance_list_get_by_index(struct instance_list_t *instance_list, int index);
 struct instance_t *instance_list_add(struct instance_list_t *instance_list, char *name, int fd);
 struct instance_t* instance_list_remove(struct instance_list_t *instance_list, char *name);
 struct instance_t *instance_list_first(struct instance_list_t *instance_list);
