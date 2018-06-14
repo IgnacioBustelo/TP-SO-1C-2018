@@ -49,7 +49,11 @@ void handle_instance_connection(int fd)
 		return;
 	}
 
-	struct instance_t *instance = instance_list_add(instance_list, name, fd);
+	struct instance_t *instance;
+	synchronized(instance_list->lock) {
+		instance = instance_list_add(instance_list, name, fd);
+	}
+
 	if (instance == NULL) {
 		instance_send_confirmation_error(fd);
 		log_error(logger, "[Instancia] Socket %d: Ya existe otra instancia con nombre \"%s\"!", fd, name);
@@ -82,7 +86,9 @@ void handle_instance_connection(int fd)
 		request_node_destroy(request);
 	}
 
-	instance_list_remove(instance_list, name);
+	synchronized(instance_list->lock) {
+		instance_list_remove(instance_list, name);
+	}
 	free(name);
 }
 
