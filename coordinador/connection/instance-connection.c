@@ -17,8 +17,8 @@ struct setup_t setup;
 
 struct instance_list_t *instance_list;
 
-static bool instance_handle_set_request(struct instance_t *instance, char *name, struct request_node_t *request);
-static bool instance_handle_store_request(struct instance_t *instance, char *name, struct request_node_t *request);
+static bool instance_handle_set_request(struct instance_t *instance, struct request_node_t *request);
+static bool instance_handle_store_request(struct instance_t *instance, struct request_node_t *request);
 static char *instance_recv_name(int fd);
 static bool instance_recv_set_execution_status(int fd, int *status_code, size_t *used_entries);
 static bool instance_recv_store_execution_status(int fd, int *status_code);
@@ -53,33 +53,32 @@ void handle_instance_connection(int fd)
 	synchronized(instance_list->lock) {
 		instance = instance_list_add(instance_list, name, fd);
 	}
+	free(name);
 
 	if (instance == NULL) {
 		instance_send_confirmation_error(fd);
-		log_error(logger, "[Instancia] Socket %d: Ya existe otra instancia con nombre \"%s\"!", fd, name);
-		free(name);
+		log_error(logger, "[Instancia] Socket %d: Ya existe otra instancia con nombre \"%s\"!", fd, instance->name);
 		return;
 	}
 
-	log_info(logger, "[Instancia] Socket %d: Instancia \"%s\" conectada.", fd, name);
+	log_info(logger, "[Instancia] Socket %d: Instancia \"%s\" conectada.", fd, instance->name);
 
 	if (!instance_send_confirmation(fd)) {
-		log_error(logger, "[Instancia %s] Error al enviar confirmacion!", name);
-		free(name);
+		log_error(logger, "[Instancia %s] Error al enviar confirmacion!", instance->name);
 		return;
 	}
 
 	bool error = false;
 	while (!error) {
 		struct request_node_t *request = request_list_pop(instance->requests);
-		log_info(logger, "[Instancia %s] Atendiendo pedido...", name);
+		log_info(logger, "[Instancia %s] Atendiendo pedido...", instance->name);
 
 		switch(request->type) {
 		case INSTANCE_SET:
-			error = !instance_handle_set_request(instance, name, request);
+			error = !instance_handle_set_request(instance, request);
 			break;
 		case INSTANCE_STORE:
-			error = !instance_handle_store_request(instance, name, request);
+			error = !instance_handle_store_request(instance, request);
 			break;
 		}
 
@@ -87,16 +86,15 @@ void handle_instance_connection(int fd)
 	}
 
 	synchronized(instance_list->lock) {
-		instance_list_remove(instance_list, name);
+		instance_list_remove(instance_list, instance->name);
 	}
-	free(name);
 }
 
-static bool instance_handle_set_request(struct instance_t *instance, char *name, struct request_node_t *request)
+static bool instance_handle_set_request(struct instance_t *instance, struct request_node_t *request)
 {
 	if (!instance_send_set_instruction(instance->fd, request->set.key, request->set.value)) {
-		log_error(logger, "[Instancia %s] Error al enviar instruccion SET!", name);
-		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", name);
+		log_error(logger, "[Instancia %s] Error al enviar instruccion SET!", instance->name);
+		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", instance->name);
 		esi_send_notify_block(request->requesting_esi_fd);
 
 		return false;
@@ -105,8 +103,8 @@ static bool instance_handle_set_request(struct instance_t *instance, char *name,
 	int status;
 	size_t used_entries;
 	if (!instance_recv_set_execution_status(instance->fd, &status, &used_entries)) {
-		log_error(logger, "[Instancia %s] Error al recibir resultado de ejecucion!", name);
-		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", name);
+		log_error(logger, "[Instancia %s] Error al recibir resultado de ejecucion!", instance->name);
+		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", instance->name);
 		esi_send_notify_block(request->requesting_esi_fd);
 
 		return false;
@@ -119,26 +117,26 @@ static bool instance_handle_set_request(struct instance_t *instance, char *name,
 	 *   (0) failure.
 	 */
 	if (status == 1) {
-		log_info(logger, "[Instancia %s] Operacion realizada correctamente.", name);
+		log_info(logger, "[Instancia %s] Operacion realizada correctamente.", instance->name);
 		esi_send_execution_success(request->requesting_esi_fd);
 		return true;
 	} else if (status == 0) {
 		/* TODO: REVIEW */
-		log_error(logger, "[Instancia %s] Operacion fallida!", name);
+		log_error(logger, "[Instancia %s] Operacion fallida!", instance->name);
 		esi_send_illegal_operation(request->requesting_esi_fd);
 		return false;
 	} else {
-		log_error(logger, "[Instancia %s] Se recibio un resultado invalido!", name);
+		log_error(logger, "[Instancia %s] Se recibio un resultado invalido!", instance->name);
 		esi_send_notify_block(request->requesting_esi_fd);
 		return false;
 	}
 }
 
-static bool instance_handle_store_request(struct instance_t *instance, char *name, struct request_node_t *request)
+static bool instance_handle_store_request(struct instance_t *instance, struct request_node_t *request)
 {
 	if (!instance_send_store_instruction(instance->fd, request->store.key)) {
-		log_error(logger, "[Instancia %s] Error al enviar instruccion STORE!", name);
-		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", name);
+		log_error(logger, "[Instancia %s] Error al enviar instruccion STORE!", instance->name);
+		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", instance->name);
 		esi_send_notify_block(request->requesting_esi_fd);
 
 		return false;
@@ -146,8 +144,8 @@ static bool instance_handle_store_request(struct instance_t *instance, char *nam
 
 	int status;
 	if (!instance_recv_store_execution_status(instance->fd, &status)) {
-		log_error(logger, "[Instancia %s] Error al recibir resultado de ejecucion!", name);
-		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", name);
+		log_error(logger, "[Instancia %s] Error al recibir resultado de ejecucion!", instance->name);
+		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", instance->name);
 		esi_send_notify_block(request->requesting_esi_fd);
 
 		return false;
@@ -158,18 +156,18 @@ static bool instance_handle_store_request(struct instance_t *instance, char *nam
 	 *   (0) failure.
 	 */
 	if (status == 1) {
-		log_info(logger, "[Instancia %s] Operacion realizada correctamente.", name);
+		log_info(logger, "[Instancia %s] Operacion realizada correctamente.", instance->name);
 		/* TODO: Manejar desconexion del planificador. */
 		scheduler_unblock_key(request->store.key);
 		esi_send_execution_success(request->requesting_esi_fd);
 		return true;
 	} else if (status == 0) {
 		/* TODO: REVIEW */
-		log_error(logger, "[Instancia %s] Operacion fallida!", name);
+		log_error(logger, "[Instancia %s] Operacion fallida!", instance->name);
 		esi_send_illegal_operation(request->requesting_esi_fd);
 		return false;
 	} else {
-		log_error(logger, "[Instancia %s] Se recibio un resultado invalido!", name);
+		log_error(logger, "[Instancia %s] Se recibio un resultado invalido!", instance->name);
 		esi_send_notify_block(request->requesting_esi_fd);
 		return false;
 	}
