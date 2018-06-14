@@ -31,7 +31,7 @@ bool key_table_create_key(char *key, struct instance_t *instance)
 	data->instance = instance;
 
 	if (!dictionary_has_key(key_table->table, key)) {
-		dictionary_put(key_table->table, strdup(key), data);
+		dictionary_put(key_table->table, key, data);
 		return true;
 	} else {
 		return false;
