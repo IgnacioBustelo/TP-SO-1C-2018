@@ -138,7 +138,7 @@ protocol_id receive_execution_result(int fd);
  * Dice si determinada clave ya fue tomada por un ESI (hizo un GET)
  */
 
-bool determine_if_key_is_blocked(char* blocked_key);
+bool determine_if_key_is_blocked(char* blocked_key, t_list* locked_keys);
 
 /*
  * Dice si la clave solicitada la bloqueó el ESI en ejecución
