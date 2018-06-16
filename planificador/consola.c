@@ -84,7 +84,17 @@ static void lock_process(char **args)
 
 		printf("Bloquear proceso ESI (clave = %s, id = %s)\n", key, pid);
 		block_esi_by_console_flag = 1;
-		list_add(g_new_blocked_by_console_esis, (void*)create_esi_sexpecting_key(atoi(pid), key));
+
+		int pid_ = atoi(pid);
+
+		bool condition(void* esi_inf) {
+
+			return ((esi_information*)esi_inf)->esi_numeric_name == pid_;
+		}
+
+		int pfd = ((esi_information*)list_find(g_esi_bursts, condition))->esi_id;
+
+		list_add(g_new_blocked_by_console_esis, (void*)create_esi_sexpecting_key(pfd, key));
 
 	}
 	_lock_process(args[0], args[1]);
