@@ -160,12 +160,6 @@ int unlock_esis(char* key_unlocked);
 void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag);
 
 /*
- * Desbloquea al primer ESI bloqueado por la clave recientemente desbloqueada por consola
- */
-
-void update_blocked_by_console_esi_queue();
-
-/*
  * Replanifica la cola de ready
  */
 
