@@ -275,7 +275,6 @@ int main(void) {
 
 					update_blocked_esis(&update_blocked_esi_queue_flag);
 					send_protocol_answer(fd, PROTOCOL_PC_KEY_UNLOCKED_SUCCESFULLY);
-					log_info(logger,"Clave %s desbloqueada", key_to_unlock);
 
 					sem_post(&mutex_coordinador);
 					break;
