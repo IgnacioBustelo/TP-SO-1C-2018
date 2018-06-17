@@ -201,4 +201,10 @@ void kaboom_baby();
 
 esi_information* obtain_esi_information_by_id(int esi_fd);
 
+/*
+ * Obtiene el número de fd del pid correspondiente. En caso de no existir devuelve -1
+ */
+
+int obtain_esi_fd_by_esi_pid(int esi_pid);
+
 #endif /* PLANIFICADOR_PLANIFICADOR_H_ */

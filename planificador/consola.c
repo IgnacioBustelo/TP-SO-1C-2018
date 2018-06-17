@@ -85,14 +85,7 @@ static void lock_process(char **args)
 		printf("Bloquear proceso ESI (clave = %s, id = %s)\n", key, pid);
 		block_esi_by_console_flag = 1;
 
-		int pid_ = atoi(pid);
-
-		bool condition(void* esi_inf) {
-
-			return ((esi_information*)esi_inf)->esi_numeric_name == pid_;
-		}
-
-		int pfd = ((esi_information*)list_find(g_esi_bursts, condition))->esi_id;
+		int pfd = obtain_esi_fd_by_esi_pid(atoi(pid));
 
 		list_add(g_new_blocked_by_console_esis, (void*)create_esi_sexpecting_key(pfd, key));
 
@@ -126,8 +119,17 @@ static void kill_process(char **args)
 	void _kill_process(char *pid) {
 		printf("Finalizar proceso %s\n", pid);
 		killed_esi_flag = 1;
-		int esi_id = atoi(pid);
-		list_add(g_new_killed_esis, (void*)&esi_id);
+
+		int* pfd = malloc(sizeof(int));
+		*pfd = obtain_esi_fd_by_esi_pid(atoi(pid));
+
+		if(*pfd == -1){
+
+			printf("El ESI elegido para matar no existe. Busque otra victima\n");
+		} else {
+
+			list_add(g_new_killed_esis, (void*)pfd);
+		}
 	}
 	_kill_process(args[0]);
 }

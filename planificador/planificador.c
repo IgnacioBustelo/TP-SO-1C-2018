@@ -46,8 +46,6 @@ static void update_esi_information_next_estimated_burst(int esi_fd);
 
 static void block_by_console_procedure();
 
-static int obtain_esi_fd_by_esi_pid(int esi_pid);
-
 /* -- Global variables -- */
 
 t_log* logger;
@@ -434,6 +432,7 @@ void create_administrative_structures() {
 	g_blocked_queue = list_create();
 	g_finished_queue = list_create();
 	g_new_blocked_by_console_esis = list_create();
+	g_new_killed_esis = list_create();
 
 	int i = 0;
 	while(setup.blocked_keys[i] != NULL) {
@@ -478,6 +477,7 @@ void destroy_administrative_structures() {
 	list_destroy_and_destroy_elements(g_blocked_queue, delete_int_node);
 	list_destroy_and_destroy_elements(g_finished_queue, delete_int_node);
 	list_destroy_and_destroy_elements(g_new_queue, delete_int_node);
+	list_destroy_and_destroy_elements(g_new_killed_esis, delete_int_node);
 
 	list_destroy_and_destroy_elements(g_new_blocked_by_console_esis, destroy_esi_sexpecting_key);
 }
@@ -498,18 +498,16 @@ void authorize_esi_execution(int esi_fd) {
 		log_error(logger, "Fallo en la autorización del ESI a ejecutar");
 
 		sock_my_port(esi_fd);
+		executing_esi = -1;
+		reschedule(&reschedule_flag, &executing_esi);
 
-		// TODO: Aca debe retornar un false para avisar que el ESI
-		//   murio y no mandarlo al execute.
-		// return false;
+	} else {
+
+		update_waiting_time_of_ready_esis();
+		update_executing_esi(esi_fd);
+
+		log_info(logger, "Se autorizó la ejecución del ESI %i", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
 	}
-
-	update_waiting_time_of_ready_esis();
-
-	// Aca rompe TODO si paso por sock_my_port().
-	update_executing_esi(esi_fd);
-
-	log_info(logger, "Se autorizó la ejecución del ESI %i", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
 }
 
 void update_executing_esi(int esi_fd) {
@@ -529,6 +527,30 @@ protocol_id receive_execution_result(int fd) {
 	}
 
 	return opcode;
+}
+
+esi_information* obtain_esi_information_by_id(int esi_fd){
+
+	bool equal_condition(void* esi_inf) {
+
+		return ((esi_information*)esi_inf)->esi_id == esi_fd;
+	}
+
+	return list_find(g_esi_bursts, equal_condition);
+ }
+
+int obtain_esi_fd_by_esi_pid(int esi_pid) {
+
+	bool find_esi(void* esi_inf) {
+
+		return ((esi_information*)esi_inf)->esi_numeric_name == esi_pid;
+	}
+	esi_information* esi_inf = list_find(g_esi_bursts, find_esi);
+
+	if(esi_inf != NULL) {
+
+		return esi_inf->esi_id;
+	}else return -1;
 }
 
 void update_waiting_time_of_ready_esis() {
@@ -752,8 +774,6 @@ void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_q
 	if( esi_unlocked == -1) {
 
 		log_info(logger, "Ningún ESI estaba bloqueado por la clave %s", last_key_inquired);
-		/*move_esi_from_and_to_queue(g_ready_queue, g_execution_queue, executing_esi); TODO
-		reschedule_flag = 0;*/
 	} else {
 
 	move_esi_from_and_to_queue(g_blocked_queue, g_ready_queue, esi_unlocked);
@@ -853,7 +873,6 @@ void sock_my_port(int esi_fd) {
 
 	void bury_esi(t_list* list) {
 
-		release_resources(esi_fd, &update_blocked_esi_queue_flag);
 		move_esi_from_and_to_queue(list, g_finished_queue, esi_fd);
 	}
 
@@ -871,17 +890,12 @@ void sock_my_port(int esi_fd) {
 	dead_esi = list_find(g_blocked_queue, find_dead_esi);
 	if (dead_esi != NULL) bury_esi(g_blocked_queue);
 
+	release_resources(esi_fd, &update_blocked_esi_queue_flag);
+
 	remove_fd(esi_fd, &connected_fds);
 }
 
 void burn_esi_corpses(int executing_esi) {
-
-	void* obtain_esi_id(void* esi_killed_pid) {
-
-		return (void *)obtain_esi_fd_by_esi_pid(*(int*)esi_killed_pid);
-	}
-
-	t_list* mapped_esis = list_map(g_new_killed_esis, obtain_esi_id);
 
 	bool esi_executing_killed_condition(void* killed_esi) {
 
@@ -893,7 +907,7 @@ void burn_esi_corpses(int executing_esi) {
 		free((int*)esi_fd);
 	}
 
-	if(list_any_satisfy(mapped_esis, esi_executing_killed_condition) && finished_esi_flag == 1) {
+	if(list_any_satisfy(g_new_killed_esis, esi_executing_killed_condition) && finished_esi_flag == 1) {
 
 		bool remove_esi_executing(void* esi_fd) {
 
@@ -902,7 +916,7 @@ void burn_esi_corpses(int executing_esi) {
 
 		log_info(logger, "El ESI %i justo acaba de terminar su script por lo que no tiene sentido matarlo", obtain_esi_information_by_id(executing_esi)->esi_numeric_name);
 
-		list_remove_and_destroy_by_condition(mapped_esis, remove_esi_executing, destroy_int);
+		list_remove_and_destroy_by_condition(g_new_killed_esis, remove_esi_executing, destroy_int);
 	}
 
 	void apply_sock_my_port(void* esi_fd) {
@@ -910,7 +924,7 @@ void burn_esi_corpses(int executing_esi) {
 		sock_my_port(*(int*)esi_fd);
 	}
 
-	list_iterate(mapped_esis, apply_sock_my_port);
+	list_iterate(g_new_killed_esis, apply_sock_my_port);
 
 	list_clean_and_destroy_elements(g_new_killed_esis, destroy_int);
 
@@ -962,16 +976,6 @@ static bool algorithm_is_preemptive() {
 		break;
 	}
 }
-
-esi_information* obtain_esi_information_by_id(int esi_fd){
-
-	bool equal_condition(void* esi_inf) {
-
-		return ((esi_information*)esi_inf)->esi_id == esi_fd;
-	}
-
-	return list_find(g_esi_bursts, equal_condition);
- }
 
 static void take_esi_away_from_queue(t_list* queue, int esi_fd) {
 
@@ -1217,18 +1221,4 @@ static void block_by_console_procedure() {
 	list_clean_and_destroy_elements(g_new_blocked_by_console_esis, destroy_esi_sexpecting_key);
 
 	block_esi_by_console_flag = 0;
-}
-
-static int obtain_esi_fd_by_esi_pid(int esi_pid) {
-
-	bool find_esi(void* esi_inf) {
-
-		return ((esi_information*)esi_inf)->esi_numeric_name == esi_pid;
-	}
-	esi_information* esi_inf = list_find(g_esi_bursts, find_esi);
-
-	if(esi_inf != NULL) {
-
-		return esi_inf->esi_id;
-	}else return -1;
 }
