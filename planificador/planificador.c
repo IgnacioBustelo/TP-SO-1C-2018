@@ -332,20 +332,14 @@ int main(void) {
 				if(killed_esi_flag == 1) burn_esi_corpses(executing_esi);
 
 				if(finished_esi_flag == 1) {
+
 					log_info(logger,"El ESI %i finalizó la ejecución de su script correctamente", obtain_esi_information_by_id(fd)->esi_numeric_name);
 					release_resources(executing_esi, &update_blocked_esi_queue_flag);
 					move_esi_from_and_to_queue(g_execution_queue, g_finished_queue, executing_esi);
 					executing_esi = -1;
-					finished_esi_flag = 0;
 				} else {
 
 					if (update_blocked_esi_queue_flag == 1 || new_esi_flag == 1) {
-
-						if(algorithm_is_preemptive()) {
-
-							move_esi_from_and_to_queue(g_execution_queue, g_ready_queue, executing_esi);
-							we_must_reschedule(&reschedule_flag);
-						}
 
 						if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag, true);
 
@@ -362,7 +356,14 @@ int main(void) {
 
 						if (block_esi_by_console_flag == 1) block_by_console_procedure();
 
+						if(algorithm_is_preemptive() && finished_esi_flag == 0 && reschedule_flag == 1) {
+
+							move_esi_from_and_to_queue(g_execution_queue, g_ready_queue, executing_esi);
+						}
+
 					}
+
+					finished_esi_flag = 0;
 				}
 
 				if (reschedule_flag == 1 && !list_is_empty(g_ready_queue)){
@@ -634,7 +635,13 @@ int schedule_esis() {
 					? last_estimated_burst2
 					: next_estimated_burst_sjf(setup.alpha, last_real_burst2, last_estimated_burst2);
 
-			return result1 <= result2;
+			if(result1 == result2 && *esi_fd2 == executing_esi) {
+
+				return false;
+			}else {
+
+				return result1 <= result2;
+			}
 		}
 
 	 	list_sort(g_ready_queue, comparator);
@@ -802,6 +809,11 @@ void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_q
 
 			remove_blocked_key_from_list(last_key_inquired);
 		}
+
+		if(algorithm_is_preemptive()) {
+
+			we_must_reschedule(&reschedule_flag);
+		}
 	}
 
 	*update_blocked_esi_queue_flag = 0;
@@ -830,6 +842,11 @@ void update_new_esi_queue(int* new_esi_flag) {
 	list_add_all(g_ready_queue, g_new_queue);
 
 	list_clean(g_new_queue);
+
+	if(algorithm_is_preemptive()) {
+
+		we_must_reschedule(&reschedule_flag);
+	}
 
 	*new_esi_flag = 0;
 }

@@ -45,7 +45,7 @@ typedef struct esi_information {
 
 	int esi_id;
 	int esi_numeric_name;
-	double last_estimated_burst;
+	float last_estimated_burst;
 	int last_real_burst;
 	int waited_bursts;
 } esi_information;
