@@ -157,7 +157,7 @@ int unlock_esis(char* key_unlocked);
  * Desbloquea a los ESI's bloqueados por la clave recientemente desbloqueada
  */
 
-void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag);
+void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag, bool was_a_store);
 
 /*
  * Replanifica la cola de ready

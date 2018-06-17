@@ -97,7 +97,7 @@ static void unlock_process(char **args)
 {
 	void _unlock_process(char* key) {
 		printf("Desbloquear proceso ESI (clave = %s)\n", key);
-		unlock_esi_by_console_flag = 1;
+		unlock_esi_by_console_flag++;
 		last_unlocked_key_by_console = strdup(key);
 	}
 

@@ -348,9 +348,16 @@ int main(void) {
 							we_must_reschedule(&reschedule_flag);
 						}
 
-						if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag);
+						if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag, true);
 
-						if (unlock_esi_by_console_flag == 1) update_blocked_esi_queue(last_unlocked_key_by_console, &unlock_esi_by_console_flag);
+						if (unlock_esi_by_console_flag >= 1) {
+
+							int i;
+							for(i = unlock_esi_by_console_flag; i > 0 ;i--) {
+
+								update_blocked_esi_queue(last_unlocked_key_by_console, &unlock_esi_by_console_flag, false);
+							}
+						}
 
 						if (new_esi_flag == 1) update_new_esi_queue(&new_esi_flag);
 
@@ -375,9 +382,16 @@ int main(void) {
 
 			if (killed_esi_flag == 1) burn_esi_corpses(executing_esi);
 
-			if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag);
+			if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag, true);
 
-			if (unlock_esi_by_console_flag == 1) update_blocked_esi_queue(last_unlocked_key_by_console, &unlock_esi_by_console_flag);
+			if (unlock_esi_by_console_flag >= 1) {
+
+				int i;
+				for(i = unlock_esi_by_console_flag; i > 0 ;i--) {
+
+					update_blocked_esi_queue(last_unlocked_key_by_console, &unlock_esi_by_console_flag, false);
+				}
+			}
 
 			if (new_esi_flag == 1 && !list_is_empty(g_new_queue)) update_new_esi_queue(&new_esi_flag);
 
@@ -746,7 +760,7 @@ int unlock_esi(char* unlocked_key) {
 
     if(mapped_list->elements_count != 0) {
 
-        esi_fd_to_unlock = *(int*)mapped_list->head->data;
+        esi_fd_to_unlock = *(int*)list_get(mapped_list, 0);
     }
 
     bool remove_condition(void* esi_sexpecting) {
@@ -767,23 +781,29 @@ int unlock_esi(char* unlocked_key) {
 	return esi_fd_to_unlock;
 }
 
-void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag) {
+void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag, bool was_a_store) {
 
 	int esi_unlocked = unlock_esi(last_key_inquired);
 
 	if( esi_unlocked == -1) {
 
 		log_info(logger, "Ningún ESI estaba bloqueado por la clave %s", last_key_inquired);
+		log_info(logger,"Clave %s liberada", last_key_inquired);
+
+		remove_blocked_key_from_list(last_key_inquired);
 	} else {
 
-	move_esi_from_and_to_queue(g_blocked_queue, g_ready_queue, esi_unlocked);
+		move_esi_from_and_to_queue(g_blocked_queue, g_ready_queue, esi_unlocked);
 
-	log_info(logger, "El ESI %i se ha desbloqueado", obtain_esi_information_by_id(esi_unlocked)->esi_numeric_name);
+		log_info(logger, "El ESI %i se ha desbloqueado", obtain_esi_information_by_id(esi_unlocked)->esi_numeric_name);
+
+		if(was_a_store) {
+
+			log_info(logger,"Clave %s liberada", last_key_inquired);
+
+			remove_blocked_key_from_list(last_key_inquired);
+		}
 	}
-
-	log_info(logger,"Clave %s liberada", last_key_inquired);
-
-	remove_blocked_key_from_list(last_key_inquired);
 
 	*update_blocked_esi_queue_flag = 0;
 }
@@ -833,7 +853,7 @@ void release_resources(int esi_fd, int* update_blocked_esi_queue_flag) {
 	for(i = 0; i < keys_unlocked_quantity; i++) {
 
 	key_blocker* blocked_key = (key_blocker*)list_get(keys_unlocked, i);
-	update_blocked_esi_queue(blocked_key->key, update_blocked_esi_queue_flag);
+	update_blocked_esi_queue(blocked_key->key, update_blocked_esi_queue_flag, true);
 	}
 
 	void destroy_key_blocker(void* key_blocker_) {
