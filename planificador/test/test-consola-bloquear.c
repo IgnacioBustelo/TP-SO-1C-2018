@@ -254,7 +254,7 @@ static void forth_test() {
 
 static void fifth_test() {
 
-	printf("Quinto test: No puede bloquearse porque el ESI no existe\n");
+	printf("Quinto test: No puede bloquearse porque el ESI no existe. Como no la tenía nadie la toma el sistema\n");
 
 	printf("Bloquear R4 7 -- ESI 7 hace GET de R4\n");
 
@@ -409,7 +409,13 @@ static void block_by_console_procedure_test(t_list* g_new_blocked_by_console_esi
 				printf("El ESI %i no pudo bloquearse porque no se encuentra en ready ni tampoco en ejecución\n", esi_inf->esi_numeric_name);
 			} else {
 
-				printf("El ESI no existe en el sistema\n");
+				printf("El ESI elegido no existe\n");
+
+				if(!determine_if_key_is_blocked(((esi_sexpecting_key*)esi_key)->key, g_locked_keys)){
+
+					printf("La clave no la tenía nadie, entonces la toma el sistema\n");
+					list_add(g_locked_keys, (void*)create_key_blocker(((esi_sexpecting_key*)esi_key)->key, -1));
+				}
 			}
 		}
 

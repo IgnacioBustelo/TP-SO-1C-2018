@@ -1205,7 +1205,13 @@ static void block_by_console_procedure() {
 				log_error(logger,"El ESI %i no pudo bloquearse porque no se encuentra en ready ni tampoco en ejecución", esi_inf->esi_numeric_name);
 			} else {
 
-				log_error(logger, "El ESI no existe en el sistema");
+				log_error(logger, "El ESI elegido no existe");
+
+				if(!determine_if_key_is_blocked(((esi_sexpecting_key*)esi_key)->key, g_locked_keys)){
+
+					log_info(logger, "La clave no la tenía nadie, entonces la toma el sistema");
+					list_add(g_locked_keys, (void*)create_key_blocker(((esi_sexpecting_key*)esi_key)->key, -1));
+				}
 			}
 		}
 
