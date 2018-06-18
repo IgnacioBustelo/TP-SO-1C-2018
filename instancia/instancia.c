@@ -8,6 +8,7 @@
 #include "event_handler.h"
 #include "instancia.h"
 #include "storage.h"
+#inlcude "compactation.h"
 
 #define IP					cfg_instancia_get_coordinador_ip()
 #define HOST				cfg_instancia_get_coordinador_port()
@@ -130,6 +131,10 @@ void instance_main() {
 				status = instance_store(key);
 
 				coordinator_api_notify_status(PROTOCOL_IC_NOTIFY_STORE, status);
+
+				break;
+			}
+			case PROTOCOL_CI_COMPACTATION: {
 
 				break;
 			}

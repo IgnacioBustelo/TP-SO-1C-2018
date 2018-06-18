@@ -24,6 +24,6 @@ t_list* compact(){
 			entry_table_insert(next_entry,key_value);
 			//TODO: Santi, manejar aca agregar en tu storage_Table las entradas.
 		}
-	free(key_value);
+	list_clean_and_destroy_elements(key_value_list, free);
 	list_destroy(key_value_list);
 }
