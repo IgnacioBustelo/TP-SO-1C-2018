@@ -5,7 +5,7 @@
 #include <commons/collections/list.h>
 #include "entry_table.h"
 
-t_list* compact();
+int compact();
 
 
 #endif /* INSTANCIA_COMPACTATION_H_ */
