@@ -1,5 +1,5 @@
 
-t_list* compact(){
+int compact(){
 	t_list * key_value_list = list_create();
 
 	char*key;
@@ -15,7 +15,6 @@ t_list* compact(){
 		//TODO: Santi, manejar aca eliminar de tu storage_Table las entradas.
 			//Debo liberar el key value aca?
 	}
-
 	int next_entry;
 	for (int i=0;i<list_size(key_value_list);i++)
 		{
@@ -24,6 +23,10 @@ t_list* compact(){
 			entry_table_insert(next_entry,key_value);
 			//TODO: Santi, manejar aca agregar en tu storage_Table las entradas.
 		}
+	free(key);
+	key_value_destroy(key_value);
 	list_clean_and_destroy_elements(key_value_list, free);
 	list_destroy(key_value_list);
+
+	return 1;
 }
