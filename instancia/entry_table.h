@@ -64,4 +64,5 @@ entry_t* 	entry_table_get_entry_by_entry_number(int number);
 
 void entry_table_delete_few(t_list* keys);
 
+
 #endif

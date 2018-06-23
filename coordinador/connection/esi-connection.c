@@ -89,6 +89,14 @@ static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *opera
 	 */
 	if (operation->type == ESI_GET) {
 		esi_log_operation("GET %s", operation->get.key);
+
+		struct instance_t *instance = dispatch(instance_list, operation->get.key);
+		if (instance == NULL) {
+			esi_log_error(logger, "No hay Instancias disponibles!");
+			esi_send_illegal_operation(esi.fd);
+			return false;
+		}
+
 		switch (scheduler_recv_key_state(operation->get.key)) {
 		case KEY_UNBLOCKED:
 		case KEY_BLOCKED_BY_EXECUTING_ESI:
@@ -104,18 +112,21 @@ static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *opera
 	} else {
 		char *key = operation->type == ESI_SET ? operation->set.key : operation->store.key;
 
-		esi_log_info(logger, "Seleccionando una Instancia para ejecutar la operacion...");
-		struct instance_t *instance = equitative_load(instance_list, key);
+		struct instance_t *instance = dispatch(instance_list, key);
 		if (instance == NULL) {
-			/* TODO: Bloquear el ESI. */
+			esi_log_error(logger, "No hay Instancias conectadas!");
+			esi_send_illegal_operation(esi.fd);
 			return false;
 		}
+
+		esi_log_info(logger, "La Instancia a ejecutar la operacion es \"%s\"", instance->name);
+
 		if (operation->type == ESI_SET) {
-			esi_log_operation("SET %s \"%s\"", operation->set.key, operation->set.value);
-			request_list_push_set(instance->requests, esi.fd, operation->set.key, operation->set.value);
+			esi_log_operation("SET %s \"%s\"", key, operation->set.value);
+			request_list_push_set(instance->requests, esi.fd, key, operation->set.value);
 		} else /* operation->type == ESI_STORE */ {
-			esi_log_operation("STORE %s", operation->store.key);
-			request_list_push_store(instance->requests, esi.fd, operation->store.key);
+			esi_log_operation("STORE %s", key);
+			request_list_push_store(instance->requests, esi.fd, key);
 		}
 	}
 

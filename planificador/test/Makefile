@@ -16,8 +16,11 @@ test-planificacion: LIB += -lcommons
 test-deadlock: LIB += -lcommons -lreadline -lpthread
 test-deadlock: ../consola.c ../planificador.c ../../libs/conector.c ../../libs/comando.c ../../libs/serializador.c ../../libs/deserializador.c ../config.c
 
+test-consola-bloquear: LIB += -lcommons -lreadline -lpthread
+test-consola-bloquear: ../consola.c ../planificador.c ../../libs/conector.c ../../libs/comando.c ../../libs/serializador.c ../../libs/deserializador.c ../config.c
+
 %: %.c
-	$(CC) $^ -o $@ $(LIB)
+	$(CC) $^ -o $@ $(LIB) -g
 
 debug: CC += -DDEBUG -g
 debug: all

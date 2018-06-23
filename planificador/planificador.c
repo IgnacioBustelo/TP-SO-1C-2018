@@ -46,8 +46,6 @@ static void update_esi_information_next_estimated_burst(int esi_fd);
 
 static void block_by_console_procedure();
 
-static int obtain_esi_fd_by_esi_pid(int esi_pid);
-
 /* -- Global variables -- */
 
 t_log* logger;
@@ -63,7 +61,6 @@ t_list* g_new_queue;
 t_list* g_ready_queue;
 t_list* g_execution_queue;
 t_list* g_blocked_queue;
-t_list* g_blocked_queue_by_console;
 t_list* g_finished_queue;
 
 int finished_esi_flag = 0;
@@ -225,7 +222,7 @@ int main(void) {
 
 					log_info(logger, "El coordinador preguntó si la clave %s está bloqueada", last_key_inquired);
 
-					response = determine_if_key_is_blocked(last_key_inquired);
+					response = determine_if_key_is_blocked(last_key_inquired, g_locked_keys);
                     if(response) {
 
                     	send_protocol_answer(fd, PROTOCOL_PC_KEY_IS_BLOCKED);
@@ -278,7 +275,6 @@ int main(void) {
 
 					update_blocked_esis(&update_blocked_esi_queue_flag);
 					send_protocol_answer(fd, PROTOCOL_PC_KEY_UNLOCKED_SUCCESFULLY);
-					log_info(logger,"Clave %s desbloqueada", key_to_unlock);
 
 					sem_post(&mutex_coordinador);
 					break;
@@ -336,30 +332,38 @@ int main(void) {
 				if(killed_esi_flag == 1) burn_esi_corpses(executing_esi);
 
 				if(finished_esi_flag == 1) {
+
 					log_info(logger,"El ESI %i finalizó la ejecución de su script correctamente", obtain_esi_information_by_id(fd)->esi_numeric_name);
 					release_resources(executing_esi, &update_blocked_esi_queue_flag);
 					move_esi_from_and_to_queue(g_execution_queue, g_finished_queue, executing_esi);
 					executing_esi = -1;
-					finished_esi_flag = 0;
 				} else {
 
 					if (update_blocked_esi_queue_flag == 1 || new_esi_flag == 1) {
 
-						if(algorithm_is_preemptive()) {
+						if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag, true);
 
-							move_esi_from_and_to_queue(g_execution_queue, g_ready_queue, executing_esi);
-							we_must_reschedule(&reschedule_flag);
+						if (unlock_esi_by_console_flag >= 1) {
+
+							int i;
+							for(i = unlock_esi_by_console_flag; i > 0 ;i--) {
+
+								update_blocked_esi_queue(last_unlocked_key_by_console, &unlock_esi_by_console_flag, false);
+							}
 						}
-
-						if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag);
-
-						if (unlock_esi_by_console_flag == 1) update_blocked_esi_queue(last_unlocked_key_by_console, &unlock_esi_by_console_flag);
 
 						if (new_esi_flag == 1) update_new_esi_queue(&new_esi_flag);
 
 						if (block_esi_by_console_flag == 1) block_by_console_procedure();
 
+						if(algorithm_is_preemptive() && finished_esi_flag == 0 && reschedule_flag == 1) {
+
+							move_esi_from_and_to_queue(g_execution_queue, g_ready_queue, executing_esi);
+						}
+
 					}
+
+					finished_esi_flag = 0;
 				}
 
 				if (reschedule_flag == 1 && !list_is_empty(g_ready_queue)){
@@ -378,9 +382,16 @@ int main(void) {
 
 			if (killed_esi_flag == 1) burn_esi_corpses(executing_esi);
 
-			if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag);
+			if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag, true);
 
-			if (unlock_esi_by_console_flag == 1) update_blocked_esi_queue(last_unlocked_key_by_console, &unlock_esi_by_console_flag);
+			if (unlock_esi_by_console_flag >= 1) {
+
+				int i;
+				for(i = unlock_esi_by_console_flag; i > 0 ;i--) {
+
+					update_blocked_esi_queue(last_unlocked_key_by_console, &unlock_esi_by_console_flag, false);
+				}
+			}
 
 			if (new_esi_flag == 1 && !list_is_empty(g_new_queue)) update_new_esi_queue(&new_esi_flag);
 
@@ -433,9 +444,9 @@ void create_administrative_structures() {
 	g_ready_queue = list_create();
 	g_execution_queue = list_create();
 	g_blocked_queue = list_create();
-	g_blocked_queue_by_console = list_create();
 	g_finished_queue = list_create();
 	g_new_blocked_by_console_esis = list_create();
+	g_new_killed_esis = list_create();
 
 	int i = 0;
 	while(setup.blocked_keys[i] != NULL) {
@@ -478,9 +489,9 @@ void destroy_administrative_structures() {
 	list_destroy_and_destroy_elements(g_ready_queue, delete_int_node);
 	list_destroy_and_destroy_elements(g_execution_queue, delete_int_node);
 	list_destroy_and_destroy_elements(g_blocked_queue, delete_int_node);
-	list_destroy_and_destroy_elements(g_blocked_queue_by_console, delete_int_node);
 	list_destroy_and_destroy_elements(g_finished_queue, delete_int_node);
 	list_destroy_and_destroy_elements(g_new_queue, delete_int_node);
+	list_destroy_and_destroy_elements(g_new_killed_esis, delete_int_node);
 
 	list_destroy_and_destroy_elements(g_new_blocked_by_console_esis, destroy_esi_sexpecting_key);
 }
@@ -501,18 +512,16 @@ void authorize_esi_execution(int esi_fd) {
 		log_error(logger, "Fallo en la autorización del ESI a ejecutar");
 
 		sock_my_port(esi_fd);
+		executing_esi = -1;
+		reschedule(&reschedule_flag, &executing_esi);
 
-		// TODO: Aca debe retornar un false para avisar que el ESI
-		//   murio y no mandarlo al execute.
-		// return false;
+	} else {
+
+		update_waiting_time_of_ready_esis();
+		update_executing_esi(esi_fd);
+
+		log_info(logger, "Se autorizó la ejecución del ESI %i", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
 	}
-
-	update_waiting_time_of_ready_esis();
-
-	// Aca rompe TODO si paso por sock_my_port().
-	update_executing_esi(esi_fd);
-
-	log_info(logger, "Se autorizó la ejecución del ESI %i", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
 }
 
 void update_executing_esi(int esi_fd) {
@@ -532,6 +541,30 @@ protocol_id receive_execution_result(int fd) {
 	}
 
 	return opcode;
+}
+
+esi_information* obtain_esi_information_by_id(int esi_fd){
+
+	bool equal_condition(void* esi_inf) {
+
+		return ((esi_information*)esi_inf)->esi_id == esi_fd;
+	}
+
+	return list_find(g_esi_bursts, equal_condition);
+ }
+
+int obtain_esi_fd_by_esi_pid(int esi_pid) {
+
+	bool find_esi(void* esi_inf) {
+
+		return ((esi_information*)esi_inf)->esi_numeric_name == esi_pid;
+	}
+	esi_information* esi_inf = list_find(g_esi_bursts, find_esi);
+
+	if(esi_inf != NULL) {
+
+		return esi_inf->esi_id;
+	}else return -1;
 }
 
 void update_waiting_time_of_ready_esis() {
@@ -602,7 +635,13 @@ int schedule_esis() {
 					? last_estimated_burst2
 					: next_estimated_burst_sjf(setup.alpha, last_real_burst2, last_estimated_burst2);
 
-			return result1 <= result2;
+			if(result1 == result2 && *esi_fd2 == executing_esi) {
+
+				return false;
+			}else {
+
+				return result1 <= result2;
+			}
 		}
 
 	 	list_sort(g_ready_queue, comparator);
@@ -686,7 +725,7 @@ int schedule_esis() {
 	return *esi_fd;
 }
 
-bool determine_if_key_is_blocked(char* blocked_key) {
+bool determine_if_key_is_blocked(char* blocked_key, t_list* locked_keys) {
 
 	bool string_equals(void* key_blocker_) {
 
@@ -694,7 +733,7 @@ bool determine_if_key_is_blocked(char* blocked_key) {
 		else return false;
 	}
 
-	return list_any_satisfy(g_locked_keys, string_equals);
+	return list_any_satisfy(locked_keys, string_equals);
 }
 
 bool key_is_blocked_by_executing_esi(char* key) {
@@ -727,7 +766,7 @@ int unlock_esi(char* unlocked_key) {
 
     if(mapped_list->elements_count != 0) {
 
-        esi_fd_to_unlock = *(int*)mapped_list->head->data;
+        esi_fd_to_unlock = *(int*)list_get(mapped_list, 0);
     }
 
     bool remove_condition(void* esi_sexpecting) {
@@ -748,60 +787,36 @@ int unlock_esi(char* unlocked_key) {
 	return esi_fd_to_unlock;
 }
 
-void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag) {
+void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag, bool was_a_store) {
 
 	int esi_unlocked = unlock_esi(last_key_inquired);
 
 	if( esi_unlocked == -1) {
 
 		log_info(logger, "Ningún ESI estaba bloqueado por la clave %s", last_key_inquired);
-		/*move_esi_from_and_to_queue(g_ready_queue, g_execution_queue, executing_esi); TODO
-		reschedule_flag = 0;*/
+		log_info(logger,"Clave %s liberada", last_key_inquired);
+
+		remove_blocked_key_from_list(last_key_inquired);
 	} else {
 
-	move_esi_from_and_to_queue(g_blocked_queue, g_ready_queue, esi_unlocked);
+		move_esi_from_and_to_queue(g_blocked_queue, g_ready_queue, esi_unlocked);
 
-	log_info(logger, "El ESI %i se ha desbloqueado", obtain_esi_information_by_id(esi_unlocked)->esi_numeric_name);
+		log_info(logger, "El ESI %i se ha desbloqueado", obtain_esi_information_by_id(esi_unlocked)->esi_numeric_name);
+
+		if(was_a_store) {
+
+			log_info(logger,"Clave %s liberada", last_key_inquired);
+
+			remove_blocked_key_from_list(last_key_inquired);
+		}
+
+		if(algorithm_is_preemptive()) {
+
+			we_must_reschedule(&reschedule_flag);
+		}
 	}
-
-	log_info(logger,"Clave %s liberada", last_key_inquired);
-
-	remove_blocked_key_from_list(last_key_inquired);
 
 	*update_blocked_esi_queue_flag = 0;
-}
-
-void update_blocked_by_console_esi_queue() {
-
-	bool find_first_blocked_esi(void* esi_sexpecting_key_) {
-
-		return strcmp(((esi_sexpecting_key*)esi_sexpecting_key_)->key, last_unlocked_key_by_console) == 0;
-	}
-
-	esi_sexpecting_key* esi_sexpecting_key_ = list_find(g_esis_sexpecting_keys, find_first_blocked_esi);
-
-	if(esi_sexpecting_key_ != NULL) {
-
-		move_esi_from_and_to_queue(g_blocked_queue_by_console, g_ready_queue, esi_sexpecting_key_->esi_fd);
-
-		log_info(logger, "El ESI %i fue desbloqueado por consola al desbloquear la clave %s", obtain_esi_information_by_id(esi_sexpecting_key_->esi_fd)->esi_numeric_name, last_unlocked_key_by_console);
-
-		bool remove_condition(void* esi_sexpecting_key2) {
-
-			bool condition1 = ((esi_sexpecting_key*)esi_sexpecting_key2)->esi_fd == esi_sexpecting_key_->esi_fd;
-			bool condition2 = strcmp(((esi_sexpecting_key*)esi_sexpecting_key2)->key, esi_sexpecting_key_->key) == 0;
-			return condition1 && condition2;
-		}
-
-		void destroy_esi_sexpecting_key(void* esi_sexpecting_key_) {
-
-			free(((esi_sexpecting_key*) esi_sexpecting_key_)->key);
-			free(esi_sexpecting_key_);
-		}
-
-		list_remove_and_destroy_by_condition(g_esis_sexpecting_keys, remove_condition, destroy_esi_sexpecting_key);
-	}
-	else log_info(logger, "Ningún ESI está bloqueado por consola esperando la clave %s", last_unlocked_key_by_console);
 }
 
 void reschedule(int* reschedule_flag, int* old_executing_esi) {
@@ -828,6 +843,11 @@ void update_new_esi_queue(int* new_esi_flag) {
 
 	list_clean(g_new_queue);
 
+	if(algorithm_is_preemptive()) {
+
+		we_must_reschedule(&reschedule_flag);
+	}
+
 	*new_esi_flag = 0;
 }
 
@@ -849,7 +869,7 @@ void release_resources(int esi_fd, int* update_blocked_esi_queue_flag) {
 	for(i = 0; i < keys_unlocked_quantity; i++) {
 
 	key_blocker* blocked_key = (key_blocker*)list_get(keys_unlocked, i);
-	update_blocked_esi_queue(blocked_key->key, update_blocked_esi_queue_flag);
+	update_blocked_esi_queue(blocked_key->key, update_blocked_esi_queue_flag, true);
 	}
 
 	void destroy_key_blocker(void* key_blocker_) {
@@ -889,7 +909,6 @@ void sock_my_port(int esi_fd) {
 
 	void bury_esi(t_list* list) {
 
-		release_resources(esi_fd, &update_blocked_esi_queue_flag);
 		move_esi_from_and_to_queue(list, g_finished_queue, esi_fd);
 	}
 
@@ -907,20 +926,12 @@ void sock_my_port(int esi_fd) {
 	dead_esi = list_find(g_blocked_queue, find_dead_esi);
 	if (dead_esi != NULL) bury_esi(g_blocked_queue);
 
-	dead_esi = list_find(g_blocked_queue_by_console, find_dead_esi);
-	if (dead_esi != NULL) bury_esi(g_blocked_queue_by_console);
+	release_resources(esi_fd, &update_blocked_esi_queue_flag);
 
 	remove_fd(esi_fd, &connected_fds);
 }
 
 void burn_esi_corpses(int executing_esi) {
-
-	void* obtain_esi_id(void* esi_killed_pid) {
-
-		return (void *)obtain_esi_fd_by_esi_pid(*(int*)esi_killed_pid);
-	}
-
-	t_list* mapped_esis = list_map(g_new_killed_esis, obtain_esi_id);
 
 	bool esi_executing_killed_condition(void* killed_esi) {
 
@@ -932,7 +943,7 @@ void burn_esi_corpses(int executing_esi) {
 		free((int*)esi_fd);
 	}
 
-	if(list_any_satisfy(mapped_esis, esi_executing_killed_condition) && finished_esi_flag == 1) {
+	if(list_any_satisfy(g_new_killed_esis, esi_executing_killed_condition) && finished_esi_flag == 1) {
 
 		bool remove_esi_executing(void* esi_fd) {
 
@@ -941,7 +952,7 @@ void burn_esi_corpses(int executing_esi) {
 
 		log_info(logger, "El ESI %i justo acaba de terminar su script por lo que no tiene sentido matarlo", obtain_esi_information_by_id(executing_esi)->esi_numeric_name);
 
-		list_remove_and_destroy_by_condition(mapped_esis, remove_esi_executing, destroy_int);
+		list_remove_and_destroy_by_condition(g_new_killed_esis, remove_esi_executing, destroy_int);
 	}
 
 	void apply_sock_my_port(void* esi_fd) {
@@ -949,7 +960,7 @@ void burn_esi_corpses(int executing_esi) {
 		sock_my_port(*(int*)esi_fd);
 	}
 
-	list_iterate(mapped_esis, apply_sock_my_port);
+	list_iterate(g_new_killed_esis, apply_sock_my_port);
 
 	list_clean_and_destroy_elements(g_new_killed_esis, destroy_int);
 
@@ -1001,16 +1012,6 @@ static bool algorithm_is_preemptive() {
 		break;
 	}
 }
-
-esi_information* obtain_esi_information_by_id(int esi_fd){
-
-	bool equal_condition(void* esi_inf) {
-
-		return ((esi_information*)esi_inf)->esi_id == esi_fd;
-	}
-
-	return list_find(g_esi_bursts, equal_condition);
- }
 
 static void take_esi_away_from_queue(t_list* queue, int esi_fd) {
 
@@ -1145,111 +1146,108 @@ static void update_esi_information_next_estimated_burst(int esi_fd) {
 
 static void block_by_console_procedure() {
 
-	void* trans(void* esi_sexpecting_key_) {
+	bool is_executing(void* esi_key) {
 
-		bool condition(void* esi_inf) {
-
-			return ((esi_information*)esi_inf)->esi_numeric_name == ((esi_sexpecting_key*)esi_sexpecting_key_)->esi_fd;
-		}
-
-	    esi_information* esi_inf = list_find(g_esi_bursts, condition);
-
-	    ((esi_sexpecting_key*)esi_sexpecting_key_)->esi_fd = esi_inf->esi_id;
-
-		return esi_sexpecting_key_;
+		return *(int*)list_get(g_execution_queue, 0) == ((esi_sexpecting_key*)esi_key)->esi_fd;
 	}
 
-	t_list* mapped_list = list_map(g_new_blocked_by_console_esis, trans);
+	if(!list_is_empty(g_execution_queue) && list_any_satisfy(g_new_blocked_by_console_esis, is_executing)) {
 
-	void* transformer(void* esi_key) {
+		esi_sexpecting_key* esi_sexpecting_key_exec = list_find(g_new_blocked_by_console_esis, is_executing);
 
-		return (void*)(((esi_sexpecting_key*)esi_key)->esi_fd);
-	}
+		if(determine_if_key_is_blocked(esi_sexpecting_key_exec->key, g_locked_keys)) {
 
-	t_list* esis = list_map(mapped_list, transformer);
-
-	bool is_executing(void* esi_fd) {
-
-		return *(int*)g_execution_queue->head->data == *(int*)esi_fd;
-	}
-
-	if(!list_is_empty(g_execution_queue) && list_any_satisfy(esis, is_executing)) {
-
-		int* esi_executing = list_find(esis, is_executing);
-
-		bool condition(void* esi_sexpecting) {
-
-			return ((esi_sexpecting_key*)esi_sexpecting)->esi_fd == *esi_executing;
-		}
-
-		esi_sexpecting_key* esi_sexpecting_key_exec = list_find(mapped_list, condition);
-
-		if(determine_if_key_is_blocked(esi_sexpecting_key_exec->key)) {
 		list_add(g_esis_sexpecting_keys, (void*)create_esi_sexpecting_key(esi_sexpecting_key_exec->esi_fd, esi_sexpecting_key_exec->key));
-		move_esi_from_and_to_queue(g_execution_queue, g_new_blocked_by_console_esis, *esi_executing);
-		log_info(logger, "El ESI %i se ha bloqueado por consola y ahora está esperando la liberación de la clave %s", obtain_esi_information_by_id(*esi_executing)->esi_numeric_name, esi_sexpecting_key_exec->key);
+		move_esi_from_and_to_queue(g_execution_queue, g_blocked_queue, esi_sexpecting_key_exec->esi_fd);
+		log_info(logger, "El ESI %i, que está en ejecución, se ha bloqueado por consola y ahora está esperando la liberación de la clave %s", obtain_esi_information_by_id(esi_sexpecting_key_exec->esi_fd)->esi_numeric_name, esi_sexpecting_key_exec->key);
+
 		} else {
 
 			list_add(g_locked_keys, (void*)create_key_blocker(esi_sexpecting_key_exec->key, esi_sexpecting_key_exec->esi_fd));
-			log_info(logger, "El ESI %i tomó la clave %s y no se bloqueó ya que nadie poseía la misma", obtain_esi_information_by_id(*esi_executing)->esi_numeric_name, esi_sexpecting_key_exec->key);
-		}
-	}
-
-	bool is_in_ready(void* esi_fd) {
-
-		bool condition4(void* esi_fd_in_ready) {
-
-			return *(int*)esi_fd_in_ready == *(int*)esi_fd;
+			log_info(logger, "El ESI %i, que está en ejecución, tomó la clave %s y no se bloqueó ya que nadie poseía la misma", obtain_esi_information_by_id(esi_sexpecting_key_exec->esi_fd)->esi_numeric_name, esi_sexpecting_key_exec->key);
 		}
 
-		return list_any_satisfy(g_ready_queue, condition4);
+		bool equality(void* esi_key) {
+
+			return ((esi_sexpecting_key*)esi_key)->esi_fd == esi_sexpecting_key_exec->esi_fd;
+		}
+
+		void destroy_esi_sexpecting_key(void* esi_sexpecting_key_) {
+
+			free(((esi_sexpecting_key*)esi_sexpecting_key_)->key);
+			free(esi_sexpecting_key_);
+		}
+
+		list_remove_and_destroy_by_condition(g_new_blocked_by_console_esis, equality, destroy_esi_sexpecting_key);
 	}
 
-	if (!list_is_empty(g_ready_queue) && list_any_satisfy(esis, is_in_ready)) {
+	bool is_in_ready(void* esi_key) {
 
-		t_list* filtered_list = list_filter(esis, is_in_ready);
+		bool equality(void* esi_in_ready) {
 
-		void closure(void* esi_fd) {
+			return ((esi_sexpecting_key*)esi_key)->esi_fd == *(int*)esi_in_ready;
+		}
 
-			bool condition(void* esi_sexpecting) {
+		return list_any_satisfy(g_ready_queue, equality);
+	}
 
-				return ((esi_sexpecting_key*) esi_sexpecting)->esi_fd == *(int*)esi_fd;
-			}
+	if (!list_is_empty(g_ready_queue) && list_any_satisfy(g_new_blocked_by_console_esis, is_in_ready)) {
 
-			esi_sexpecting_key* esi_sexpecting_key_ready = list_find(mapped_list, condition);
+		t_list* esis_in_ready_to_be_blocked = list_filter(g_new_blocked_by_console_esis, is_in_ready);
 
-			if(determine_if_key_is_blocked(esi_sexpecting_key_ready->key)) {
+		void closure(void* esi_key) {
+
+			esi_sexpecting_key* esi_sexpecting_key_ready = (esi_sexpecting_key*)esi_key;
+
+			if(determine_if_key_is_blocked(esi_sexpecting_key_ready->key, g_locked_keys)) {
+
 			list_add(g_esis_sexpecting_keys, (void*)create_esi_sexpecting_key(esi_sexpecting_key_ready->esi_fd, esi_sexpecting_key_ready->key));
-			move_esi_from_and_to_queue(g_ready_queue, g_blocked_queue_by_console, *(int*)esi_fd);
-			log_info(logger, "El ESI %i se ha bloqueado por consola y ahora está esperando la liberación de la clave %s", obtain_esi_information_by_id(esi_sexpecting_key_ready->esi_fd)->esi_numeric_name, esi_sexpecting_key_ready->key);
+			move_esi_from_and_to_queue(g_ready_queue, g_blocked_queue, esi_sexpecting_key_ready->esi_fd);
+			log_info(logger, "El ESI %i, que está en ready, se ha bloqueado por consola y ahora está esperando la liberación de la clave %s", obtain_esi_information_by_id(esi_sexpecting_key_ready->esi_fd)->esi_numeric_name, esi_sexpecting_key_ready->key);
+
 			} else {
 
 				list_add(g_locked_keys, (void*)create_key_blocker(esi_sexpecting_key_ready->key, esi_sexpecting_key_ready->esi_fd));
-				log_info(logger, "El ESI %i tomó la clave %s y no se bloqueó ya que nadie poseía la misma", obtain_esi_information_by_id(esi_sexpecting_key_ready->esi_fd)->esi_numeric_name, esi_sexpecting_key_ready->key);
+				log_info(logger, "El ESI %i, que está en ready, tomó la clave %s y no se bloqueó ya que nadie poseía la misma", obtain_esi_information_by_id(esi_sexpecting_key_ready->esi_fd)->esi_numeric_name, esi_sexpecting_key_ready->key);
 			}
+
+			bool equality(void* esi_key) {
+
+				return ((esi_sexpecting_key*)esi_key)->esi_fd == esi_sexpecting_key_ready->esi_fd;
+			}
+
+			void destroy_esi_sexpecting_key(void* esi_sexpecting_key_) {
+
+				free(((esi_sexpecting_key*)esi_sexpecting_key_)->key);
+				free(esi_sexpecting_key_);
+			}
+
+			list_remove_and_destroy_by_condition(g_new_blocked_by_console_esis, equality, destroy_esi_sexpecting_key);
 		}
 
-		list_iterate(filtered_list, closure);
+		list_iterate(esis_in_ready_to_be_blocked, closure);
 	}
 
-	bool not_in_ready_nor_exec(void* esi_fd) {
+	t_list* esis_that_cant_be_blocked_by_console = g_new_blocked_by_console_esis;
 
-		return !is_executing(esi_fd) && !is_in_ready(esi_fd);
-	}
-
-	t_list* esis_that_cant_be_blocked_by_console = list_filter(esis, not_in_ready_nor_exec);
 	if(esis_that_cant_be_blocked_by_console->elements_count != 0) {
 
-		void show_esi_that_wasnt_blocked(void* esi_fd) {
+		void show_esi_that_wasnt_blocked(void* esi_key) {
 
-			esi_information* esi_inf = obtain_esi_information_by_id(*(int*)esi_fd);
+			esi_information* esi_inf = obtain_esi_information_by_id(((esi_sexpecting_key*)esi_key)->esi_fd);
 
 			if (esi_inf != NULL) {
 
 				log_error(logger,"El ESI %i no pudo bloquearse porque no se encuentra en ready ni tampoco en ejecución", esi_inf->esi_numeric_name);
 			} else {
 
-				log_error(logger, "El ESI %i no existe en el sistema", esi_inf->esi_numeric_name);
+				log_error(logger, "El ESI elegido no existe");
+
+				if(!determine_if_key_is_blocked(((esi_sexpecting_key*)esi_key)->key, g_locked_keys)){
+
+					log_info(logger, "La clave no la tenía nadie, entonces la toma el sistema");
+					list_add(g_locked_keys, (void*)create_key_blocker(((esi_sexpecting_key*)esi_key)->key, -1));
+				}
 			}
 		}
 
@@ -1265,18 +1263,4 @@ static void block_by_console_procedure() {
 	list_clean_and_destroy_elements(g_new_blocked_by_console_esis, destroy_esi_sexpecting_key);
 
 	block_esi_by_console_flag = 0;
-}
-
-static int obtain_esi_fd_by_esi_pid(int esi_pid) {
-
-	bool find_esi(void* esi_inf) {
-
-		return ((esi_information*)esi_inf)->esi_numeric_name == esi_pid;
-	}
-	esi_information* esi_inf = list_find(g_esi_bursts, find_esi);
-
-	if(esi_inf != NULL) {
-
-		return esi_inf->esi_id;
-	}else return -1;
 }

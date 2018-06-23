@@ -22,7 +22,7 @@ __attribute__((constructor)) void init_key_table(void) {
 }
 
 __attribute__((destructor)) void destroy_key_table(void) {
-	// TODO: Destroy key table.
+	dictionary_destroy_and_destroy_elements(key_table->table, free);
 }
 
 bool key_table_create_key(char *key, struct instance_t *instance)
@@ -31,7 +31,7 @@ bool key_table_create_key(char *key, struct instance_t *instance)
 	data->instance = instance;
 
 	if (!dictionary_has_key(key_table->table, key)) {
-		dictionary_put(key_table->table, strdup(key), data);
+		dictionary_put(key_table->table, key, data);
 		return true;
 	} else {
 		return false;

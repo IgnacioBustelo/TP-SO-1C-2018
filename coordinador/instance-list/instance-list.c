@@ -13,6 +13,11 @@
 static struct instance_t *instance_list_node_create(char *name, int fd);
 static void instance_list_node_destroy(struct instance_t *victim);
 static bool string_equals(char *actual, char *expected);
+static bool instance_is_connected(void *_instance);
+
+/* TODO:
+ *   - Checkear si la instancia tiene espacio disponible.
+ */
 
 struct instance_list_t *instance_list_create(void)
 {
@@ -33,7 +38,12 @@ void instance_list_destroy(struct instance_list_t *victim)
 	free(victim);
 }
 
-struct instance_t *instance_list_get(struct instance_list_t *instance_list, char *name)
+size_t instance_list_size(struct instance_list_t *instance_list)
+{
+	return list_count_satisfying(instance_list->elements, instance_is_connected);
+}
+
+struct instance_t *instance_list_get_by_name(struct instance_list_t *instance_list, char *name)
 {
 	bool find_by_name(void *elem) {
 		struct instance_t *node = elem;
@@ -43,9 +53,26 @@ struct instance_t *instance_list_get(struct instance_list_t *instance_list, char
 	return (struct instance_t *)list_find(instance_list->elements, find_by_name);
 }
 
+struct instance_t *instance_list_get_by_index(struct instance_list_t *instance_list, int index)
+{
+	int i = 0;
+	bool is_connected_instance_with_index(void *instance) {
+		if (instance_is_connected(instance)) {
+			if (i == index) {
+				return true;
+			} else {
+				i += 1;
+			}
+		}
+		return false;
+	}
+
+	return (struct instance_t *)list_find(instance_list->elements, is_connected_instance_with_index);
+}
+
 struct instance_t *instance_list_add(struct instance_list_t *instance_list, char *name, int fd)
 {
-	struct instance_t *node = instance_list_get(instance_list, name);
+	struct instance_t *node = instance_list_get_by_name(instance_list, name);
 	if (node == NULL) {
 		node = instance_list_node_create(name, fd);
 		list_add_in_index(instance_list->elements, 0, node);
@@ -60,12 +87,17 @@ struct instance_t *instance_list_add(struct instance_list_t *instance_list, char
 
 struct instance_t *instance_list_remove(struct instance_list_t *instance_list, char *name)
 {
-	struct instance_t *node = instance_list_get(instance_list, name);
+	struct instance_t *node = instance_list_get_by_name(instance_list, name);
 	if (node != NULL) {
 		node->fd = DISCONNECTED;
 	}
 
 	return node;
+}
+
+struct instance_t *instance_list_first(struct instance_list_t *instance_list)
+{
+	return list_find(instance_list->elements, instance_is_connected);
 }
 
 struct instance_t *instance_list_push(struct instance_list_t *instance_list, struct instance_t *elem)
@@ -76,11 +108,12 @@ struct instance_t *instance_list_push(struct instance_list_t *instance_list, str
 
 struct instance_t *instance_list_pop(struct instance_list_t *instance_list)
 {
-	bool is_connected_instance(void *_elem) {
-		struct instance_t *elem = (struct instance_t *)_elem;
-		return elem->fd != DISCONNECTED;
-	}
-	return list_remove_by_condition(instance_list->elements, is_connected_instance);
+	return list_remove_by_condition(instance_list->elements, instance_is_connected);
+}
+
+void instance_list_sort(struct instance_list_t *instance_list, bool (*comparator)(void *, void *))
+{
+	list_sort(instance_list->elements, comparator);
 }
 
 bool instance_list_delete(struct instance_list_t *instance_list, char *name)
@@ -100,6 +133,7 @@ static struct instance_t *instance_list_node_create(char *name, int fd)
 	struct instance_t *node = malloc(sizeof(*node));
 	node->name = strdup(name);
 	node->fd = fd;
+	node->used_entries = 0;
 	node->requests = request_list_create();
 
 	return node;
@@ -115,4 +149,10 @@ static void instance_list_node_destroy(struct instance_t *victim)
 static bool string_equals(char *actual, char *expected)
 {
 	return strcmp(actual, expected) == 0;
+}
+
+static bool instance_is_connected(void *_instance)
+{
+	struct instance_t *instance = (struct instance_t *)_instance;
+	return instance->fd != DISCONNECTED;
 }

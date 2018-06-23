@@ -45,7 +45,7 @@ typedef struct esi_information {
 
 	int esi_id;
 	int esi_numeric_name;
-	double last_estimated_burst;
+	float last_estimated_burst;
 	int last_real_burst;
 	int waited_bursts;
 } esi_information;
@@ -138,7 +138,7 @@ protocol_id receive_execution_result(int fd);
  * Dice si determinada clave ya fue tomada por un ESI (hizo un GET)
  */
 
-bool determine_if_key_is_blocked(char* blocked_key);
+bool determine_if_key_is_blocked(char* blocked_key, t_list* locked_keys);
 
 /*
  * Dice si la clave solicitada la bloqueó el ESI en ejecución
@@ -157,13 +157,7 @@ int unlock_esis(char* key_unlocked);
  * Desbloquea a los ESI's bloqueados por la clave recientemente desbloqueada
  */
 
-void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag);
-
-/*
- * Desbloquea al primer ESI bloqueado por la clave recientemente desbloqueada por consola
- */
-
-void update_blocked_by_console_esi_queue();
+void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_queue_flag, bool was_a_store);
 
 /*
  * Replanifica la cola de ready
@@ -206,5 +200,11 @@ void kaboom_baby();
  */
 
 esi_information* obtain_esi_information_by_id(int esi_fd);
+
+/*
+ * Obtiene el número de fd del pid correspondiente. En caso de no existir devuelve -1
+ */
+
+int obtain_esi_fd_by_esi_pid(int esi_pid);
 
 #endif /* PLANIFICADOR_PLANIFICADOR_H_ */

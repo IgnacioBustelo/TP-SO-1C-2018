@@ -176,3 +176,5 @@ void entry_table_delete_few(t_list* keys){
 			entry_table_delete(key_value);
 		}
 }
+
+
