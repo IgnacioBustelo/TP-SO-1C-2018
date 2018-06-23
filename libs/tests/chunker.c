@@ -55,6 +55,8 @@ void student_destroy(student_t* student) {
 
 void client_server_execute_server(int fd_client) {
 	void packager(chunk_t* chunk, void* node) {
+		messenger_show("INFO", "Empaquetada la materia %s", (char*) node);
+
 		chunk_add_variable(chunk, (char*) node, string_length((char*) node) + 1);
 	}
 
@@ -64,19 +66,19 @@ void client_server_execute_server(int fd_client) {
 
 	chunk_add(chunk, &student_send->id, sizeof(student_send->id));
 
-	messenger_show("INFO", "Empaquetado el legajo");
+	messenger_show("INFO", "Empaquetado el legajo %d", student_send->id);
 
 	messenger_show("INFO", "Empaquetando el nombre");
 
 	chunk_add_variable(chunk, student_send->name, string_length(student_send->name) + 1);
 
-	messenger_show("INFO", "Empaquetado el nombre");
+	messenger_show("INFO", "Empaquetado el nombre %s", student_send->name);
 
 	messenger_show("INFO", "Empaquetando el apellido");
 
 	chunk_add_variable(chunk, student_send->surname, string_length(student_send->surname) + 1);
 
-	messenger_show("INFO", "Empaquetado el apellido");
+	messenger_show("INFO", "Empaquetado el apellido %s", student_send->surname);
 
 	messenger_show("INFO", "Empaquetando las materias");
 
@@ -88,7 +90,7 @@ void client_server_execute_server(int fd_client) {
 
 	chunk_add(chunk, &student_send->average, sizeof(student_send->average));
 
-	messenger_show("INFO", "Empaquetado el promedio");
+	messenger_show("INFO", "Empaquetado el promedio %.2f", student_send->average);
 
 	messenger_show("INFO", "Enviando el paquete");
 
@@ -102,6 +104,8 @@ void client_server_execute_client(int fd_server) {
 		void* subject;
 
 		*bytes_recieved = chunk_recv_variable(fd_server, &subject);
+
+		messenger_show("INFO", "Recibida la materia %s", (char*) subject);
 
 		return subject;
 	}
@@ -118,13 +122,13 @@ void client_server_execute_client(int fd_server) {
 
 	chunk_recv_variable(fd_server, (void**) &student_received->name);
 
-	messenger_show("INFO", "Recibido el nombre");
+	messenger_show("INFO", "Recibido el nombre %s", student_received->name);
 
 	messenger_show("INFO", "Recibiendo el apellido");
 
 	chunk_recv_variable(fd_server, (void**) &student_received->surname);
 
-	messenger_show("INFO", "Recibido el apellido");
+	messenger_show("INFO", "Recibido el apellido %s", student_received->surname);
 
 	messenger_show("INFO", "Recibiendo las materias");
 
@@ -136,7 +140,7 @@ void client_server_execute_client(int fd_server) {
 
 	chunk_recv(fd_server, &student_received->average, sizeof(student_received->average));
 
-	messenger_show("INFO", "Recibido el promedio");
+	messenger_show("INFO", "Recibido el promedio %.2f", student_received->average);
 
 	char* student_description = student_show(student_received);
 

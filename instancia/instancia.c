@@ -8,7 +8,6 @@
 #include "event_handler.h"
 #include "instancia.h"
 #include "storage.h"
-#include "compactation.h"
 
 #define IP					cfg_instancia_get_coordinador_ip()
 #define HOST				cfg_instancia_get_coordinador_port()
@@ -16,8 +15,6 @@
 #define MOUNT_POINT			cfg_instancia_get_mount_point()
 #define DUMP_INTERVAL		cfg_instancia_get_dump_time()
 #define ALGORITHM_ID		cfg_instancia_get_replacement_algorithm_id()
-
-// TODO: Agregar messenger_show() por aca y sacarlos de las funciones principales
 
 // TODO: Hacer que cada operacion devuelva un estado y decidir si retornar o no error.
 
@@ -33,6 +30,8 @@ void instance_init(char* process_name, char* logger_route, char* log_level, char
 	coordinator_api_connect(IP, HOST);
 
 	coordinator_api_handshake(NAME, &dimensions);
+
+	// TODO: Discutir la reincorporacion
 
 	storage_setup_init(dimensions.total_entries, dimensions.entry_size);
 
@@ -192,7 +191,7 @@ TODO: Implementar
 
 2) entry_t* entry_table_get_next_to_compact() -> Devuelve la proxima entrada a compactar
 
-3)
+3) Discutir el criterio para decidir la próxima entrada a mover.
 
 int instance_compact() {
 	messenger_show("WARNING", "Inicio de compactacion de la Instancia");
@@ -210,7 +209,7 @@ int instance_compact() {
 
 		key_value_t* key_value_buffer = key_value_create(entry_to_compact->key, string_buffer);
 
-		instance_set(key_value_buffer, NULL);
+		instance_set(key_value_buffer, NULL); -> A este paso se refiere el inciso 3.
 
 		messenger_show("WARNING", "Se traslado la clave %s", key_value_buffer->key);
 
@@ -272,6 +271,10 @@ void instance_main() {
 
 				break;
 			}
+
+			/*
+			TODO: Consultar con Fer por la compactacion. Testear compact()
+
 			case PROTOCOL_CI_COMPACTATION: {
 				status = compact();
 
@@ -279,6 +282,7 @@ void instance_main() {
 
 				break;
 			}
+			*/
 
 			case PROTOCOL_CI_KILL: {
 				instance_is_alive = false;

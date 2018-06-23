@@ -183,7 +183,7 @@ int chunk_recv_list(int fd, t_list** receiver, void*(*unpackager)(int fd, int* b
 		list_add(*receiver, received_data);
 	}
 
-	messenger_show("DEBUG", "Se recibio una lista tamano %d", bytes_received);
+	messenger_show("DEBUG", "Se recibio una lista de tamano %d", bytes_received);
 
 	return bytes_received;
 }
