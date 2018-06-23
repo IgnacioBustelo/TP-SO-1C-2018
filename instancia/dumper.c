@@ -36,21 +36,17 @@ static char* get_key_value_file_name(char* key) {
 }
 
 static char* get_file_name_key_value(char* file_name) {
-	char** file_name_splitted = string_split(file_name, ".");
+	if(!string_contains(file_name, ".txt")) {
+		return string_new();
+	}
 
-	char* key = string_duplicate(file_name_splitted[0]);
+	int length = string_length(file_name) - 4; // Le resto 4 Por la cadena '.txt'
 
-	string_iterate_lines(file_name_splitted, (void*) free);
-
-	free(file_name_splitted);
-
-	return key;
+	return string_substring_until(file_name, length);
 }
 
-static key_value_t* recover_key_value(char* file_name) {
+static key_value_t* recover_key_value(char* key) {
 	void* data;
-
-	char* key = get_file_name_key_value(file_name);
 
 	int fd_key = dumper_create_key_value(key);
 
@@ -64,9 +60,19 @@ static key_value_t* recover_key_value(char* file_name) {
 
 	free(data_string);
 
-	free(key);
-
 	return recovered_key_value;
+}
+
+static bool is_recoverable(char* recovered_key, t_list* keys) {
+	bool key_equals(void* key) {
+		return string_equals_ignore_case(recovered_key, (char*) key);
+	}
+
+	bool is_valid_file_name = !string_equals_ignore_case(recovered_key, ".") && !string_equals_ignore_case(recovered_key, "..");
+
+	bool is_in_keys = list_any_satisfy(keys, (void*) key_equals);
+
+	return is_valid_file_name && is_in_keys;
 }
 
 int dumper_create_key_value(char* key) {
@@ -93,17 +99,21 @@ void dumper_remove_key_value(char* key) {
 	free(file_name);
 }
 
-void dumper_init(char* mount_point) {
+int dumper_init(char* mount_point) {
 	dumper = malloc(sizeof(dumper_t));
 
 	struct stat storage_stat;
 
-	if (stat(mount_point, &storage_stat) == -1) {
+	int directory_exists = stat(mount_point, &storage_stat);
+
+	if (directory_exists == -1) {
 	    mkdir(mount_point, S_IRWXU);
 	}
 
 	dumper->mount_point = mount_point;
 	dumper->file_dictionary = dictionary_create();
+
+	return directory_exists;
 }
 
 void dumper_store(char* key, void* data, size_t size) {
@@ -120,7 +130,7 @@ void dumper_store(char* key, void* data, size_t size) {
 	munmap(mapped_memory, size);
 }
 
-t_list* dumper_recover() {
+t_list* dumper_recover(t_list* keys) {
 	t_list* recovered_key_values = list_create();
 
 	DIR* mount_directory = opendir(dumper->mount_point);
@@ -128,11 +138,15 @@ t_list* dumper_recover() {
 	struct dirent* current_file;
 
 	while((current_file = readdir(mount_directory)) != NULL) {
-		if (!string_equals_ignore_case(current_file->d_name, ".") && !string_equals_ignore_case(current_file->d_name, "..")) {
-			key_value_t* recovered_key_value = recover_key_value(current_file->d_name);
+		char* recovered_key = get_file_name_key_value(current_file->d_name);
+
+		if (is_recoverable(recovered_key, keys)) {
+			key_value_t* recovered_key_value = recover_key_value(recovered_key);
 
 			list_add(recovered_key_values, (void*) recovered_key_value);
 		}
+
+		free(recovered_key);
 	}
 
 	free(current_file);

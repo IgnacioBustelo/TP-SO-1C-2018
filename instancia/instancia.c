@@ -27,6 +27,8 @@ void instance_init(char* process_name, char* logger_route, char* log_level, char
 
 	cfg_instancia_init(cfg_route);
 
+	configurator_read();
+
 	coordinator_api_connect(IP, HOST);
 
 	coordinator_api_handshake(NAME, &dimensions);

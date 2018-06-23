@@ -4,32 +4,67 @@
 #include "../dumper.h"
 #include "../globals.h"
 
+#define MOUNT_POINT "backup/"
+
 void key_value_show(void* node) {
 	key_value_t* key_value = (key_value_t*) node;
 
-	messenger_show("INFO", "Clave: %s \t Valor: %s \t Tamanio: %d", key_value->key, key_value->value, key_value->size);
+	messenger_show("INFO", "Clave: %s - Valor: %s - Tamanio: %d", key_value->key, key_value->value, key_value->size);
 }
 
 int main(int argc, char* argv[]) {
-	dumper_init("backup/");
+	t_list* keys = list_create();
 
-	t_list* recovered_key_values = dumper_recover();
+	if(argc == 1) {
+		messenger_show("ERROR", "Inserte las claves que quiere recuperar del directorio %s", MOUNT_POINT);
+
+		list_destroy(keys);
+
+		exit(EXIT_FAILURE);
+	}
+
+	int i;
+	for(i = 1; i < argc; i++) {
+		list_add(keys, (char*) argv[i]);
+	}
+
+	int directory_exists = dumper_init(MOUNT_POINT);
+
+	if(directory_exists == -1) {
+		messenger_show("ERROR", "No existia el directorio '%s'. Se acaba de crear para que ingrese archivos ahi para hacer la prueba", MOUNT_POINT);
+
+		list_destroy(keys);
+
+		dumper_destroy();
+
+		exit(EXIT_FAILURE);
+	}
+
+	t_list* recovered_key_values = dumper_recover(keys);
 
 	if(list_is_empty(recovered_key_values)) {
-		messenger_show("INFO", "Inserte claves con sus valores en el directorio %s para hacer la prueba", dumper->mount_point);
+		messenger_show("WARNING","No se recupero ninguna clave", dumper->mount_point);
+
+		list_destroy(keys);
+
+		list_destroy(recovered_key_values);
+
+		dumper_destroy();
+
+		exit(EXIT_FAILURE);
 	}
 
-	else {
-		messenger_show("INFO", "Mostrando lista de claves recuperadas de %s", dumper->mount_point);
+	messenger_show("INFO", "Mostrando lista de claves recuperadas de %s", dumper->mount_point);
 
-		list_iterate(recovered_key_values, (void*) key_value_show);
+	list_iterate(recovered_key_values, (void*) key_value_show);
 
-		messenger_show("INFO", "Mostrando diccionario de claves con archivos abiertos");
+	messenger_show("INFO", "Mostrando diccionario de claves con archivos abiertos");
 
-		dumper_show();
-	}
+	dumper_show();
 
 	list_destroy_and_destroy_elements(recovered_key_values, (void*) key_value_destroy);
+
+	list_destroy(keys);
 
 	dumper_destroy();
 }

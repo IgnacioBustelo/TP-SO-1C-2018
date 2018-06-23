@@ -47,7 +47,7 @@ int storage_init(size_t entries, size_t entry_size) {
 		return STRG_ERROR_INIT;
 	}
 
-	messenger_show("DEBUG", "Inicio exitoso del Storage con %d entradas de tamano %d desde la posicion %p a %p", entries, entry_size, storage->data, STRG_BASE, STRG_LIMIT);
+	messenger_show("DEBUG", "Inicio exitoso del Storage con %d entradas de tamano %d desde la posicion [%p] a [%p]", entries, entry_size, STRG_BASE, STRG_LIMIT);
 
 	return STRG_SUCCESS;
 }
