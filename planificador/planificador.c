@@ -320,7 +320,7 @@ int main(void) {
 					log_info(logger,"El ESI %i trató de ejecutar una sentencia invalida", obtain_esi_information_by_id(fd)->esi_numeric_name);
 					sock_my_port(fd);
 
-					esi_finished(&finished_esi_flag);
+					//esi_finished(&finished_esi_flag);
 
 					if (!list_is_empty(g_ready_queue)) {
 
@@ -926,7 +926,7 @@ void sock_my_port(int esi_fd) {
 	dead_esi = list_find(g_blocked_queue, find_dead_esi);
 	if (dead_esi != NULL) bury_esi(g_blocked_queue);
 
-	release_resources(esi_fd, &update_blocked_esi_queue_flag);
+	//release_resources(esi_fd, &update_blocked_esi_queue_flag); --VER pero en el foro dijeron que no hay que liberar los recursos en el caso de que un esi ripea por x caso
 
 	remove_fd(esi_fd, &connected_fds);
 }
