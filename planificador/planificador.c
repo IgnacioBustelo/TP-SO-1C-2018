@@ -337,14 +337,21 @@ int main(void) {
 				if(finished_esi_flag == 1) {
 
 					log_info(logger,"El ESI %i finalizó la ejecución de su script correctamente", obtain_esi_information_by_id(fd)->esi_numeric_name);
+					int flag_to_save_the_day = 0;
+					if(update_blocked_esi_queue_flag == 1) flag_to_save_the_day = 1;
 					release_resources(executing_esi, &update_blocked_esi_queue_flag);
+					if(flag_to_save_the_day == 1) free(key_to_unlock);
 					move_esi_from_and_to_queue(g_execution_queue, g_finished_queue, executing_esi);
 					executing_esi = -1;
 				} else {
 
 					if (update_blocked_esi_queue_flag == 1 || new_esi_flag == 1) {
 
-						if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag, true);
+						if (update_blocked_esi_queue_flag == 1) {
+
+							update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag, true);
+							free(key_to_unlock);
+						}
 
 						if (unlock_esi_by_console_flag >= 1) {
 
@@ -385,7 +392,11 @@ int main(void) {
 
 			if (killed_esi_flag == 1) burn_esi_corpses(executing_esi);
 
-			if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag, true);
+			if (update_blocked_esi_queue_flag == 1) {
+
+				update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag, true);
+				free(key_to_unlock);
+			}
 
 			if (unlock_esi_by_console_flag >= 1) {
 
@@ -460,6 +471,8 @@ void create_administrative_structures() {
 }
 
 void destroy_administrative_structures() {
+
+	free(last_unlocked_key_by_console);
 
 	void destroy_key_blocker(void* key_blocker_) {
 
@@ -818,8 +831,6 @@ void update_blocked_esi_queue(char* last_key_inquired, int* update_blocked_esi_q
 			we_must_reschedule(&reschedule_flag);
 		}
 	}
-
-	free(last_key_inquired);
 
 	*update_blocked_esi_queue_flag = 0;
 }
