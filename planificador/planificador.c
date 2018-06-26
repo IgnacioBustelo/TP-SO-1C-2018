@@ -109,7 +109,7 @@ int main(void) {
 		exit(EXIT_FAILURE);
 	}
 
-	log_info(logger, "Conectado satisfactoriamente al coordinador");
+	log_info(logger, "Conectado satisfactoriamente al coordinador en el socket %i", g_coordinator_fd);
 
 	int listener = init_listener(server_port, MAXCONN);
 	log_info(logger, "Escuchando en el puerto %i...", server_port);
@@ -264,6 +264,8 @@ int main(void) {
 					send_protocol_answer(fd, PROTOCOL_PC_KEY_BLOCKED_SUCCESFULLY);
 					log_info(logger,"Clave %s bloqueada", last_key_inquired);
 
+					free(last_key_inquired);
+
 					sem_post(&mutex_coordinador);
 					break;
 
@@ -313,6 +315,7 @@ int main(void) {
 					}
 
 					log_info(logger,"El ESI %i se encuentra bloqueado esperando la clave %s", obtain_esi_information_by_id(fd)->esi_numeric_name, last_key_inquired);
+					free(last_key_inquired);
 					break;
 
 				case PROTOCOL_EP_I_BROKE_THE_LAW:
@@ -320,7 +323,7 @@ int main(void) {
 					log_info(logger,"El ESI %i trató de ejecutar una sentencia invalida", obtain_esi_information_by_id(fd)->esi_numeric_name);
 					sock_my_port(fd);
 
-					esi_finished(&finished_esi_flag);
+					//esi_finished(&finished_esi_flag);
 
 					if (!list_is_empty(g_ready_queue)) {
 
@@ -334,14 +337,21 @@ int main(void) {
 				if(finished_esi_flag == 1) {
 
 					log_info(logger,"El ESI %i finalizó la ejecución de su script correctamente", obtain_esi_information_by_id(fd)->esi_numeric_name);
+					int flag_to_save_the_day = 0;
+					if(update_blocked_esi_queue_flag == 1) flag_to_save_the_day = 1;
 					release_resources(executing_esi, &update_blocked_esi_queue_flag);
+					if(flag_to_save_the_day == 1) free(key_to_unlock);
 					move_esi_from_and_to_queue(g_execution_queue, g_finished_queue, executing_esi);
 					executing_esi = -1;
 				} else {
 
 					if (update_blocked_esi_queue_flag == 1 || new_esi_flag == 1) {
 
-						if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag, true);
+						if (update_blocked_esi_queue_flag == 1) {
+
+							update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag, true);
+							free(key_to_unlock);
+						}
 
 						if (unlock_esi_by_console_flag >= 1) {
 
@@ -362,9 +372,9 @@ int main(void) {
 						}
 
 					}
-
-					finished_esi_flag = 0;
 				}
+
+				finished_esi_flag = 0;
 
 				if (reschedule_flag == 1 && !list_is_empty(g_ready_queue)){
 
@@ -382,7 +392,11 @@ int main(void) {
 
 			if (killed_esi_flag == 1) burn_esi_corpses(executing_esi);
 
-			if (update_blocked_esi_queue_flag == 1) update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag, true);
+			if (update_blocked_esi_queue_flag == 1) {
+
+				update_blocked_esi_queue(key_to_unlock, &update_blocked_esi_queue_flag, true);
+				free(key_to_unlock);
+			}
 
 			if (unlock_esi_by_console_flag >= 1) {
 
@@ -457,6 +471,8 @@ void create_administrative_structures() {
 }
 
 void destroy_administrative_structures() {
+
+	free(last_unlocked_key_by_console);
 
 	void destroy_key_blocker(void* key_blocker_) {
 
@@ -872,6 +888,8 @@ void release_resources(int esi_fd, int* update_blocked_esi_queue_flag) {
 	update_blocked_esi_queue(blocked_key->key, update_blocked_esi_queue_flag, true);
 	}
 
+	remove_fd(esi_fd, &connected_fds);
+
 	void destroy_key_blocker(void* key_blocker_) {
 
 		free(((key_blocker*) key_blocker_)->key);
@@ -926,7 +944,7 @@ void sock_my_port(int esi_fd) {
 	dead_esi = list_find(g_blocked_queue, find_dead_esi);
 	if (dead_esi != NULL) bury_esi(g_blocked_queue);
 
-	release_resources(esi_fd, &update_blocked_esi_queue_flag);
+	release_resources(esi_fd, &update_blocked_esi_queue_flag); //TODO--VER pero en el foro dijeron que no hay que liberar los recursos en el caso de que un esi ripea por x caso
 
 	remove_fd(esi_fd, &connected_fds);
 }
@@ -958,6 +976,7 @@ void burn_esi_corpses(int executing_esi) {
 	void apply_sock_my_port(void* esi_fd) {
 
 		sock_my_port(*(int*)esi_fd);
+		//release_resources(*(int*)esi_fd, &update_blocked_esi_queue_flag); TODO
 	}
 
 	list_iterate(g_new_killed_esis, apply_sock_my_port);
@@ -970,10 +989,10 @@ void burn_esi_corpses(int executing_esi) {
 void kaboom_baby() {
 
 	int fd;
-	for(fd = 0; max_fd + 1; fd++) {
+	for(fd = 0; fd <= max_fd; fd++) {
 
-		if(FD_ISSET(fd, &connected_fds) == 0 && fd != g_coordinator_fd) sock_my_port(fd);
-		else if(FD_ISSET(fd, &connected_fds) == 0 && fd == g_coordinator_fd) remove_fd(fd, &connected_fds);
+		if(FD_ISSET(fd, &connected_fds) != 0 && fd != g_coordinator_fd && fd != 5 && fd != 6) sock_my_port(fd);
+		else if(FD_ISSET(fd, &connected_fds) != 0 && fd == g_coordinator_fd && fd != 5 && fd != 6) remove_fd(fd, &connected_fds);
 	}
 
 	exit_gracefully(EXIT_FAILURE);
