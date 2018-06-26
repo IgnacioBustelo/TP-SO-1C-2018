@@ -1,8 +1,18 @@
+<<<<<<< HEAD
 #include "compactation.h"
 #include "storage.h"
 #include "globals.h"
+=======
+#include <commons/collections/list.h>
+#include <stdlib.h>
+>>>>>>> 0b5524018d80c442b0acd2ab3adf748e5f5b4494
 
-int compact(){
+#include "tests/utils.h"
+
+#include "compactation.h"
+#include "entry_table.h"
+
+int compactation_compact(){
 	t_list * key_value_list = list_create();
 
 	char*key;

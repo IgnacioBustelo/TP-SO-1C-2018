@@ -55,8 +55,6 @@ void client_server_execute_client(int fd_server) {
 
 	instance_main();
 
-	instance_show();
-
 	instance_die();
 }
 

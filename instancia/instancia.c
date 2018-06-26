@@ -322,9 +322,15 @@ void instance_main() {
 }
 
 void instance_show() {
+	messenger_show("INFO", "Estado de la Tabla de Entradas");
+
 	entry_table_print_table();
 
+	messenger_show("INFO", "Estado del Storage");
+
 	storage_show();
+
+	messenger_show("INFO", "Estado de Claves Persistidas");
 
 	dumper_show();
 }
@@ -332,11 +338,17 @@ void instance_show() {
 void instance_die() {
 	messenger_show("INFO", "Fin de actividades de la Instancia");
 
+	messenger_show("INFO", "Estado final de la Instancia");
+
+	instance_show();
+
 	storage_destroy();
 
 	dumper_destroy();
 
 	// entry_table_destroy(); TODO: Falta el destroyer de la tabla de entradas
+
+	messenger_show("INFO", "Volvere y sere millone$");
 
 	configurator_destroy();
 

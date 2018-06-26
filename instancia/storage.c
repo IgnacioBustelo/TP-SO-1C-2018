@@ -6,26 +6,6 @@
 #include "globals.h"
 #include "storage.h"
 
-static int insert_value(int next_entry, void* value, size_t size) {
-	char* string_value = value_to_string(value, size);
-
-	void* pointer = STRG_BASE + (next_entry * storage->entry_size);
-
-	if(pointer + size > STRG_LIMIT) {
-		messenger_show("ERROR", "Error insertando el valor '%s' en la entrada %d porque escribe hasta la posicion %p del Storage", string_value, next_entry, pointer + size);
-
-		return STRG_ERROR_SET;
-	}
-
-	memcpy(pointer, value, size);
-
-	messenger_show("DEBUG", "Insercion de valor '%s' de tamanio %d en la entrada %d", string_value, size, next_entry);
-
-	free(string_value);
-
-	return STRG_SUCCESS;
-}
-
 int storage_init(size_t entries, size_t entry_size) {
 	messenger_show("DEBUG", "Inicio del Storage");
 
@@ -53,29 +33,25 @@ int storage_init(size_t entries, size_t entry_size) {
 }
 
 int storage_set(int next_entry, void* value, size_t size) {
-	if(size <= storage->entry_size) {
-		return insert_value(next_entry, value, size);
+	char* string_value = value_to_string(value, size);
+
+	void* pointer = STRG_BASE + (next_entry * storage->entry_size);
+
+	if(pointer + size > STRG_LIMIT) {
+		messenger_show("ERROR", "Error insertando el valor '%s' en la entrada %d porque ocupa %d entrada/s y escribe hasta la posicion [%p]", string_value, next_entry, storage_required_entries(size), pointer + size);
+
+		free(string_value);
+
+		return STRG_ERROR_SET;
 	}
 
-	else {
-		int remainder = size - storage->entry_size, status;
+	memcpy(pointer, value, size);
 
-		void* fitting_value = malloc(size), *remainder_value = malloc(remainder);
+	messenger_show("DEBUG", "Insercion de valor '%s' de tamanio %d en la entrada %d, ocupando %d entrada/s", string_value, size, next_entry, storage_required_entries(size));
 
-		memcpy(fitting_value, value, storage->entry_size);
-		memcpy(remainder_value, value + storage->entry_size, remainder);
+	free(string_value);
 
-		status = insert_value(next_entry, fitting_value, storage->entry_size);
-
-		if(status == STRG_SUCCESS) {
-			status = storage_set(++next_entry, remainder_value, remainder);
-		}
-
-		free(fitting_value);
-		free(remainder_value);
-
-		return status;
-	}
+	return STRG_SUCCESS;
 }
 
 void* storage_retrieve(int entry, size_t value_size) {
@@ -84,6 +60,18 @@ void* storage_retrieve(int entry, size_t value_size) {
 	memcpy(data, storage->data + (entry * storage->entry_size), value_size);
 
 	return data;
+}
+
+int storage_required_entries(int size) {
+	if(size < storage->entry_size) {
+		return 1;
+	}
+
+	else {
+		int required = size/storage->entry_size;
+
+		return (size % storage->entry_size == 0) ? required : ++required;
+	}
 }
 
 void storage_show() {

@@ -171,7 +171,7 @@ void dumper_show() {
 		free(content);
 	}
 
-	messenger_show("DEBUG", "Listado de claves persistidas");
+	messenger_show("DEBUG", "Muestra de claves persistidas en el punto de montaje %s", dumper->mount_point);
 
 	dictionary_iterator(dumper->file_dictionary, (void*) fd_show);
 }
