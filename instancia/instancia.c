@@ -54,7 +54,6 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 	int status = INSTANCE_SUCCESS;
 
 	// TODO: Chequear tambien que haya suficiente entradas atomicas para reemplazar
-	// Nice to have => Que lo tenga entry_table_haSSSSSSS_entries
 
 	if(!entry_table_have_entries(key_value) /* && entry_table_has_atomic_values() */) {
 		void replace_and_show_key(void* key) {

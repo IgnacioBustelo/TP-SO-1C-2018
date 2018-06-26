@@ -38,7 +38,9 @@ notify_set: DEPS += $(COORDINADOR_DEPS)
 
 die: DEPS += ../event_handler.h ../../libs/mocks/color.h
 
-checkpoint_3: DEPS += $(COORDINADOR_DEPS) ../algorithms.h ../cfg_instancia.h ../../libs/configurator.h ../dumper.h ../event_handler.h ../entry_table.h ../instancia.h ../storage.h utils.h
+compact: DEPS += ../compactation.h ../entry_table.h ../globals.h ../storage.h ../../libs/mocks/default_color.h utils.h
+
+checkpoint_3: DEPS += $(COORDINADOR_DEPS) ../algorithms.h ../cfg_instancia.h ../compactation.h ../../libs/configurator.h ../dumper.h ../event_handler.h ../entry_table.h ../instancia.h ../storage.h utils.h
 
 clean:
 	rm -rf files backup dumped_keys $(TARGET)
