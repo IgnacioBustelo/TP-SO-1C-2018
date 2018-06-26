@@ -1,11 +1,6 @@
-<<<<<<< HEAD
-#include "compactation.h"
-#include "storage.h"
-#include "globals.h"
-=======
+
 #include <commons/collections/list.h>
 #include <stdlib.h>
->>>>>>> 0b5524018d80c442b0acd2ab3adf748e5f5b4494
 
 #include "tests/utils.h"
 
@@ -46,14 +41,6 @@ int compactation_compact(){
 		free(value);
 
 	}
-
-//	for (int i=0;i<list_size(key_value_list);i++)
-//		{
-//			key_value = list_get(key_value_list,i);
-//			next_entry = entry_table_next_entry(key_value);
-//			entry_table_insert(next_entry,key_value);
-//			//TODO: Santi, manejar aca agregar en tu storage_Table las entradas.
-//		}
 	free(key);
 	key_value_destroy(key_value);
 	list_clean_and_destroy_elements(key_value_list, free);
