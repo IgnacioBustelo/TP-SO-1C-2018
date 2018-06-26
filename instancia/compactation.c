@@ -1,5 +1,12 @@
+#include <commons/collections/list.h>
+#include <stdlib.h>
 
-int compact(){
+#include "tests/utils.h"
+
+#include "compactation.h"
+#include "entry_table.h"
+
+int compactation_compact(){
 	t_list * key_value_list = list_create();
 
 	char*key;
