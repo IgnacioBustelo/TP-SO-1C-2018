@@ -21,7 +21,7 @@ void algorithm_circular_set_pointer(int index){
 	algorithm_circular_pointer=index;
 }
 
-int algorithm_circular(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys){
+int algorithm_circular(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys){ //TODO: Creo que hay que reimplementar con la logica de lru
 	if(!entry_table_have_entries(key_value) && new_value_fits(key_value))
 	{
 
@@ -74,6 +74,52 @@ int algorithm_circular(t_list* entry_table,key_value_t* key_value,t_list* replac
 		return 1;
 		}
 	}
+
+	return 0;
+}
+
+
+bool smallest_reference(void * a, void *b){
+	status_t * e1 = (status_t*)a;
+	status_t * e2 = (status_t*)b;
+	return e1->last_referenced>e2->last_referenced?false:true;
+}
+
+int algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys){
+	if(!entry_table_have_entries(key_value) && new_value_fits(key_value))
+	{
+
+		int continous_atomic_and_free_entries=0;
+		int first_entry_of_continous_atomic_and_free_entries=-1;
+		t_list* entry_table_status = original_entry_table_migration_to_complete_one();
+		status_t* status;
+
+		t_list * copy_entry_table_status = list_create();
+
+		list_add_all(copy_entry_table_status,entry_table_status);
+		list_sort(copy_entry_table_status,smallest_reference);
+
+		int i=0;
+		int entries_neeeded = entry_table_entries_needed(key_value) - entries_left;
+
+		while(i+1<list_size(copy_entry_table_status) && entries_neeeded)
+		{
+			status = (status_t*)list_get(copy_entry_table_status,i);
+
+			if (status->status==ATOMIC && (status->last_referenced!=((status_t*)list_get(copy_entry_table_status,i+1))->last_referenced))
+			{
+				list_add(replaced_keys,status->key);
+				//Debo borrar de entry_table_status los entries que ya elegi. aparte entry_table_status debe ser global.
+				entries_neeeded--;
+			}
+			if (status->status==ATOMIC && (status->last_referenced==((status_t*)list_get(copy_entry_table_status,i+1))->last_referenced))
+			{
+			 //Debo borrar de entry_table_status los entries que ya elegi. aparte entry_table_status debe ser global.
+				key_value_t* fake_kv;
+				fake_kv->size=entries_neeeded*get_entry_size();
+				algorithm_circular(entry_table,fake_kv,replaced_keys);
+			}
+		}
 
 	return 0;
 }

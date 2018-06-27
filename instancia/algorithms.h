@@ -14,6 +14,7 @@ enum {
 typedef struct{
 	int status;
 	char * key;
+	int last_referenced;
 } status_t;
 
 int algorithm_circular_pointer;
@@ -33,5 +34,7 @@ void		entry_table_status_print_table(t_list* entry_table_status);
 t_list*		original_entry_table_migration_to_complete_one();
 
 void		algorithm_circular_set_pointer(int index);
+
+void 		algorithm_lru_add_all();
 
 #endif
