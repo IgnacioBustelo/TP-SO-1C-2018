@@ -1,5 +1,7 @@
 #include <stdio.h>
+
 #include "algorithms.h"
+#include "entry_table.h"
 #include "globals.h"
 
 
@@ -122,6 +124,11 @@ int algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_ke
 		}
 
 	return 0;
+	}
+
+	else {
+		return -666; // TODO: Santi - Agregue esto porque no compila nada... Segui tu logica para el else de tu if.
+	}
 }
 
 bool new_value_fits(key_value_t* key_value)
@@ -194,4 +201,5 @@ void entry_table_status_print_table(t_list* entry_table_status){
 		status_t * status=(status_t *) list_get(entry_table_status,i);
 		printf("Indice %d con estado %d y KEY %s \n",i,status->status,status->key);
 		}
+
 }

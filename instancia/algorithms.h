@@ -23,7 +23,7 @@ void		algorithms_exec(char algorithm_id, t_list* entry_table, key_value_t* key_v
 
 int			algorithm_circular(t_list* entry_table,key_value_t* key_value, t_list* replaced_keys);
 
-void		algorithm_lru(t_list* entry_table, t_list* replaced_keys); // TODO: Hacer Least Recently Used
+int			algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys);
 
 bool		new_value_fits(key_value_t* key_value); // Se fija si el tamanio del nuevo key_value entra entre todas las entradas atomicas que hay y los lugares libres dentro de la tabla
 

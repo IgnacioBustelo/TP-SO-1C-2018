@@ -1,11 +1,13 @@
-
 #include <commons/collections/list.h>
 #include <stdlib.h>
+
+#include "../libs/messenger.h"
 
 #include "tests/utils.h"
 
 #include "compactation.h"
 #include "entry_table.h"
+#include "storage.h"
 
 int compactation_compact(){
 	t_list * key_value_list = list_create();
