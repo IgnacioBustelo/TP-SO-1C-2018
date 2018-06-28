@@ -7,6 +7,7 @@
 #include "../defines.h"
 #include "../logger.h"
 #include "../config.h"
+#include "../distribution.h"
 #include "../connection/esi-connection.h"
 #include "../connection/scheduler-connection.h"
 #include "../instance-list/instance-list.h"
@@ -17,6 +18,7 @@ struct setup_t setup;
 
 struct instance_list_t *instance_list;
 
+static void instance_handle_disconnection(struct instance_t *instance);
 static bool instance_handle_set_request(struct instance_t *instance, struct request_node_t *request);
 static bool instance_handle_store_request(struct instance_t *instance, struct request_node_t *request);
 static char *instance_recv_name(int fd);
@@ -82,12 +84,35 @@ void handle_instance_connection(int fd)
 			break;
 		}
 
-		request_node_destroy(request);
+		if (!error) {
+			request_node_destroy(request);
+		} else {
+			request_list_push(instance->requests, request);
+			instance_handle_disconnection(instance);
+		}
 	}
+}
 
+static void instance_handle_disconnection(struct instance_t *instance)
+{
 	synchronized(instance_list->lock) {
 		instance_list_remove(instance_list, instance->name);
 	}
+
+	void reselect_instance(void *_elem) {
+		struct request_node_t *request = (struct request_node_t *)_elem;
+		char *key = request->type == INSTANCE_SET ? request->set.key : request->store.key;
+
+		struct instance_t *instance = dispatch(instance_list, key);
+		if (instance != NULL) {
+			request_list_push(instance->requests, request);
+		} else {
+			log_error(logger, "No hay Instancias disponibles!");
+			esi_send_illegal_operation(request->requesting_esi_fd);
+		}
+	}
+
+	request_list_iterate(instance->requests, reselect_instance);
 }
 
 static bool instance_handle_set_request(struct instance_t *instance, struct request_node_t *request)
