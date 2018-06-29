@@ -1,6 +1,8 @@
 #ifndef LIBS_MOCKS_CLIENT_SERVER_H_
 #define LIBS_MOCKS_CLIENT_SERVER_H_
 
+#include <stdbool.h>
+
 #include "../messenger.h"
 #include "color.h"
 
@@ -8,6 +10,8 @@
 #define PORT 			8080
 #define COLOR_SERVER	COLOR_GREEN
 #define COLOR_CLIENT	COLOR_CYAN
+
+bool is_closable_client, is_closable_server;
 
 char *server_name, *client_name;
 

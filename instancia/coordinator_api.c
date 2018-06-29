@@ -8,15 +8,25 @@
 #include "coordinator_api.h"
 #include "globals.h"
 
-void coordinator_api_connect(char* host, int port) {
+static void* coordinator_api_recv_recoverable_key(int fd, int* bytes_received) {
+	void* key;
+
+	*bytes_received = chunk_recv_variable(fd, &key);
+
+	messenger_show("WARNING", "Se debe recuperar la clave %s", (char*) key);
+
+	return key;
+}
+
+int coordinator_api_connect(char* host, int port) {
 	if(fd_coordinador == 0) {
 		fd_coordinador = connect_to_server(host, port);
 	}
 
-	// TODO: Manejar error cuando no encuentra al Coordinador
+	return fd_coordinador;
 }
 
-int coordinator_api_handshake(char* instance_name, storage_setup_t* setup){
+int coordinator_api_handshake(char* instance_name, storage_setup_t* setup, t_list** recoverable_keys){
 	bool is_confirmed;
 
 	messenger_show("INFO", "Enviada la solicitud de handshake con el Coordinador");
@@ -38,15 +48,21 @@ int coordinator_api_handshake(char* instance_name, storage_setup_t* setup){
 
 		chunk_recv(fd_coordinador, &setup->total_entries, sizeof(size_t));
 
+		chunk_recv_list(fd_coordinador, recoverable_keys, (void*) coordinator_api_recv_recoverable_key);
+
 		messenger_show("INFO", "Se asigno una dimension de %d entradas de tamano %d para el Storage", setup->total_entries, setup->entry_size);
 
-		return HANDSHAKE_SUCCESS;
+		if(!list_is_empty(*recoverable_keys)) {
+			messenger_show("WARNING", "Se deben recuperar %d claves", list_size(*recoverable_keys));
+		}
+
+		return API_HANDSHAKE_SUCCESS;
 	}
 
 	else {
 		messenger_show("ERROR", "El Coordinador no acepto a la Instancia");
 
-		return HANDSHAKE_ERROR;
+		return API_HANDSHAKE_ERROR;
 	}
 }
 
@@ -117,4 +133,10 @@ void coordinator_api_notify_set(int status, size_t entries_used) {
 	chunk_add(chunk, &entries_used, sizeof(entries_used));
 
 	chunk_send_and_destroy(fd_coordinador, chunk);
+}
+
+void coordinator_api_disconnect() {
+	messenger_show("INFO", "Desconexion de la Instancia");
+
+	close(fd_coordinador);
 }

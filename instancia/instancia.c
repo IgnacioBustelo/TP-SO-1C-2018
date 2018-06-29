@@ -18,8 +18,9 @@
 
 // TODO: Hacer que cada operacion devuelva un estado y decidir si retornar o no error.
 
-void instance_init(char* process_name, char* logger_route, char* log_level, char* cfg_route) {
+int instance_init(char* process_name, char* logger_route, char* log_level, char* cfg_route) {
 	storage_setup_t dimensions;
+	t_list* recoverable_keys;
 
 	event_handler_init();
 
@@ -31,9 +32,17 @@ void instance_init(char* process_name, char* logger_route, char* log_level, char
 
 	coordinator_api_connect(IP, HOST);
 
-	coordinator_api_handshake(NAME, &dimensions);
+	int status = coordinator_api_handshake(NAME, &dimensions, &recoverable_keys);
 
-	// TODO: Discutir la reincorporacion
+	if(status == API_HANDSHAKE_ERROR) {
+		coordinator_api_disconnect();
+
+		configurator_destroy();
+
+		messenger_destroy();
+
+		return INSTANCE_INIT_ERROR;
+	}
 
 	storage_setup_init(dimensions.total_entries, dimensions.entry_size);
 
@@ -41,13 +50,23 @@ void instance_init(char* process_name, char* logger_route, char* log_level, char
 
 	dumper_init(MOUNT_POINT);
 
-	event_handler_alarm(DUMP_INTERVAL);
-
 	entry_table_init();
 
 	algorithm_circular_set_pointer(0);
 
+	instance_recover(recoverable_keys);
+
+	event_handler_alarm(DUMP_INTERVAL);
+
 	messenger_show("INFO", "La Instancia se inicio correctamente");
+
+	messenger_show("INFO", "Estado inicial de la Instancia");
+
+	instance_show();
+
+	list_destroy_and_destroy_elements(recoverable_keys, free);
+
+	return INSTANCE_INIT_SUCCESS;
 }
 
 int instance_set(key_value_t* key_value, t_list* replaced_keys) {
@@ -184,6 +203,47 @@ int	instance_dump(t_list* stored_keys) {
 	return status;
 }
 
+int	instance_recover(t_list* recoverable_keys) {
+	int status = INSTANCE_RECOVER_SUCCESS;
+	t_list* replaced_keys = list_create();
+
+	void recovered_key_value_set(void* key_value) {
+		status = instance_set((key_value_t*) key_value, replaced_keys);
+	}
+
+	messenger_show("INFO", "Inicio de la Recuperacion de la Instancia");
+
+	if(list_is_empty(recoverable_keys)) {
+		messenger_show("INFO", "No es necesario recuperar claves");
+
+		return status;
+	}
+
+	messenger_show("INFO", "Es necesario recuperar %d claves", list_size(recoverable_keys));
+
+	t_list *recovered_keys = dumper_recover(recoverable_keys);
+
+	if(list_is_empty(recovered_keys)) {
+		messenger_show("WARNING", "No hay claves persistidas");
+	}
+
+	else if(list_size(recovered_keys) != list_size(recoverable_keys)) {
+		messenger_show("WARNING", "Solo se pudieron recuperar %d claves de %d pedidas", list_size(recovered_keys), list_size(recoverable_keys));
+	}
+
+	else {
+		messenger_show("INFO", "Se pudieron recuperar todas las claves solicitadas");
+	}
+
+	list_iterate(recovered_keys, (void*) recovered_key_value_set);
+
+	list_destroy_and_destroy_elements(recovered_keys, (void*) key_value_destroy);
+
+	messenger_show("INFO", "Fin de la recuperacion de la Instancia");
+
+	return status;
+}
+
 /*
 
 TODO: Implementar
@@ -252,11 +312,7 @@ void instance_main() {
 
 				key_value_destroy(key_value);
 
-				if(!list_is_empty(replaced_keys)) {
-					list_clean_and_destroy_elements(replaced_keys, free);
-				}
-
-				list_destroy(replaced_keys);
+				list_destroy_and_destroy_elements(replaced_keys, free);
 
 				coordinator_api_notify_set(status, get_total_entries() - entries_left);
 
@@ -347,6 +403,8 @@ void instance_die() {
 	dumper_destroy();
 
 	// entry_table_destroy(); TODO: Falta el destroyer de la tabla de entradas
+
+	coordinator_api_disconnect();
 
 	messenger_show("INFO", "Volvere y sere millone$");
 

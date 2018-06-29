@@ -8,14 +8,20 @@
 #include "../globals.h"
 #include "coordinador_mock.h"
 
-void coordinador_mock_handshake(int fd_client, bool is_accepted, size_t total_entries, size_t entry_size) {
+static void coordinador_mock_chunk_add_key(chunk_t* chunk, void* content) {
+	messenger_show("INFO", "Se debe recuperar la clave %s", (char*) content);
+
+	chunk_add_variable(chunk, (char*) content, string_length((char*) content) + 1);
+}
+
+void coordinador_mock_handshake(int fd_client, bool is_accepted, size_t total_entries, size_t entry_size, t_list* recoverable_keys) {
 	receive_handshake(fd_client);
+
+	messenger_show((is_accepted) ? "INFO" : "ERROR", "Se recibio una solictiud de una instancia que va a ser %s", (is_accepted) ? "aceptada" : "rechazada");
 
 	send_confirmation(fd_client, is_accepted);
 
 	if(!is_accepted) {
-		messenger_show("ERROR", "Rechazando instancia");
-
 		return;
 	}
 
@@ -34,6 +40,8 @@ void coordinador_mock_handshake(int fd_client, bool is_accepted, size_t total_en
 	chunk_add(chunk, &setup.entry_size, sizeof(size_t));
 
 	chunk_add(chunk, &setup.total_entries, sizeof(size_t));
+
+	chunk_add_list(chunk, recoverable_keys, (void*) coordinador_mock_chunk_add_key);
 
 	chunk_send_and_destroy(fd_client, chunk);
 

@@ -1,13 +1,10 @@
 #include <stdio.h>
 
 #include "algorithms.h"
-#include "entry_table.h"
 #include "globals.h"
 
 
 void algorithms_exec(char algorithm_id, t_list* entry_table, key_value_t* key_value, t_list* replaced_keys) {
-	// TODO: Habra una forma en C de evitar type test en tiempo de ejecucion?
-
 	switch (algorithm_id) {
 		case 'C':	algorithm_circular(entry_table, key_value, replaced_keys);	break;
 
@@ -91,8 +88,8 @@ int algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_ke
 	if(!entry_table_have_entries(key_value) && new_value_fits(key_value))
 	{
 
-		int continous_atomic_and_free_entries=0;
-		int first_entry_of_continous_atomic_and_free_entries=-1;
+		//int continous_atomic_and_free_entries=0; TODO: La vas a usar?
+		//int first_entry_of_continous_atomic_and_free_entries=-1; TODO: La vas a usar?
 		t_list* entry_table_status = original_entry_table_migration_to_complete_one();
 		status_t* status;
 
@@ -117,7 +114,7 @@ int algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_ke
 			if (status->status==ATOMIC && (status->last_referenced==((status_t*)list_get(copy_entry_table_status,i+1))->last_referenced))
 			{
 			 //Debo borrar de entry_table_status los entries que ya elegi. aparte entry_table_status debe ser global.
-				key_value_t* fake_kv;
+				key_value_t* fake_kv = key_value_create("WTF", "WTF"); // Te la inicializo para que no me tire warnings!!
 				fake_kv->size=entries_neeeded*get_entry_size();
 				algorithm_circular(entry_table,fake_kv,replaced_keys);
 			}

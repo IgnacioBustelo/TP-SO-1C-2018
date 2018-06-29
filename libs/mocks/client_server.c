@@ -23,6 +23,8 @@ char* color_get() {
 }
 
 static void set_server(void* args) {
+	is_closable_client = true;
+
 	sem_wait(&server_sem);
 
 	int fd_server = init_listener(PORT, 1);
@@ -44,11 +46,15 @@ static void set_server(void* args) {
 
 	client_server_execute_server(fd_client);
 
-	close(fd_server);
-	close(fd_client);
+	if(is_closable_server) {
+		close(fd_server);
+		close(fd_client);
+	}
 }
 
 static void set_client(void* args) {
+	is_closable_client = true;
+
 	sem_wait(&client_sem);
 
 	messenger_show("INFO", "Se inicio el cliente %s", client_name);
@@ -63,7 +69,9 @@ static void set_client(void* args) {
 
 	client_server_execute_client(fd_server);
 
-	close(fd_server);
+	if(is_closable_client)  {
+		close(fd_server);
+	}
 }
 
 void client_server_run() {

@@ -100,10 +100,10 @@ void client_server_execute_server(int fd_client) {
 }
 
 void client_server_execute_client(int fd_server) {
-	void* unpackager(int fd_server, int* bytes_recieved) {
+	void* unpackager(int fd_server, int* bytes_received) {
 		void* subject;
 
-		*bytes_recieved = chunk_recv_variable(fd_server, &subject);
+		*bytes_received = chunk_recv_variable(fd_server, &subject);
 
 		messenger_show("INFO", "Recibida la materia %s", (char*) subject);
 
@@ -134,7 +134,7 @@ void client_server_execute_client(int fd_server) {
 
 	chunk_recv_list(fd_server, &student_received->subjects, unpackager);
 
-	messenger_show("INFO", "Recibidas las materias");
+	messenger_show("INFO", "Recibidas %d materia/s", list_size(student_received->subjects));
 
 	messenger_show("INFO", "Recibiendo el promedio");
 

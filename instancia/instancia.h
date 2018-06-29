@@ -6,17 +6,23 @@
 #include "globals.h"
 
 typedef enum {
-	INSTANCE_SUCCESS = 1,
-	INSTANCE_SET_ERROR = 0
+	INSTANCE_INIT_SUCCESS,
+	INSTANCE_INIT_ERROR,
+	INSTANCE_RECOVER_SUCCESS,
+	INSTANCE_RECOVER_ERROR,
+	INSTANCE_SUCCESS,
+	INSTANCE_SET_ERROR
 } instancia_status;
 
-void	instance_init(char* process_name, char* logger_route, char* log_level, char* cfg_route);
+int		instance_init(char* process_name, char* logger_route, char* log_level, char* cfg_route);
 
 int		instance_set(key_value_t* key_value, t_list* replaced_keys);
 
 int		instance_store(char* key);
 
 int		instance_dump(t_list* stored_keys);
+
+int		instance_recover(t_list* recoverable_keys);
 
 int		instance_compact();
 
