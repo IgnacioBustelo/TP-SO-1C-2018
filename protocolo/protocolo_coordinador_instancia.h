@@ -1,6 +1,10 @@
 #ifndef PROTOCOLO_PROTOCOLO_COORDINADOR_INSTANCIA_H_
 #define PROTOCOLO_PROTOCOLO_COORDINADOR_INSTANCIA_H_
 
+#define C_HEADER(X)		protocolo_coordinador_instancia_coordinador_header_to_string(X)
+#define I_HEADER(X)		protocolo_coordinador_instancia_instancia_header_to_string(X)
+#define CI_STATUS(X)	protocolo_coordinador_instancia_status_to_string(X)
+
 typedef enum {
 	PROTOCOL_CI_HANDSHAKE_CONFIRMATION,
 	PROTOCOL_CI_SET,
@@ -24,5 +28,11 @@ typedef enum {
 	STATUS_REPLACED = 0,
 	STATUS_NO_SPACE = -1
 } status_ci;
+
+const char* protocolo_coordinador_instancia_coordinador_header_to_string(request_coordinador header);
+
+const char* protocolo_coordinador_instancia_instancia_header_to_string(request_instancia header);
+
+const char* protocolo_coordinador_instancia_status_to_string(status_ci status);
 
 #endif

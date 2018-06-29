@@ -6,7 +6,9 @@
 #include "../mocks/printfer.h"
 #include "../conector.h"
 #include "client_server.h"
-#include "color.h"
+
+#define COLOR_SERVER COLOR_GREEN
+#define COLOR_CLIENT COLOR_CYAN
 
 pthread_t server_thread, client_thread;
 sem_t server_sem, client_sem;
@@ -17,7 +19,7 @@ char* color_get() {
 	bool is_server = pthread_equal(current_thread_id, server_thread);
 	bool is_client = pthread_equal(current_thread_id, client_thread);
 
-	return (is_server) ? COLOR_GREEN : (is_client) ? COLOR_CYAN : COLOR_RESET;
+	return (is_server) ? COLOR_SERVER : (is_client) ? COLOR_CLIENT : COLOR_RESET;
 }
 
 static void set_server(void* args) {

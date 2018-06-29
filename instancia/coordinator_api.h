@@ -8,7 +8,8 @@
 
 typedef enum {
 	SET_SUCCESS,
-	HANDSHAKE_SUCCES
+	HANDSHAKE_SUCCESS,
+	HANDSHAKE_ERROR
 } coordinator_api_status;
 
 // Atributos
@@ -19,7 +20,7 @@ int fd_coordinador;
 
 void				coordinator_api_connect(char* host, int port);
 
-void				coordinator_api_handshake(char* instance_name, storage_setup_t* setup);
+int					coordinator_api_handshake(char* instance_name, storage_setup_t* setup);
 
 request_coordinador	coordinator_api_receive_header();
 

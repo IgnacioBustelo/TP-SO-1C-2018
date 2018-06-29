@@ -1,4 +1,7 @@
 #include "../compactation.h"
+#include "../globals.h"
+#include "../entry_table.h"
+#include "../storage.h"
 
 int main() {
 	storage_setup_init(5, 4);
@@ -21,7 +24,7 @@ int main() {
 
 	storage_show();
 
-	compact();
+	compactation_compact();
 
 	entry_table_print_table();
 

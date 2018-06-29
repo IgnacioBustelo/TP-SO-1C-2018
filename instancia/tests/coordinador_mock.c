@@ -1,4 +1,4 @@
-	#include <commons/string.h>
+#include <commons/string.h>
 
 #include "../../libs/chunker.h"
 #include "../../libs/messenger.h"
@@ -8,14 +8,20 @@
 #include "../globals.h"
 #include "coordinador_mock.h"
 
-void coordinador_mock_handshake(int fd_client, size_t total_entries, size_t entry_size) {
+void coordinador_mock_handshake(int fd_client, bool is_accepted, size_t total_entries, size_t entry_size) {
+	receive_handshake(fd_client);
+
+	send_confirmation(fd_client, is_accepted);
+
+	if(!is_accepted) {
+		messenger_show("ERROR", "Rechazando instancia");
+
+		return;
+	}
+
 	storage_setup_t setup = {.total_entries = total_entries, .entry_size = entry_size};
 
 	char* received_name;
-
-	receive_handshake(fd_client);
-
-	send_confirmation(fd_client, true);
 
 	chunk_recv_variable(fd_client, (void**) &received_name);
 
@@ -35,11 +41,11 @@ void coordinador_mock_handshake(int fd_client, size_t total_entries, size_t entr
 }
 
 void coordinador_mock_set_request(int fd_client, char* key, char* value) {
-	messenger_show("INFO", "Pedido de SET %s, %s", key, value);
+	request_coordinador header = PROTOCOL_CI_SET;
+
+	messenger_show("INFO", "Pedido de SET %s, %s a traves del mensaje %s", key, value, C_HEADER(header));
 
 	chunk_t* chunk = chunk_create();
-
-	request_coordinador header = PROTOCOL_CI_SET;
 
 	chunk_add(chunk, &header, sizeof(header));
 	chunk_add_variable(chunk, key, string_length(key) + 1);
@@ -55,17 +61,17 @@ int coordinador_mock_set_response(int fd_client) {
 	chunk_recv(fd_client, &status_received, sizeof(status_received));
 	chunk_recv(fd_client, &entries_used_received, sizeof(entries_used_received));
 
-	messenger_show("INFO", "Se ejecuto un SET con un status %d y en la instancia se usan %d entradas", status_received, entries_used_received);
+	messenger_show("INFO", "Se ejecuto un SET con un status %s y en la instancia se usan %d entradas", CI_STATUS(status_received), entries_used_received);
 
 	return status_received;
 }
 
 void coordinador_mock_store_request(int fd_client, char* key) {
-	messenger_show("INFO", "Pedido de STORE %s", key);
+	request_coordinador header = PROTOCOL_CI_STORE;
+
+	messenger_show("INFO", "Pedido de STORE %s a traves del mensaje %s", key, C_HEADER(header));
 
 	chunk_t* chunk = chunk_create();
-
-	request_coordinador header = PROTOCOL_CI_STORE;
 
 	chunk_add(chunk, &header, sizeof(header));
 	chunk_add_variable(chunk, key, string_length(key) + 1);
@@ -79,17 +85,17 @@ int coordinador_mock_store_response(int fd_client) {
 	chunk_recv(fd_client, &header, sizeof(status_received));
 	chunk_recv(fd_client, &status_received, sizeof(status_received));
 
-	messenger_show("INFO", "Se ejecuto un STORE con un status %d", status_received);
+	messenger_show("INFO", "Se ejecuto un STORE con un status %s", CI_STATUS(status_received));
 
 	return status_received;
 }
 
 void coordinador_mock_kill(int fd_client) {
-	messenger_show("INFO", "Desconectando a la Instancia");
+	request_coordinador header = PROTOCOL_CI_KILL;
+
+	messenger_show("INFO", "Desconectando a la Instancia a traves del mensaje %s", C_HEADER(header));
 
 	chunk_t* chunk = chunk_create();
-
-	request_coordinador header = PROTOCOL_CI_KILL;
 
 	chunk_add(chunk, &header, sizeof(header));
 
