@@ -354,6 +354,12 @@ void instance_main() {
 				break;
 			}
 
+			case PROTOCOL_CI_REQUEST_VALUE: {
+				// TODO: Añadir logica de recuperacion
+
+				break;
+			}
+
 			case PROTOCOL_CI_KILL: {
 				messenger_show("INFO", "La Instancia recibio un pedido del Coordinador para desconectarse");
 
