@@ -3,9 +3,7 @@
 
 #include "../../libs/mocks/client_server.h"
 #include "../coordinator_api.h"
-#include "../entry_table.h"
 #include "../instancia.h"
-#include "../storage.h"
 #include "coordinador_mock.h"
 
 int		total_entries, entry_size, key_amount;
@@ -24,7 +22,7 @@ void client_server_execute_server(int fd_client) {
 	int i, status;
 
 	for(i = 1; i < key_amount; i++) {
-		coordinador_mock_set_request(fd_client, keys[i - 1], values[i]);
+		coordinador_mock_set_request(fd_client, i % 2 == 0, keys[i - 1], values[i]);
 
 		status = coordinador_mock_set_response(fd_client);
 

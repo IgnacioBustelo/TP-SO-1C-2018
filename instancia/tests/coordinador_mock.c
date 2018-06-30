@@ -48,14 +48,15 @@ void coordinador_mock_handshake(int fd_client, bool is_accepted, size_t total_en
 	free(received_name);
 }
 
-void coordinador_mock_set_request(int fd_client, char* key, char* value) {
+void coordinador_mock_set_request(int fd_client, bool is_new, char* key, char* value) {
 	request_coordinador header = PROTOCOL_CI_SET;
 
-	messenger_show("INFO", "Pedido de SET %s, %s a traves del mensaje %s", key, value, C_HEADER(header));
+	messenger_show("INFO", "Pedido de %sSET %s, %s a traves del mensaje %s", (is_new) ? "nuevo " : "", key, value, C_HEADER(header));
 
 	chunk_t* chunk = chunk_create();
 
 	chunk_add(chunk, &header, sizeof(header));
+	chunk_add(chunk, &is_new, sizeof(is_new));
 	chunk_add_variable(chunk, key, string_length(key) + 1);
 	chunk_add_variable(chunk, value, string_length(value) + 1);
 
@@ -96,6 +97,34 @@ int coordinador_mock_store_response(int fd_client) {
 	messenger_show("INFO", "Se ejecuto un STORE con un status %s", CI_STATUS(status_received));
 
 	return status_received;
+}
+
+void coordinador_mock_status_request(int fd_client, char* key) {
+	request_coordinador header = PROTOCOL_CI_REQUEST_VALUE;
+
+	messenger_show("INFO", "Pedido del valor de la clave %s a traves del mensaje %s", key, C_HEADER(header));
+
+	chunk_t* chunk = chunk_create();
+
+	chunk_add(chunk, &header, sizeof(header));
+	chunk_add_variable(chunk, key, string_length(key) + 1);
+	chunk_send_and_destroy(fd_client, chunk);
+}
+
+char* coordinador_mock_status_response(int fd_client) {
+	char *key, *value;
+	int header, status_received;
+
+	chunk_recv(fd_client, &header, sizeof(header));
+	chunk_recv(fd_client, &status_received, sizeof(status_received));
+	chunk_recv_variable(fd_client, (void**) &key);
+	chunk_recv_variable(fd_client, (void**) &value);
+
+	messenger_show("INFO", "Se obtuvo el valor '%s' de la clave '%s' con estado '%s'", value, key, CI_STATUS(status_received));
+
+	free(key);
+
+	return value;
 }
 
 void coordinador_mock_kill(int fd_client) {

@@ -2,6 +2,7 @@
 #include "../libs/messenger.h"
 #include "algorithms.h"
 #include "cfg_instancia.h"
+#include "compactation.h"
 #include "coordinator_api.h"
 #include "dumper.h"
 #include "entry_table.h"
@@ -304,9 +305,25 @@ void instance_main() {
 			// TODO: Acordar el tema de las claves reemplazadas y demas comunicaciones
 
 			case PROTOCOL_CI_SET: {
-				t_list* replaced_keys = list_create();
+				bool is_new;
 
-				key_value_t* key_value = coordinator_api_receive_set();
+				key_value_t* key_value = coordinator_api_receive_set(&is_new);
+
+				/* TODO: Crear funcion entry_table_has_key(key_value->key), que dada una clave, determina si existe
+
+				if(is_new && !entry_table_has_key(key_value->key)) {
+					messenger_show("WARNING", "La clave solicitada no existe en la Instancia dado que fue reemplazada");
+
+					key_value_destroy(key_value);
+
+					coordinator_api_notify_set(STATUS_REPLACED, get_total_entries() - entries_left);
+
+					break;
+				}
+
+				*/
+
+				t_list* replaced_keys = list_create();
 
 				status = instance_set(key_value, replaced_keys);
 
@@ -320,7 +337,7 @@ void instance_main() {
 			}
 
 			case PROTOCOL_CI_STORE: {
-				char* key = coordinator_api_receive_store();
+				char* key = coordinator_api_receive_key();
 
 				status = instance_store(key);
 
@@ -329,38 +346,52 @@ void instance_main() {
 				break;
 			}
 
-			/*
-			TODO: Consultar con Fer por la compactacion. Testear compact()
+			case PROTOCOL_CI_COMPACT: {
+				messenger_show("INFO", "La Instancia recibio un pedido del Coordinador para compactarse");
 
-			case PROTOCOL_CI_COMPACTATION: {
-				status = compact();
-
-				coordinator_api_notify_status(PROTOCOL_IC_NOTIFY_COMPACTATION, status);
+				compactation_compact();
 
 				break;
 			}
-			*/
 
 			case PROTOCOL_CI_KILL: {
+				messenger_show("INFO", "La Instancia recibio un pedido del Coordinador para desconectarse");
+
 				instance_is_alive = false;
 
-				messenger_show("INFO", "La Instancia recibio un pedido del Coordinador para desconectarse");
+				break;
+			}
+
+			case PROTOCOL_CI_RECV_ERROR: {
+				messenger_show("ERROR", "El Coordinador se desconecto");
+
+				instance_is_alive = false;
 
 				break;
 			}
 
 			default: {
-				instance_is_alive = false;
-
 				messenger_show("INFO", "Se recibio un mensaje no esperado");
+
+				instance_is_alive = false;
 
 				break;
 			}
 		}
 
+		if(status == STATUS_COMPACT) {
+			messenger_show("INFO", "Comienzo de compactacion de la Instancia");
+
+			compactation_compact();
+
+			messenger_show("INFO", "Fin de la compactacion de la Instancia");
+		}
+
 		/*
 
 		TODO: Hacer la funcion t_list* entry_table_get_keys(); -> Obtiene lista de claves de la tabla de entradas
+
+		TODO: Hacer en un hilo aparte
 
 		if(instance_requires_dump) {
 			t_list* stored_keys = entry_table_get_keys();

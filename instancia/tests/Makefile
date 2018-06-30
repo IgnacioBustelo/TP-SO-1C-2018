@@ -28,7 +28,7 @@ dump:				DEPS += ../dumper.h ../globals.h ../event_handler.h ../../libs/mocks/co
 
 entry_table_test:	DEPS += ./utils.h ../entry_table.h ../globals.h ../../libs/mocks/default_color.h
 
-instancia:			DEPS += $(COORDINADOR_DEPS) ../algorithms.h ../cfg_instancia.h ../../libs/configurator.h ../dumper.h ../event_handler.h ../entry_table.h ../instancia.h ../storage.h utils.h
+instancia:			DEPS += $(COORDINADOR_DEPS) ../algorithms.h ../cfg_instancia.h ../compactation.h ../../libs/configurator.h ../dumper.h ../event_handler.h ../entry_table.h ../instancia.h ../storage.h utils.h
 
 recover:			DEPS += ../dumper.h ../globals.h ../../libs/mocks/default_color.h
 
