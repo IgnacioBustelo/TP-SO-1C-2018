@@ -12,6 +12,7 @@
 #include "../connection/scheduler-connection.h"
 #include "../instance-list/instance-list.h"
 #include "../instance-list/instance-request-list.h"
+#include "../key-table/key-table.h"
 
 t_log *logger;
 struct setup_t setup;
@@ -24,7 +25,7 @@ static bool instance_handle_store_request(struct instance_t *instance, struct re
 static char *instance_recv_name(int fd);
 static bool instance_recv_set_execution_status(int fd, int *status_code, size_t *used_entries);
 static bool instance_recv_store_execution_status(int fd, int *status_code);
-static bool instance_send_confirmation(int fd);
+static bool instance_send_confirmation(struct instance_t *instance);
 static bool instance_send_confirmation_error(int fd);
 static bool instance_send_set_instruction(int fd, char *key, char *value);
 static bool instance_send_store_instruction(int fd, char *key);
@@ -39,10 +40,6 @@ __attribute__((destructor)) void destroy_instance_list(void) {
 
 static char *instance_recv_name(int fd);
 
-/* TODO:
- *   - Reasignar Instancia si se desconecta cuando se esta procesando una operacion.
- */
-
 void handle_instance_connection(int fd)
 {
 	char *name = instance_recv_name(fd);
@@ -55,17 +52,18 @@ void handle_instance_connection(int fd)
 	synchronized(instance_list->lock) {
 		instance = instance_list_add(instance_list, name, fd);
 	}
-	free(name);
 
 	if (instance == NULL) {
 		instance_send_confirmation_error(fd);
-		log_error(logger, "[Instancia] Socket %d: Ya existe otra instancia con nombre \"%s\"!", fd, instance->name);
+		log_error(logger, "[Instancia] Socket %d: Ya existe otra instancia con nombre \"%s\"!", fd, name);
+		free(name);
 		return;
 	}
+	free(name);
 
 	log_info(logger, "[Instancia] Socket %d: Instancia \"%s\" conectada.", fd, instance->name);
 
-	if (!instance_send_confirmation(fd)) {
+	if (!instance_send_confirmation(instance)) {
 		log_error(logger, "[Instancia %s] Error al enviar confirmacion!", instance->name);
 		return;
 	}
@@ -108,6 +106,7 @@ static void instance_handle_disconnection(struct instance_t *instance)
 			request_list_push(instance->requests, request);
 		} else {
 			log_error(logger, "No hay Instancias disponibles!");
+			/* TODO: Definir un protocolo distinto para informar este tipo de error. */
 			esi_send_illegal_operation(request->requesting_esi_fd);
 		}
 	}
@@ -239,17 +238,42 @@ static bool instance_recv_store_execution_status(int fd, int *status_code)
 	return CHECK_RECV(fd, status_code);
 }
 
-static bool instance_send_confirmation(int fd)
+static bool instance_send_confirmation(struct instance_t *instance)
 {
 	struct {
 		size_t entry_size;
 		size_t entry_num;
-	} PACKED package;
+		size_t key_list_size;
+	} PACKED header;
 
-	package.entry_size = setup.entries_size;
-	package.entry_num = setup.entries_num;
+	header.entry_size = setup.entries_size;
+	header.entry_num = setup.entries_num;
 
-	return CHECK_SEND(fd, &package);
+	char **key_list = key_table_get_instance_key_list(instance, &header.key_list_size);
+
+	if (!CHECK_SEND(instance->fd, &header)) {
+		free(key_list);
+		return false;
+	}
+
+	if (header.key_list_size > 0) {
+		log_info(logger, "[Instancia] Socket %d: Enviando lista de claves a recuperar (%d claves)...",
+				instance->fd, header.key_list_size);
+	}
+
+	int i;
+	for (i = 0; i < header.key_list_size; i++) {
+		size_t key_size = strlen(key_list[i]) + 1;
+		if (!CHECK_SEND(instance->fd, &key_size)) {
+			free(key_list);
+			return false;
+		} else if (!CHECK_SEND_WITH_SIZE(instance->fd, key_list[i], key_size)) {
+			free(key_list);
+			return false;
+		}
+	}
+
+	return true;
 }
 
 static bool instance_send_confirmation_error(int fd)
