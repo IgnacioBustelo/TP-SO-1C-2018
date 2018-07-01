@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 
 #include "../../protocolo/protocolo.h"
@@ -48,6 +49,7 @@ static bool esi_recv_set_args(struct esi_t esi, struct esi_operation_t *operatio
 static bool esi_recv_store_args(struct esi_t esi, struct esi_operation_t *operation);
 static void esi_operation_destroy(struct esi_operation_t *victim);
 static int esi_get_id(void);
+static bool esi_check_key_size(struct esi_operation_t *operation);
 
 t_log *operation_logger;
 __attribute__((constructor)) void operation_logger_init(void) {
@@ -87,6 +89,13 @@ static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *opera
 	/* TODO:
 	 *   - Manejar desconexion del planificador.
 	 */
+
+	if (!esi_check_key_size(operation)) {
+		esi_log_error(logger, "La clave no puede tener mas de 40 caracteres!");
+		esi_send_illegal_operation(esi.fd);
+		return false;
+	}
+
 	if (operation->type == ESI_GET) {
 		esi_log_operation("GET %s", operation->get.key);
 
@@ -111,6 +120,13 @@ static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *opera
 		}
 	} else {
 		char *key = operation->type == ESI_SET ? operation->set.key : operation->store.key;
+
+		if (scheduler_recv_key_state(key) != KEY_BLOCKED_BY_EXECUTING_ESI) {
+			char *operation_type_str = operation->type == ESI_SET ? "SET" : "STORE";
+			esi_log_error(logger, "Se hizo una operacion de %s sin hacer GET previamente.", operation_type_str);
+			esi_send_illegal_operation(esi.fd);
+			return false;
+		}
 
 		struct instance_t *instance = dispatch(instance_list, key);
 		if (instance == NULL) {
@@ -293,4 +309,22 @@ static int esi_get_id(void)
 	}
 
 	return id;
+}
+
+static bool esi_check_key_size(struct esi_operation_t *operation)
+{
+	char *key;
+	switch (operation->type) {
+	case ESI_GET:
+		key = operation->get.key;
+		break;
+	case ESI_SET:
+		key = operation->set.key;
+		break;
+	case ESI_STORE:
+		key = operation->store.key;
+		break;
+	}
+
+	return strlen(key) <= 40;
 }
