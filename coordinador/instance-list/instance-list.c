@@ -15,10 +15,6 @@ static void instance_list_node_destroy(struct instance_t *victim);
 static bool string_equals(char *actual, char *expected);
 static bool instance_is_connected(void *_instance);
 
-/* TODO:
- *   - Checkear si la instancia tiene espacio disponible.
- */
-
 struct instance_list_t *instance_list_create(void)
 {
 	struct instance_list_t *instance_list = malloc(sizeof(*instance_list));
@@ -126,6 +122,12 @@ bool instance_list_delete(struct instance_list_t *instance_list, char *name)
 	} else {
 		return false;
 	}
+}
+
+void instance_list_iterate(struct instance_list_t *instance_list, void (*closure)(void *))
+{
+	t_list *connected_instance_list = list_filter(instance_list->elements, instance_is_connected);
+	list_iterate(connected_instance_list, closure);
 }
 
 static struct instance_t *instance_list_node_create(char *name, int fd)

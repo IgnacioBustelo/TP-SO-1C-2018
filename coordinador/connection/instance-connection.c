@@ -29,6 +29,7 @@ static bool instance_send_confirmation(struct instance_t *instance);
 static bool instance_send_confirmation_error(int fd);
 static bool instance_send_set_instruction(int fd, char *key, char *value);
 static bool instance_send_store_instruction(int fd, char *key);
+static void instance_send_compact(struct instance_t *requested_instance);
 
 __attribute__((constructor)) void init_instance_list(void) {
 	instance_list = instance_list_create();
@@ -150,7 +151,10 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 		esi_send_execution_success(request->requesting_esi_fd);
 		return true;
 	case SET_STATUS_COMPACT:
-		// TODO
+		log_info(logger, "[Instancia %s] Se necesita hacer una compactacion.", instance->name);
+		instance_send_compact(instance);
+		log_info(logger, "[Instancia %s] Operacion realizada correctamente.", instance->name);
+		esi_send_execution_success(request->requesting_esi_fd);
 		return true;
 	case SET_STATUS_REPLACED:
 		log_error(logger, "[Instancia %s] La clave fue previamente reemplazada!", instance->name);
@@ -346,4 +350,17 @@ static bool instance_send_store_instruction(int fd, char *key)
 	}
 
 	return true;
+}
+
+static void instance_send_compact(struct instance_t *requested_instance)
+{
+	request_coordinador op_code = PROTOCOL_CI_COMPACT;
+	void send_compact(void *elem) {
+		struct instance_t *instance = (struct instance_t *)elem;
+		if (instance != requested_instance && CHECK_SEND(instance->fd, &op_code)) {
+			log_info(logger, "[Instancia] Socket %d: Pedido de compactacion enviada.", instance->fd);
+		}
+	}
+
+	instance_list_iterate(instance_list, send_compact);
 }
