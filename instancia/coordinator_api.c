@@ -53,7 +53,7 @@ int coordinator_api_handshake(char* instance_name, storage_setup_t* setup, t_lis
 
 	chunk_recv(fd_coordinador, &setup->total_entries, sizeof(size_t));
 
-	chunk_recv_list(fd_coordinador, recoverable_keys, (void*) coordinator_api_recv_recoverable_key);
+	chunk_recv_list(fd_coordinador, recoverable_keys, coordinator_api_recv_recoverable_key);
 
 	messenger_show("INFO", "Se asigno una dimension de %d entradas de tamano %d para el Storage", setup->total_entries, setup->entry_size);
 
