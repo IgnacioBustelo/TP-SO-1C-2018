@@ -73,7 +73,7 @@ void handle_instance_connection(int fd)
 		struct request_node_t *request = request_list_pop(instance->requests);
 		log_info(logger, "[Instancia %s] Atendiendo pedido...", instance->name);
 
-		switch(request->type) {
+		switch (request->type) {
 		case INSTANCE_SET:
 			error = !instance_handle_set_request(instance, request);
 			break;
@@ -136,22 +136,33 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 
 	instance->used_entries += used_entries;
 
-	/* status:
-	 *   (1) success.
-	 *   (0) failure.
-	 */
-	if (status == 1) {
+	enum set_status_t {
+		SET_STATUS_COMPACT = 2,
+		SET_STATUS_OK = 1,
+		SET_STATUS_REPLACED = 0,
+		SET_STATUS_NO_SPACE = -1
+	};
+
+	switch (status) {
+	case SET_STATUS_OK:
 		log_info(logger, "[Instancia %s] Operacion realizada correctamente.", instance->name);
+		key_table_set_initialized(request->set.key);
 		esi_send_execution_success(request->requesting_esi_fd);
 		return true;
-	} else if (status == 0) {
-		/* TODO: REVIEW */
-		log_error(logger, "[Instancia %s] Operacion fallida!", instance->name);
+	case SET_STATUS_COMPACT:
+		// TODO
+		return true;
+	case SET_STATUS_REPLACED:
+		log_error(logger, "[Instancia %s] La clave fue previamente reemplazada!", instance->name);
 		esi_send_illegal_operation(request->requesting_esi_fd);
-		return false;
-	} else {
-		log_error(logger, "[Instancia %s] Se recibio un resultado invalido!", instance->name);
-		esi_send_notify_block(request->requesting_esi_fd);
+		return true;
+	case SET_STATUS_NO_SPACE:
+		log_error(logger, "[Instancia %s] No hay espacio disponible!", instance->name);
+		esi_send_illegal_operation(request->requesting_esi_fd);
+		return true;
+	default:
+		log_error(logger, "[Instancia %s] Error de comunicacion!", instance->name);
+		esi_send_illegal_operation(request->requesting_esi_fd);
 		return false;
 	}
 }
@@ -175,24 +186,25 @@ static bool instance_handle_store_request(struct instance_t *instance, struct re
 		return false;
 	}
 
-	/* status:
-	 *   (1) success.
-	 *   (0) failure.
-	 */
-	if (status == 1) {
+	enum store_status_t {
+		STORE_STATUS_OK = 1,
+		STORE_STATUS_REPLACED = 0,
+	};
+
+	switch (status) {
+	case STORE_STATUS_OK:
 		log_info(logger, "[Instancia %s] Operacion realizada correctamente.", instance->name);
 		/* TODO: Manejar desconexion del planificador. */
 		scheduler_unblock_key(request->store.key);
 		esi_send_execution_success(request->requesting_esi_fd);
 		return true;
-	} else if (status == 0) {
-		/* TODO: REVIEW */
-		log_error(logger, "[Instancia %s] Operacion fallida!", instance->name);
+	case STORE_STATUS_REPLACED:
+		log_error(logger, "[Instancia %s] La clave fue previamente reemplazada!", instance->name);
 		esi_send_illegal_operation(request->requesting_esi_fd);
-		return false;
-	} else {
-		log_error(logger, "[Instancia %s] Se recibio un resultado invalido!", instance->name);
-		esi_send_notify_block(request->requesting_esi_fd);
+		return true;
+	default:
+		log_error(logger, "[Instancia %s] Error de comunicacion!", instance->name);
+		esi_send_illegal_operation(request->requesting_esi_fd);
 		return false;
 	}
 }
@@ -292,11 +304,13 @@ static bool instance_send_confirmation_error(int fd)
 static bool instance_send_set_instruction(int fd, char *key, char *value)
 {
 	request_coordinador op_code = PROTOCOL_CI_SET;
+	bool is_key = key_table_is_new(key);
 	size_t key_size = strlen(key) + 1;
 	size_t value_size = strlen(value) + 1;
 
 	struct { void *block; size_t block_size; } blocks[] = {
 		{ &op_code, sizeof(op_code) },
+		{ &is_key, sizeof(is_key) },
 		{ &key_size, sizeof(key_size) },
 		{ key, key_size },
 		{ &value_size, sizeof(value_size) },

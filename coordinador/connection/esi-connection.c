@@ -108,9 +108,11 @@ static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *opera
 
 		switch (scheduler_recv_key_state(operation->get.key)) {
 		case KEY_UNBLOCKED:
-		case KEY_BLOCKED_BY_EXECUTING_ESI:
 			esi_log_info(logger, "Bloqueando la clave...");
 			scheduler_block_key();
+			esi_send_execution_success(esi.fd);
+			break;
+		case KEY_BLOCKED_BY_EXECUTING_ESI:
 			esi_send_execution_success(esi.fd);
 			break;
 		case KEY_BLOCKED:

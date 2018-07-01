@@ -9,6 +9,7 @@
 #include "key-table.h"
 
 struct key_table_data_t {
+	bool initialized;
 	struct instance_t *instance;
 };
 
@@ -18,6 +19,8 @@ struct key_table_t {
 };
 
 static struct key_table_t *key_table;
+
+static struct key_table_data_t *key_table_get(char *key);
 
 __attribute__((constructor)) void init_key_table(void) {
 	key_table = malloc(sizeof(*key_table));
@@ -35,6 +38,7 @@ bool key_table_create_key(char *key, struct instance_t *instance)
 {
 	struct key_table_data_t *data = malloc(sizeof(*data));
 	data->instance = instance;
+	data->initialized = false;
 
 	bool success;
 	synchronized(key_table->lock) {
@@ -49,7 +53,7 @@ bool key_table_create_key(char *key, struct instance_t *instance)
 	return success;
 }
 
-struct key_table_data_t *key_table_get(char *key)
+static struct key_table_data_t *key_table_get(char *key)
 {
 	return dictionary_get(key_table->table, key);
 }
@@ -69,6 +73,28 @@ struct instance_t *key_table_get_instance(char *key)
 	}
 
 	return data != NULL ? data->instance : NULL;
+}
+
+bool key_table_is_new(char *key)
+{
+	struct key_table_data_t *data = key_table_get(key);
+	if (data != NULL) {
+		return !data->initialized;
+	} else {
+		return true;
+	}
+}
+
+bool key_table_set_initialized(char *key)
+{
+	struct key_table_data_t *data = key_table_get(key);
+
+	if (data != NULL) {
+		data->initialized = true;
+		return true;
+	} else {
+		return false;
+	}
 }
 
 char **key_table_get_instance_key_list(struct instance_t *instance, size_t *key_list_size)
