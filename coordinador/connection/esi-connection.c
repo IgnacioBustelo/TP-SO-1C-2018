@@ -2,11 +2,13 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/socket.h>
 
 #include "../../protocolo/protocolo.h"
 #include "../defines.h"
 #include "../logger.h"
+#include "../config.h"
 
 #include "../distribution.h"
 #include "../instance-list/instance-request-list.h"
@@ -40,6 +42,8 @@ struct esi_t {
 };
 
 t_log *logger;
+struct setup_t setup;
+
 struct instance_list_t *instance_list;
 
 static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *operation);
@@ -70,6 +74,8 @@ void handle_esi_connection(int fd)
 
 	struct esi_operation_t *operation;
 	for (operation = esi_recv_operation(esi); operation != NULL; operation = esi_recv_operation(esi)) {
+		usleep(setup.delay * 1000);
+
 		if (!handle_esi_operation(esi, operation)) {
 			esi_operation_destroy(operation);
 			log_error(logger, "[ESI %d] Finalizando comunicacion...", esi.id);
