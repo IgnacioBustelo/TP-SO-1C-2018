@@ -405,7 +405,7 @@ void send_key_to_coordinator(char* key) {
 	add_content(package, &operation, sizeof(operation));
 	add_content_variable(package, key, strlen(key) + 1);
 	void* package_ = build_package(package);
-	send_serialized_package(g_coordinator_fd, package, package_size);
+	send_serialized_package(g_coordinator_fd, package_, package_size);
 }
 
 void receive_and_print_key_status() {
