@@ -14,8 +14,6 @@ const char* protocolo_coordinador_instancia_coordinador_header_to_string(request
 
 		case PROTOCOL_CI_KILL:						return "PROTOCOL_CI_KILL";						break;
 
-		case PROTOCOL_CI_RECV_ERROR:				return "PROTOCOL_CI_RECV_ERROR";				break;
-
 		default:									return "PROTOCOL_CI_UNKNOWN";					break;
 	}
 }
@@ -31,8 +29,6 @@ const char* protocolo_coordinador_instancia_instancia_header_to_string(request_i
 		case PROTOCOL_IC_RETRIEVE_VALUE:			return "PROTOCOL_IC_RETRIEVE_VALUE";	break;
 
 		case PROTOCOL_IC_DIE:						return "PROTOCOL_IC_DIE";				break;
-
-		case PROTOCOL_IC_RECV_ERROR:				return "PROTOCOL_IC_RECV_ERROR";		break;
 
 		default:									return "PROTOCOL_IC_UNKNOWN";			break;
 	}
