@@ -17,8 +17,6 @@
 #define DUMP_INTERVAL		cfg_instancia_get_dump_time()
 #define ALGORITHM_ID		cfg_instancia_get_replacement_algorithm_id()
 
-// TODO: Hacer que cada operacion devuelva un estado y decidir si retornar o no error.
-
 int instance_init(char* process_name, char* logger_route, char* log_level, char* cfg_route) {
 	storage_setup_t dimensions;
 	t_list* recoverable_keys;
@@ -161,13 +159,19 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 int	instance_store(char* key) {
 	messenger_show("INFO", "Se recibio un pedido de STORE de la clave %s", key);
 
-	int status = 1; // TODO: Hacer que cada operacion devuelva un estado y decidir si retornar o no error.
+	int status = 1;
 
 	entry_t* entry = entry_table_get_entry(key);
 
+	if(entry == NULL) {
+		messenger_show("WARNING", "No se encontro la clave '%s' en la Tabla De Entradas", key);
+
+		return INSTANCE_STORE_ERROR;
+	}
+
 	void* data = storage_retrieve(entry->number, entry->size);
 
-	dumper_store(key, data, entry->size);
+	dumper_store(key, data, entry->size); // TODO: Hacer que devuelva estado.
 
 	if(status == 1) {
 		messenger_show("INFO", "Se proceso correctamente el STORE de la clave %s", key);
@@ -224,11 +228,7 @@ int	instance_recover(t_list* recoverable_keys) {
 
 	t_list *recovered_keys = dumper_recover(recoverable_keys);
 
-	if(list_is_empty(recovered_keys)) {
-		messenger_show("WARNING", "No hay claves persistidas");
-	}
-
-	else if(list_size(recovered_keys) != list_size(recoverable_keys)) {
+	if(list_size(recovered_keys) < list_size(recoverable_keys)) {
 		messenger_show("WARNING", "Solo se pudieron recuperar %d claves de %d pedidas", list_size(recovered_keys), list_size(recoverable_keys));
 	}
 
@@ -245,52 +245,6 @@ int	instance_recover(t_list* recoverable_keys) {
 	return status;
 }
 
-/*
-
-TODO: Implementar
-
-1) bool entry_table_is_compacted -> Determina si el Storage esta compactado o no
-
-2) entry_t* entry_table_get_next_to_compact() -> Devuelve la proxima entrada a compactar
-
-3) Discutir el criterio para decidir la próxima entrada a mover.
-
-int instance_compact() {
-	messenger_show("WARNING", "Inicio de compactacion de la Instancia");
-
-	int status = 1;
-
-	while(!entry_table_is_compacted()) {
-		entry_t* entry_to_compact = entry_table_get_next_to_compact();
-
-		void* buffer = storage_retrieve(entry_to_compact->number, entry_to_compact->size);
-
-		entry_table_delete(entry_to_compact->number);
-
-		char* string_buffer = messenger_bytes_to_string(buffer, entry_to_compact->size);
-
-		key_value_t* key_value_buffer = key_value_create(entry_to_compact->key, string_buffer);
-
-		instance_set(key_value_buffer, NULL); -> A este paso se refiere el inciso 3.
-
-		messenger_show("WARNING", "Se traslado la clave %s", key_value_buffer->key);
-
-		key_value_destroy(key_value_buffer);
-
-		free(string_buffer);
-
-		free(buffer);
-
-		free(entry_to_compact);
-	}
-
-	messenger_show("WARNING", "Fin de compactacion de la Instancia");
-
-	return status;
-}
-
-*/
-
 void instance_main() {
 	messenger_show("INFO", "Comienzo de actividades de la Instancia");
 
@@ -298,12 +252,9 @@ void instance_main() {
 
 		messenger_show("INFO", "Esperando peticion del Coordinador");
 
-		int status; // TODO: Manejar el tema de retornos de valores de operaciones.
+		int status;
 
 		switch(coordinator_api_receive_header()) {
-
-			// TODO: Acordar el tema de las claves reemplazadas y demas comunicaciones
-
 			case PROTOCOL_CI_SET: {
 				bool is_new;
 
@@ -311,7 +262,7 @@ void instance_main() {
 
 				/* TODO: Crear funcion entry_table_has_key(key_value->key), que dada una clave, determina si existe
 
-				if(is_new && !entry_table_has_key(key_value->key)) {
+				if(!(is_new || entry_table_has_key(key_value->key))) {
 					messenger_show("WARNING", "La clave solicitada no existe en la Instancia dado que fue reemplazada");
 
 					key_value_destroy(key_value);
@@ -355,21 +306,45 @@ void instance_main() {
 			}
 
 			case PROTOCOL_CI_REQUEST_VALUE: {
-				// TODO: Añadir logica de recuperacion
+				char *requested_key = coordinator_api_receive_key();
+
+				messenger_show("INFO", "La Instancia recibio un pedido del valor de la clave %s", requested_key);
+
+				entry_t* entry = entry_table_get_entry(requested_key);
+
+				if(entry == NULL) {
+					status = STATUS_REPLACED;
+
+					messenger_show("WARNING", "No se encontro la clave %s en la Tabla De Entradas", requested_key);
+
+					coordinator_api_notify_status(PROTOCOL_IC_RETRIEVE_VALUE, status);
+				}
+
+				else {
+					char* requested_value = storage_retrieve_string(entry->number, entry->size);
+
+					status = STATUS_OK;
+
+					messenger_show("INFO", "Se retornara el valor '%s' de la clave '%s'", requested_value, requested_key);
+
+					key_value_t* requested_key_value = key_value_create(requested_key, requested_value);
+
+					coordinator_api_notify_key_value(status, requested_key_value);
+
+					key_value_destroy(requested_key_value);
+
+					free(requested_value);
+
+					free(entry);
+				}
+
+				free(requested_key);
 
 				break;
 			}
 
 			case PROTOCOL_CI_KILL: {
 				messenger_show("INFO", "La Instancia recibio un pedido del Coordinador para desconectarse");
-
-				instance_is_alive = false;
-
-				break;
-			}
-
-			case PROTOCOL_CI_RECV_ERROR: {
-				messenger_show("ERROR", "El Coordinador se desconecto");
 
 				instance_is_alive = false;
 

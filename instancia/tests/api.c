@@ -46,7 +46,7 @@ void client_server_execute_server(int fd_client) {
 
 	coordinador_mock_status_request(fd_client, "A");
 
-	free(coordinador_mock_status_response(fd_client));
+	free(coordinador_mock_status_response(fd_client, "A"));
 }
 
 void client_server_execute_client(int fd_server) {
