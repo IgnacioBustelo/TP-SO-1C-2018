@@ -7,12 +7,16 @@
 #include <unistd.h>
 #include <commons/collections/queue.h>
 
+#include "../logger.h"
 #include "../defines.h"
 #include "../instance-list/instance-list.h"
 #include "../key-table/key-table.h"
 #include "../../protocolo/protocolo.h"
 
+#include "instance-connection.h"
 #include "scheduler-connection.h"
+
+t_log *logger;
 
 static bool scheduler_connected;
 static int scheduler_fd;
@@ -130,34 +134,62 @@ static bool scheduler_send_key_status(void)
 		return false;
 	}
 
-	enum key_state { KEY_NOT_EXIST, KEY_UNINITIALIZED, KEY_INITIALIZED };
+	enum key_state_t {
+		KEY_INSTANCE_DISCONNECTED = -2,
+		KEY_NOT_EXIST = -1,
+		KEY_UNINITIALIZED = 0,
+		KEY_INITIALIZED = 1
+	};
+
+	bool send_key_state(int state) {
+		return CHECK_SEND(scheduler_fd, &state);
+	}
+
+	bool send_key_instance(char *instance_name) {
+		size_t instance_name_size = strlen(instance_name) + 1;
+		if (!CHECK_SEND(scheduler_fd, &instance_name_size)) {
+			return false;
+		} else if (!CHECK_SEND_WITH_SIZE(scheduler_fd, instance_name, instance_name_size)) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	bool send_key_value(char *value) {
+		size_t value_size = strlen(value) + 1;
+		if (!CHECK_SEND(scheduler_fd, &value_size)) {
+			return false;
+		} else if (!CHECK_SEND_WITH_SIZE(scheduler_fd, value, value_size)) {
+			return false;
+		} else {
+			return true;
+		}
+	}
 
 	struct instance_t *instance = key_table_get_instance(key);
 	if (instance == NULL) {
 		free(key);
-		int key_state = KEY_NOT_EXIST;
-
-		return CHECK_SEND(scheduler_fd, &key_state);
-	}
-
-	/* TODO: Pedir el valor a la instancia. */
-	int key_state = KEY_UNINITIALIZED;
-	if (!CHECK_SEND(scheduler_fd, &key_state)) {
+		return send_key_state(KEY_NOT_EXIST);
+	} else if (key_table_is_new(key)) {
 		free(key);
-		return false;
+		return send_key_state(KEY_UNINITIALIZED)
+				&& send_key_instance(instance->name);
+	} else {
+		char *value;
+		if (instance->fd != DISCONNECTED && instance_request_value(instance->fd, key, &value)) {
+			free(key);
+			return send_key_state(KEY_INITIALIZED)
+					&& send_key_instance(instance->name)
+					&& send_key_value(value);
+		} else {
+			free(key);
+			return send_key_state(KEY_NOT_EXIST);
+			/* TODO: Se necesita un mensaje KEY_INSTANCE_DISCONNECTED. */
+			//		return send_key_state(KEY_INSTANCE_DISCONNECTED)
+			//				&& send_key_instance(instance->name);
+		}
 	}
-
-	size_t instance_name_size = strlen(instance->name) + 1;
-	if (!CHECK_SEND(scheduler_fd, &instance_name_size)) {
-		free(key);
-		return false;
-	}
-	if (!CHECK_SEND_WITH_SIZE(scheduler_fd, instance->name, instance_name_size)) {
-		free(key);
-		return false;
-	}
-
-	return true;
 }
 
 bool scheduler_block_key(void)
@@ -210,5 +242,6 @@ static protocol_id scheduler_pending_protocol_recv()
 
 static void scheduler_exit(void)
 {
+	log_error(logger, "Finalizando el programa por la desconexion del Planificador...");
 	exit(EXIT_FAILURE);
 }

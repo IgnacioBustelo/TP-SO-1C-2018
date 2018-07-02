@@ -135,7 +135,7 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 		return false;
 	}
 
-	instance->used_entries += used_entries;
+	instance->used_entries = used_entries;
 
 	enum set_status_t {
 		SET_STATUS_COMPACT = 2,
@@ -154,6 +154,7 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 		log_info(logger, "[Instancia %s] Se necesita hacer una compactacion.", instance->name);
 		instance_send_compact(instance);
 		log_info(logger, "[Instancia %s] Operacion realizada correctamente.", instance->name);
+		key_table_set_initialized(request->set.key);
 		esi_send_execution_success(request->requesting_esi_fd);
 		return true;
 	case SET_STATUS_REPLACED:
@@ -173,6 +174,12 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 
 static bool instance_handle_store_request(struct instance_t *instance, struct request_node_t *request)
 {
+	if (key_table_is_new(request->store.key)) {
+		log_error(logger, "[Instancia %s] Error al realizar un STORE sobre una clave no inicializada.", instance->name);
+		esi_send_illegal_operation(request->requesting_esi_fd);
+		return true;
+	}
+
 	if (!instance_send_store_instruction(instance->fd, request->store.key)) {
 		log_error(logger, "[Instancia %s] Error al enviar instruccion STORE!", instance->name);
 		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", instance->name);
@@ -339,7 +346,7 @@ static bool instance_send_store_instruction(int fd, char *key)
 	struct { void *block; size_t block_size; } blocks[] = {
 		{ &op_code, sizeof(op_code) },
 		{ &key_size, sizeof(key_size) },
-		{ key, key_size },
+		{ key, key_size }
 	};
 
 	int i;
@@ -363,4 +370,56 @@ static void instance_send_compact(struct instance_t *requested_instance)
 	}
 
 	instance_list_iterate(instance_list, send_compact);
+}
+
+bool instance_request_value(int fd, char *key, char **value)
+{
+	request_coordinador request_op_code = PROTOCOL_CI_REQUEST_VALUE;
+	size_t key_size = strlen(key) + 1;
+
+	struct { void *block; size_t block_size; } blocks[] = {
+		{ &request_op_code, sizeof(request_op_code) },
+		{ &key_size, sizeof(key_size) },
+		{ key, key_size }
+	};
+
+	int i;
+	for (i = 0; i < sizeof(blocks) / sizeof(*blocks); i++) {
+		if (!CHECK_SEND_WITH_SIZE(fd, blocks[i].block, blocks[i].block_size)) {
+			return false;
+		}
+	}
+
+	request_instancia response_op_code;
+	if (!CHECK_RECV(fd, &response_op_code) || response_op_code != PROTOCOL_IC_RETRIEVE_VALUE) {
+		return false;
+	}
+
+	enum value_status_t {
+		VALUE_STATUS_OK = 1, VALUE_STATUS_REPLACED = 0
+	};
+
+	int status;
+	if (!CHECK_RECV(fd, &status)) {
+		return false;
+	}
+	switch (status) {
+	case VALUE_STATUS_OK: ;
+		size_t value_size;
+		if (!CHECK_RECV(fd, &value_size) || value_size <= 0) {
+			return false;
+		}
+
+		*value = malloc(value_size);
+		if (!CHECK_RECV_WITH_SIZE(fd, *value, value_size)) {
+			return false;
+		} else {
+			return true;
+		}
+	case VALUE_STATUS_REPLACED:
+		*value = NULL;
+		return true;
+	default:
+		return false;
+	}
 }
