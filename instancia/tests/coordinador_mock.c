@@ -111,18 +111,15 @@ void coordinador_mock_status_request(int fd_client, char* key) {
 	chunk_send_and_destroy(fd_client, chunk);
 }
 
-char* coordinador_mock_status_response(int fd_client) {
-	char *key, *value;
+char* coordinador_mock_status_response(int fd_client, char* key) {
+	char* value;
 	int header, status_received;
 
 	chunk_recv(fd_client, &header, sizeof(header));
 	chunk_recv(fd_client, &status_received, sizeof(status_received));
-	chunk_recv_variable(fd_client, (void**) &key);
 	chunk_recv_variable(fd_client, (void**) &value);
 
 	messenger_show("INFO", "Se obtuvo el valor '%s' de la clave '%s' con estado '%s'", value, key, CI_STATUS(status_received));
-
-	free(key);
 
 	return value;
 }

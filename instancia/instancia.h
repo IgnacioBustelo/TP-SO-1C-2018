@@ -11,7 +11,8 @@ typedef enum {
 	INSTANCE_RECOVER_SUCCESS,
 	INSTANCE_RECOVER_ERROR,
 	INSTANCE_SUCCESS,
-	INSTANCE_SET_ERROR
+	INSTANCE_SET_ERROR,
+	INSTANCE_STORE_ERROR,
 } instancia_status;
 
 int		instance_init(char* process_name, char* logger_route, char* log_level, char* cfg_route);

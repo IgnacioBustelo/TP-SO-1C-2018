@@ -32,6 +32,8 @@ int		storage_set(int next_entry, void* value, size_t size);
 
 void*	storage_retrieve(int entry, size_t value_size);
 
+char*	storage_retrieve_string(int entry, size_t value_size);
+
 int		storage_required_entries(int size);
 
 void	storage_show();
