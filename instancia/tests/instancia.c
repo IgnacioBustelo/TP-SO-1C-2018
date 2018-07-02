@@ -19,28 +19,20 @@ void client_server_execute_server(int fd_client) {
 		pthread_exit(NULL);
 	}
 
-	int i, status;
+	int i;
 
 	for(i = 1; i < key_amount; i++) {
 		coordinador_mock_set_request(fd_client, i % 2 == 0, keys[i - 1], values[i]);
 
-		status = coordinador_mock_set_response(fd_client);
-
-		if(status == 0) {
-			messenger_show("ERROR", "Ocurrio un error en la Instancia cuando recibio el pedido de SET");
-
-			break;
-		}
+		coordinador_mock_set_response(fd_client);
 
 		coordinador_mock_store_request(fd_client, keys[i - 1]);
 
-		status = coordinador_mock_store_response(fd_client);
+		coordinador_mock_store_response(fd_client);
 
-		if(status == 0) {
-			messenger_show("ERROR", "Ocurrio un error en la Instancia cuando recibio el pedido de STORE");
+		coordinador_mock_status_request(fd_client, keys[i - 1]);
 
-			break;
-		}
+		coordinador_mock_status_response(fd_client, keys[i - 1]);
 	}
 
 	coordinador_mock_kill(fd_client);

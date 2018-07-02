@@ -53,7 +53,7 @@ int coordinator_api_handshake(char* instance_name, storage_setup_t* setup, t_lis
 
 	chunk_recv(fd_coordinador, &setup->total_entries, sizeof(size_t));
 
-	chunk_recv_list(fd_coordinador, recoverable_keys, (void*) coordinator_api_recv_recoverable_key);
+	chunk_recv_list(fd_coordinador, recoverable_keys, coordinator_api_recv_recoverable_key);
 
 	messenger_show("INFO", "Se asigno una dimension de %d entradas de tamano %d para el Storage", setup->total_entries, setup->entry_size);
 
@@ -72,7 +72,7 @@ request_coordinador coordinator_api_receive_header() {
 	if(bytes_received == -1) {
 		messenger_show("ERROR", "Fallo en la comunicacion con el Coordinador");
 
-		return PROTOCOL_CI_RECV_ERROR;
+		return -666; // TODO: Revisar errores de comunicacion
 	}
 
 	messenger_show("INFO", "Se recibio el header %s", C_HEADER(header));
@@ -149,7 +149,6 @@ void coordinator_api_notify_key_value(int status, key_value_t* key_value) {
 
 	chunk_add(chunk, &header, sizeof(header));
 	chunk_add(chunk, &status, sizeof(status));
-	chunk_add_variable(chunk, key_value->key, string_length(key_value->key) + 1);
 	chunk_add_variable(chunk, key_value->value, key_value->size);
 
 	chunk_send_and_destroy(fd_coordinador, chunk);

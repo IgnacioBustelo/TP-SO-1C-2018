@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <sys/socket.h>
 
 #include "messenger.h"
@@ -74,7 +75,7 @@ int chunk_send(int fd, void* serialized_chunk, size_t chunk_size) {
 
 	messenger_show("DEBUG", "Se enviaran %d bytes", chunk_size);
 
-	bytes_sent = send(fd, serialized_chunk, chunk_size, 0);
+	bytes_sent = send(fd, serialized_chunk, chunk_size, MSG_NOSIGNAL);
 
 	if(bytes_sent == -1) {
 		messenger_show("ERROR", "Error enviando datos");
@@ -108,7 +109,10 @@ int chunk_send_and_destroy(int fd, chunk_t* chunk) {
 }
 
 int chunk_recv(int fd, void* receiver, size_t size) {
-	int bytes_received = recv(fd, receiver, size, MSG_WAITALL);
+	int bytes_received;
+	do {
+		bytes_received = recv(fd, receiver, size, MSG_WAITALL | MSG_NOSIGNAL);
+	} while (bytes_received == -1 && errno == EINTR);
 
 	if(bytes_received != -1) {
 		messenger_show("DEBUG", "Se recibio un cacho serializado de memoria de tamano %d, despues de haber recibido %d bytes", size, bytes_received);

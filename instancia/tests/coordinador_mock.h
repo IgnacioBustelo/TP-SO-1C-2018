@@ -17,7 +17,7 @@ int		coordinador_mock_store_response(int fd_client);
 
 void	coordinador_mock_status_request(int fd_client, char* key);
 
-char*	coordinador_mock_status_response(int fd_client);
+char*	coordinador_mock_status_response(int fd_client, char* key);
 
 void	coordinador_mock_kill(int fd_client);
 

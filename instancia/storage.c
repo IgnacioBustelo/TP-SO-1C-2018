@@ -62,6 +62,16 @@ void* storage_retrieve(int entry, size_t value_size) {
 	return data;
 }
 
+char* storage_retrieve_string(int entry, size_t value_size) {
+	void* data = storage_retrieve(entry, value_size);
+
+	char* string = messenger_bytes_to_string(data, value_size);
+
+	free(data);
+
+	return string;
+}
+
 int storage_required_entries(int size) {
 	if(size < storage->entry_size) {
 		return 1;
