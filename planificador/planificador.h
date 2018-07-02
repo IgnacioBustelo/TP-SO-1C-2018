@@ -15,7 +15,19 @@
 
 #define MAXCONN 20
 
-sem_t mutex_coordinador;
+extern int scheduler_paused_flag;
+extern int block_esi_by_console_flag;
+extern int unlock_esi_by_console_flag;
+extern int killed_esi_flag;
+extern char* last_unlocked_key_by_console;
+extern t_list* g_new_killed_esis;
+extern t_list* g_esis_sexpecting_keys;
+extern t_list* g_new_blocked_by_console_esis;
+extern t_list* g_locked_keys;
+extern t_list* g_esi_bursts;
+
+extern sem_t mutex_coordinador;
+extern int g_coordinator_fd;
 
 /*
  * Nodo de ESI que ha bloqueado alguna clave
