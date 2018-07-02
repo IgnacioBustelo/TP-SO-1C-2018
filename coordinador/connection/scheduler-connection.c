@@ -128,6 +128,8 @@ static bool scheduler_send_key_status(void)
 		return false;
 	}
 
+	log_info(logger, "[Planificador] Informar estado de la clave %s.", key);
+
 	protocol_id op_code = PROTOCOL_CP_KEY_STATUS;
 	if (!CHECK_SEND(scheduler_fd, &op_code)) {
 		free(key);
@@ -159,30 +161,41 @@ static bool scheduler_send_key_status(void)
 	bool send_key_value(char *value) {
 		size_t value_size = strlen(value) + 1;
 		if (!CHECK_SEND(scheduler_fd, &value_size)) {
+			free(value);
 			return false;
 		} else if (!CHECK_SEND_WITH_SIZE(scheduler_fd, value, value_size)) {
+			free(value);
 			return false;
 		} else {
+			free(value);
 			return true;
 		}
 	}
 
 	struct instance_t *instance = key_table_get_instance(key);
 	if (instance == NULL) {
+		log_info(logger, "[Planificador] La clave %s no existe.", key);
 		free(key);
 		return send_key_state(KEY_NOT_EXIST);
 	} else if (key_table_is_new(key)) {
+		log_info(logger,
+				"[Planificador] La clave %s que se asignaria a la instancia %s no esta inicializada.",
+				key, instance->name);
 		free(key);
 		return send_key_state(KEY_UNINITIALIZED)
 				&& send_key_instance(instance->name);
 	} else {
 		char *value;
 		if (instance->fd != DISCONNECTED && instance_request_value(instance->fd, key, &value)) {
+			log_info(logger, "[Planificador] La clave %s con valor = \"%s\" esta en la instancia %s.",
+					key, value, instance->name);
 			free(key);
 			return send_key_state(KEY_INITIALIZED)
 					&& send_key_instance(instance->name)
 					&& send_key_value(value);
 		} else {
+			log_info(logger, "[Planificador] La clave %s esta en la instancia %s que se encuentra desconectada.",
+					key, instance->name);
 			free(key);
 			return send_key_state(KEY_NOT_EXIST);
 			/* TODO: Se necesita un mensaje KEY_INSTANCE_DISCONNECTED. */
