@@ -21,11 +21,17 @@ int		instance_set(key_value_t* key_value, t_list* replaced_keys);
 
 int		instance_store(char* key);
 
+int		instance_status(char* key, key_value_t** key_value);
+
 int		instance_dump(t_list* stored_keys);
 
 int		instance_recover(t_list* recoverable_keys);
 
 int		instance_compact();
+
+void	instance_thread_api(void* args);
+
+void	instance_thread_dump(void* args);
 
 void	instance_main();
 

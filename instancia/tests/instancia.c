@@ -1,10 +1,13 @@
 #include <commons/string.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 #include "../../libs/mocks/client_server.h"
 #include "../coordinator_api.h"
 #include "../instancia.h"
 #include "coordinador_mock.h"
+
+sem_t handshake_sem;
 
 int		total_entries, entry_size, key_amount;
 char	**keys, **values;
@@ -18,6 +21,8 @@ void client_server_execute_server(int fd_client) {
 	if(!is_accepted) {
 		pthread_exit(NULL);
 	}
+
+	sem_wait(&handshake_sem);
 
 	int i;
 
@@ -49,12 +54,16 @@ void client_server_execute_client(int fd_server) {
 		pthread_exit(NULL);
 	}
 
-	instance_main();
+	sem_post(&handshake_sem);
+
+	instance_thread_api(NULL);
 
 	instance_die();
 }
 
 int main(int argc, char* argv[]) {
+	sem_init(&handshake_sem, 0, 0);
+
 	server_name = "Coordinador";
 	client_name = "Instancia 1";
 
@@ -79,4 +88,6 @@ int main(int argc, char* argv[]) {
 	list_destroy_and_destroy_elements(recoverable_keys, free);
 
 	free(keys);
+
+	sem_destroy(&handshake_sem);
 }

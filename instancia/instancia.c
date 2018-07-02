@@ -1,3 +1,6 @@
+#include <pthread.h>
+#include <unistd.h>
+
 #include "../libs/configurator.h"
 #include "../libs/messenger.h"
 #include "algorithms.h"
@@ -16,6 +19,8 @@
 #define MOUNT_POINT			cfg_instancia_get_mount_point()
 #define DUMP_INTERVAL		cfg_instancia_get_dump_time()
 #define ALGORITHM_ID		cfg_instancia_get_replacement_algorithm_id()
+
+pthread_mutex_t instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int instance_init(char* process_name, char* logger_route, char* log_level, char* cfg_route) {
 	storage_setup_t dimensions;
@@ -186,6 +191,20 @@ int	instance_store(char* key) {
 	return status;
 }
 
+int instance_status(char* key, key_value_t** key_value) {
+	entry_t* entry = entry_table_get_entry(key);
+
+	if(entry == NULL) {
+		 return STATUS_REPLACED;
+	}
+
+	char* value = storage_retrieve_string(entry->number, entry->size);
+
+	*key_value = key_value_create(key, value);
+
+	return STATUS_OK;
+}
+
 int	instance_dump(t_list* stored_keys) {
 	messenger_show("INFO", "Inicio de dump en la Instancia");
 
@@ -245,7 +264,7 @@ int	instance_recover(t_list* recoverable_keys) {
 	return status;
 }
 
-void instance_main() {
+void instance_thread_api(void* args) {
 	messenger_show("INFO", "Comienzo de actividades de la Instancia");
 
 	while(instance_is_alive) {
@@ -276,7 +295,11 @@ void instance_main() {
 
 				t_list* replaced_keys = list_create();
 
+				pthread_mutex_lock(&instance_mutex);
+
 				status = instance_set(key_value, replaced_keys);
+
+				pthread_mutex_unlock(&instance_mutex);
 
 				key_value_destroy(key_value);
 
@@ -290,7 +313,11 @@ void instance_main() {
 			case PROTOCOL_CI_STORE: {
 				char* key = coordinator_api_receive_key();
 
+				pthread_mutex_lock(&instance_mutex);
+
 				status = instance_store(key);
+
+				pthread_mutex_unlock(&instance_mutex);
 
 				coordinator_api_notify_status(PROTOCOL_IC_NOTIFY_STORE, status);
 
@@ -300,42 +327,39 @@ void instance_main() {
 			case PROTOCOL_CI_COMPACT: {
 				messenger_show("INFO", "La Instancia recibio un pedido del Coordinador para compactarse");
 
+				pthread_mutex_lock(&instance_mutex);
+
 				compactation_compact();
+
+				pthread_mutex_unlock(&instance_mutex);
 
 				break;
 			}
 
 			case PROTOCOL_CI_REQUEST_VALUE: {
-				char *requested_key = coordinator_api_receive_key();
+				char* requested_key = coordinator_api_receive_key();
+				key_value_t* requested_key_value;
 
 				messenger_show("INFO", "La Instancia recibio un pedido del valor de la clave %s", requested_key);
 
-				entry_t* entry = entry_table_get_entry(requested_key);
+				pthread_mutex_lock(&instance_mutex);
 
-				if(entry == NULL) {
-					status = STATUS_REPLACED;
+				status = instance_status(requested_key, &requested_key_value);
 
+				pthread_mutex_unlock(&instance_mutex);
+
+				if(status == STATUS_REPLACED) {
 					messenger_show("WARNING", "No se encontro la clave %s en la Tabla De Entradas", requested_key);
 
 					coordinator_api_notify_status(PROTOCOL_IC_RETRIEVE_VALUE, status);
 				}
 
 				else {
-					char* requested_value = storage_retrieve_string(entry->number, entry->size);
-
-					status = STATUS_OK;
-
-					messenger_show("INFO", "Se retornara el valor '%s' de la clave '%s'", requested_value, requested_key);
-
-					key_value_t* requested_key_value = key_value_create(requested_key, requested_value);
+					messenger_show("INFO", "Se retornara el valor '%s' de la clave '%s'", requested_key_value->value, requested_key_value->key);
 
 					coordinator_api_notify_key_value(status, requested_key_value);
 
 					key_value_destroy(requested_key_value);
-
-					free(requested_value);
-
-					free(entry);
 				}
 
 				free(requested_key);
@@ -363,7 +387,11 @@ void instance_main() {
 		if(status == STATUS_COMPACT) {
 			messenger_show("INFO", "Comienzo de compactacion de la Instancia");
 
+			pthread_mutex_lock(&instance_mutex);
+
 			compactation_compact();
+
+			pthread_mutex_unlock(&instance_mutex);
 
 			messenger_show("INFO", "Fin de la compactacion de la Instancia");
 		}
@@ -387,6 +415,35 @@ void instance_main() {
 		*/
 
 	}
+}
+
+void instance_thread_dump(void* args) {
+	for(;;) {
+		pthread_mutex_lock(&instance_mutex);
+
+		usleep(DUMP_INTERVAL);
+
+		messenger_show("INFO", "Ejecutando Dump");
+
+		messenger_show("INFO", "Fin de ejecucion de Dump");
+
+		pthread_mutex_unlock(&instance_mutex);
+	}
+}
+
+void instance_main() {
+	pthread_t api_thread, dump_thread;
+	pthread_attr_t attributes;
+
+	pthread_attr_init(&attributes);
+	pthread_attr_setdetachstate(&attributes, PTHREAD_CREATE_DETACHED);
+
+	pthread_create(&api_thread, NULL, (void*) instance_thread_api, NULL);
+	pthread_create(&dump_thread, &attributes, (void*) instance_thread_dump, NULL);
+
+	pthread_join(api_thread, NULL);
+
+	pthread_attr_destroy(&attributes);
 }
 
 void instance_show() {
