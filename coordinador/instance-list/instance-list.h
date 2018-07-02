@@ -32,5 +32,6 @@ struct instance_t *instance_list_push(struct instance_list_t *instance_list, str
 struct instance_t *instance_list_pop(struct instance_list_t *instance_list);
 void instance_list_sort(struct instance_list_t *instance_list, bool (*comparator)(void *, void *));
 bool instance_list_delete(struct instance_list_t *instance_list, char *name);
+void instance_list_iterate(struct instance_list_t *instance_list, void (*closure)(void *));
 
 #endif /* COORDINADOR_INSTANCE_LIST_H_ */
