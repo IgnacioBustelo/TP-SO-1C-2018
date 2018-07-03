@@ -119,8 +119,9 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 {
 	if (!instance_send_set_instruction(instance->fd, request->set.key, request->set.value)) {
 		log_error(logger, "[Instancia %s] Error al enviar instruccion SET!", instance->name);
-		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", instance->name);
-		esi_send_notify_block(request->requesting_esi_fd);
+		log_error(logger, "[Instancia %s] Se abortara el ESI en ejecucion!", instance->name);
+		key_table_remove(request->set.key);
+		esi_send_illegal_operation(request->requesting_esi_fd);
 
 		return false;
 	}
@@ -129,8 +130,9 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 	size_t used_entries;
 	if (!instance_recv_set_execution_status(instance->fd, &status, &used_entries)) {
 		log_error(logger, "[Instancia %s] Error al recibir resultado de ejecucion!", instance->name);
-		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", instance->name);
-		esi_send_notify_block(request->requesting_esi_fd);
+		log_error(logger, "[Instancia %s] Se abortara el ESI en ejecucion!", instance->name);
+		key_table_remove(request->set.key);
+		esi_send_illegal_operation(request->requesting_esi_fd);
 
 		return false;
 	}
@@ -159,14 +161,17 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 		return true;
 	case SET_STATUS_REPLACED:
 		log_error(logger, "[Instancia %s] La clave fue previamente reemplazada!", instance->name);
+		key_table_remove(request->set.key);
 		esi_send_illegal_operation(request->requesting_esi_fd);
 		return true;
 	case SET_STATUS_NO_SPACE:
 		log_error(logger, "[Instancia %s] No hay espacio disponible!", instance->name);
+		key_table_remove(request->set.key);
 		esi_send_illegal_operation(request->requesting_esi_fd);
 		return true;
 	default:
 		log_error(logger, "[Instancia %s] Error de comunicacion!", instance->name);
+		key_table_remove(request->set.key);
 		esi_send_illegal_operation(request->requesting_esi_fd);
 		return false;
 	}
@@ -176,14 +181,16 @@ static bool instance_handle_store_request(struct instance_t *instance, struct re
 {
 	if (key_table_is_new(request->store.key)) {
 		log_error(logger, "[Instancia %s] Error al realizar un STORE sobre una clave no inicializada.", instance->name);
+		key_table_remove(request->store.key);
 		esi_send_illegal_operation(request->requesting_esi_fd);
 		return true;
 	}
 
 	if (!instance_send_store_instruction(instance->fd, request->store.key)) {
 		log_error(logger, "[Instancia %s] Error al enviar instruccion STORE!", instance->name);
-		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", instance->name);
-		esi_send_notify_block(request->requesting_esi_fd);
+		log_error(logger, "[Instancia %s] Se abortara el ESI en ejecucion!", instance->name);
+		key_table_remove(request->store.key);
+		esi_send_illegal_operation(request->requesting_esi_fd);
 
 		return false;
 	}
@@ -191,8 +198,9 @@ static bool instance_handle_store_request(struct instance_t *instance, struct re
 	int status;
 	if (!instance_recv_store_execution_status(instance->fd, &status)) {
 		log_error(logger, "[Instancia %s] Error al recibir resultado de ejecucion!", instance->name);
-		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", instance->name);
-		esi_send_notify_block(request->requesting_esi_fd);
+		log_error(logger, "[Instancia %s] Se abortara el ESI en ejecucion!", instance->name);
+		key_table_remove(request->store.key);
+		esi_send_illegal_operation(request->requesting_esi_fd);
 
 		return false;
 	}
@@ -211,10 +219,12 @@ static bool instance_handle_store_request(struct instance_t *instance, struct re
 		return true;
 	case STORE_STATUS_REPLACED:
 		log_error(logger, "[Instancia %s] La clave fue previamente reemplazada!", instance->name);
+		key_table_remove(request->store.key);
 		esi_send_illegal_operation(request->requesting_esi_fd);
 		return true;
 	default:
 		log_error(logger, "[Instancia %s] Error de comunicacion!", instance->name);
+		key_table_remove(request->store.key);
 		esi_send_illegal_operation(request->requesting_esi_fd);
 		return false;
 	}
