@@ -91,7 +91,9 @@ void handle_instance_connection(int fd)
 
 		request_node_destroy(request);
 		synchronized(instance_list->lock) {
-			instance_list_remove(instance_list, instance->name);
+			if (error && fd == instance->fd) {
+				instance_list_remove(instance_list, instance->name);
+			}
 		}
 	}
 }
