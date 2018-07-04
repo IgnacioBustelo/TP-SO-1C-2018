@@ -186,7 +186,7 @@ static bool scheduler_send_key_status(void)
 				&& send_key_instance(instance->name);
 	} else {
 		char *value;
-		if (instance->fd != DISCONNECTED && instance_request_value(instance->fd, key, &value)) {
+		if (instance->fd != DISCONNECTED && instance_request_value(instance, key, &value)) {
 			log_info(logger, "[Planificador] La clave %s con valor = \"%s\" esta en la instancia %s.",
 					key, value, instance->name);
 			free(key);

@@ -3,9 +3,12 @@
 #include <string.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <sys/socket.h>
 
 #include <commons/collections/list.h>
 
+#include "../defines.h"
+#include "../../protocolo/protocolo_coordinador_instancia.h"
 #include "instance-list.h"
 
 #include "instance-request-list.h"
@@ -14,6 +17,7 @@ static struct instance_t *instance_list_node_create(char *name, int fd);
 static void instance_list_node_destroy(struct instance_t *victim);
 static bool string_equals(char *actual, char *expected);
 static bool instance_is_connected(void *_instance);
+static bool instance_test_connection(struct instance_t *instance);
 
 struct instance_list_t *instance_list_create(void)
 {
@@ -68,17 +72,19 @@ struct instance_t *instance_list_get_by_index(struct instance_list_t *instance_l
 
 struct instance_t *instance_list_add(struct instance_list_t *instance_list, char *name, int fd)
 {
-	struct instance_t *node = instance_list_get_by_name(instance_list, name);
-	if (node == NULL) {
-		node = instance_list_node_create(name, fd);
-		list_add_in_index(instance_list->elements, 0, node);
-	} else if (node->fd == DISCONNECTED) {
-		node->fd = fd;
+	struct instance_t *instance = instance_list_get_by_name(instance_list, name);
+	if (instance == NULL) {
+		instance = instance_list_node_create(name, fd);
+		list_add_in_index(instance_list->elements, 0, instance);
+	} else if (instance->fd == DISCONNECTED || !instance_test_connection(instance)) {
+		synchronized(instance->lock) {
+			instance->fd = fd;
+		}
 	} else {
 		return NULL;
 	}
 
-	return node;
+	return instance;
 }
 
 struct instance_t *instance_list_remove(struct instance_list_t *instance_list, char *name)
@@ -133,6 +139,7 @@ void instance_list_iterate(struct instance_list_t *instance_list, void (*closure
 static struct instance_t *instance_list_node_create(char *name, int fd)
 {
 	struct instance_t *node = malloc(sizeof(*node));
+	pthread_mutex_init(&node->lock, NULL);
 	node->name = strdup(name);
 	node->fd = fd;
 	node->used_entries = 0;
@@ -143,6 +150,7 @@ static struct instance_t *instance_list_node_create(char *name, int fd)
 
 static void instance_list_node_destroy(struct instance_t *victim)
 {
+	pthread_mutex_destroy(&victim->lock);
 	free(victim->name);
 	request_list_destroy(victim->requests);
 	free(victim);
@@ -157,4 +165,24 @@ static bool instance_is_connected(void *_instance)
 {
 	struct instance_t *instance = (struct instance_t *)_instance;
 	return instance->fd != DISCONNECTED;
+}
+
+static bool instance_test_connection(struct instance_t *instance)
+{
+	pthread_mutex_lock(&instance->lock);
+
+	request_coordinador request = PROTOCOL_CI_IS_ALIVE;
+	if (!CHECK_SEND(instance->fd, &request)) {
+		pthread_mutex_unlock(&instance->lock);
+		return false;
+	}
+
+	request_instancia response;
+	if (!CHECK_RECV(instance->fd, &response) || response != PROTOCOL_IC_CONFIRM_CONNECTION) {
+		pthread_mutex_unlock(&instance->lock);
+		return false;
+	}
+
+	pthread_mutex_unlock(&instance->lock);
+	return true;
 }
