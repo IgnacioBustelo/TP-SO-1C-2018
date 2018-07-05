@@ -367,6 +367,12 @@ void instance_thread_api(void* args) {
 				break;
 			}
 
+			case PROTOCOL_CI_CHECK_CONNECTION: {
+				coordinator_api_notify_header(PROTOCOL_IC_CONFIRM_CONNECTION);
+
+				break;
+			}
+
 			case PROTOCOL_CI_KILL: {
 				messenger_show("INFO", "La Instancia recibio un pedido del Coordinador para desconectarse");
 
@@ -424,6 +430,22 @@ void instance_thread_dump(void* args) {
 		usleep(DUMP_INTERVAL);
 
 		messenger_show("INFO", "Ejecutando Dump");
+
+		// TODO: t_list* entry_table_get_key_list() -> Devuelve lista de claves de la Instancia
+
+		/*
+
+		t_list* stored_keys = entry_table_get_key_list();
+
+		int status = instance_dump(stored_keys);
+
+		list_destroy_and_destroy_elements(stored_keys, free);
+
+		*/
+
+		messenger_show("ERROR", "Falta que la tabla de entradas pueda devolver la lista de claves para meter el Dump!!");
+
+		// TODO: Añadir lo que falta arriba
 
 		messenger_show("INFO", "Fin de ejecucion de Dump");
 

@@ -56,7 +56,7 @@ void client_server_execute_client(int fd_server) {
 
 	sem_post(&handshake_sem);
 
-	instance_thread_api(NULL);
+	instance_main();
 
 	instance_die();
 }

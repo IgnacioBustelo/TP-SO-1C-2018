@@ -10,16 +10,16 @@
 #define COLOR_SERVER COLOR_GREEN
 #define COLOR_CLIENT COLOR_CYAN
 
-pthread_t server_thread, client_thread;
+pthread_t main_thread, server_thread, client_thread;
 sem_t server_sem, client_sem;
 
 char* color_get() {
 	pthread_t current_thread_id = pthread_self();
 
+	bool is_main = pthread_equal(current_thread_id, main_thread);
 	bool is_server = pthread_equal(current_thread_id, server_thread);
-	bool is_client = pthread_equal(current_thread_id, client_thread);
 
-	return (is_server) ? COLOR_SERVER : (is_client) ? COLOR_CLIENT : COLOR_RESET;
+	return (is_main) ? COLOR_RESET : (is_server) ? COLOR_SERVER : COLOR_CLIENT;
 }
 
 static void set_server(void* args) {
@@ -77,6 +77,10 @@ static void set_client(void* args) {
 void client_server_run() {
 	sem_init(&server_sem, 0, 1);
 	sem_init(&client_sem, 0, 0);
+
+	main_thread = pthread_self();
+
+	messenger_show("INFO", "Creando conexiones");
 
 	pthread_create(&server_thread, NULL, (void*) set_server, NULL);
 	pthread_create(&client_thread, NULL, (void*) set_client, NULL);
