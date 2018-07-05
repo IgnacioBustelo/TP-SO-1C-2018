@@ -7,7 +7,7 @@ SRC += ../protocolo/protocolo_coordinador_instancia.c ../libs/conector.c ../libs
 OBJ = $(SRC:.c=.o)
 HEADER = $(SRC:.c=.h)
 
-LIB = -lcommons
+LIB = -lcommons -lpthread
 
 all: $(TARGET)
 

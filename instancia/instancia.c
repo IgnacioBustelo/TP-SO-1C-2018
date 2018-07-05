@@ -279,7 +279,11 @@ void instance_thread_api(void* args) {
 
 				key_value_t* key_value = coordinator_api_receive_set(&is_new);
 
-				/* TODO: Crear funcion entry_table_has_key(key_value->key), que dada una clave, determina si existe
+				// TODO: Crear funcion entry_table_has_key(key_value->key), que dada una clave, determina si existe
+
+				messenger_show("ERROR", "Crear funcion entry_table_has_key(key_value->key), que dada una clave, determina si existe");
+
+				/*
 
 				if(!(is_new || entry_table_has_key(key_value->key))) {
 					messenger_show("WARNING", "La clave solicitada no existe en la Instancia dado que fue reemplazada");
@@ -367,7 +371,9 @@ void instance_thread_api(void* args) {
 				break;
 			}
 
-			case PROTOCOL_CI_CHECK_CONNECTION: {
+			case PROTOCOL_CI_IS_ALIVE: {
+				messenger_show("INFO", "La Instancia recibio un pedido del Coordinador para chequear si sigue conectada");
+
 				coordinator_api_notify_header(PROTOCOL_IC_CONFIRM_CONNECTION);
 
 				break;
@@ -402,29 +408,11 @@ void instance_thread_api(void* args) {
 			messenger_show("INFO", "Fin de la compactacion de la Instancia");
 		}
 
-		/*
-
-		TODO: Hacer la funcion t_list* entry_table_get_keys(); -> Obtiene lista de claves de la tabla de entradas
-
-		TODO: Hacer en un hilo aparte
-
-		if(instance_requires_dump) {
-			t_list* stored_keys = entry_table_get_keys();
-
-			int status = instance_dump(stored_keys);
-
-			if(status == -1) {
-				instance_is_alive = false;
-			}
-		}
-
-		*/
-
 	}
 }
 
 void instance_thread_dump(void* args) {
-	for(;;) {
+	while(instance_is_alive) {
 		pthread_mutex_lock(&instance_mutex);
 
 		usleep(DUMP_INTERVAL);
@@ -432,6 +420,8 @@ void instance_thread_dump(void* args) {
 		messenger_show("INFO", "Ejecutando Dump");
 
 		// TODO: t_list* entry_table_get_key_list() -> Devuelve lista de claves de la Instancia
+
+		messenger_show("ERROR", "Falta que la tabla de entradas pueda devolver la lista de claves para meter el Dump!!");
 
 		/*
 
@@ -443,10 +433,6 @@ void instance_thread_dump(void* args) {
 
 		*/
 
-		messenger_show("ERROR", "Falta que la tabla de entradas pueda devolver la lista de claves para meter el Dump!!");
-
-		// TODO: Añadir lo que falta arriba
-
 		messenger_show("INFO", "Fin de ejecucion de Dump");
 
 		pthread_mutex_unlock(&instance_mutex);
@@ -455,17 +441,12 @@ void instance_thread_dump(void* args) {
 
 void instance_main() {
 	pthread_t api_thread, dump_thread;
-	pthread_attr_t attributes;
-
-	pthread_attr_init(&attributes);
-	pthread_attr_setdetachstate(&attributes, PTHREAD_CREATE_DETACHED);
 
 	pthread_create(&api_thread, NULL, (void*) instance_thread_api, NULL);
-	pthread_create(&dump_thread, &attributes, (void*) instance_thread_dump, NULL);
+	pthread_create(&dump_thread, NULL, (void*) instance_thread_dump, NULL);
 
 	pthread_join(api_thread, NULL);
-
-	pthread_attr_destroy(&attributes);
+	pthread_join(dump_thread, NULL);
 }
 
 void instance_show() {
@@ -493,7 +474,11 @@ void instance_die() {
 
 	dumper_destroy();
 
-	// entry_table_destroy(); TODO: Falta el destroyer de la tabla de entradas
+	// TODO: Falta el destroyer de la tabla de entradas
+
+	messenger_show("ERROR", "Falta el destroyer de la tabla de entradas");
+
+	// entry_table_destroy()
 
 	coordinator_api_disconnect();
 

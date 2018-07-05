@@ -124,6 +124,38 @@ char* coordinador_mock_status_response(int fd_client, char* key) {
 	return value;
 }
 
+void coordinador_mock_check_request(int fd_client) {
+	request_coordinador header = PROTOCOL_CI_IS_ALIVE;
+
+	messenger_show("INFO", "Chequeo de conexion de la Instancia con el mensaje %s", C_HEADER(header));
+
+	chunk_t* chunk = chunk_create();
+
+	chunk_add(chunk, &header, sizeof(header));
+
+	chunk_send_and_destroy(fd_client, chunk);
+}
+
+int	coordinador_mock_check_response(int fd_client) {
+	int header;
+
+	int bytes_received = chunk_recv(fd_client, &header, sizeof(header));
+
+	if(header == PROTOCOL_IC_CONFIRM_CONNECTION) {
+		messenger_show("INFO", "La Instancia sigue conectada tras recibir el mensaje %s", I_HEADER(header));
+	}
+
+	else if (bytes_received == -1) {
+		messenger_show("ERROR", "Hubo error en el envio de datos");
+	}
+
+	else {
+		messenger_show("WARNING", "Mensaje inseperado");
+	}
+
+	return bytes_received;
+}
+
 void coordinador_mock_kill(int fd_client) {
 	request_coordinador header = PROTOCOL_CI_KILL;
 

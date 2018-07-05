@@ -1,3 +1,14 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <readline/readline.h>
+
+#include "planificador.h"
+#include "../libs/comando.h"
+#include "../libs/serializador.h"
+#include "../libs/deserializador.h"
+#include "../protocolo/protocolo.h"
+#include "../libs/conector.h"
+
 #include "consola.h"
 
 static void pause_scheduler(char **_);
@@ -12,18 +23,18 @@ static void check_deadlock(char **_);
 #define COMMANDS_SIZE (sizeof(commands) / sizeof(*commands))
 #define eprintf(args...) fprintf (stderr, args)
 
-extern int scheduler_paused_flag;
-extern int block_esi_by_console_flag;
-extern int unlock_esi_by_console_flag;
-extern int killed_esi_flag;
-extern char* last_unlocked_key_by_console;
-extern t_list* g_new_killed_esis;
-extern t_list* g_esis_sexpecting_keys;
-extern t_list* g_new_blocked_by_console_esis;
-extern t_list* g_locked_keys;
-extern t_list* g_esi_bursts;
-extern sem_t mutex_coordinador;
-extern int g_coordinator_fd;
+int scheduler_paused_flag;
+int block_esi_by_console_flag;
+int unlock_esi_by_console_flag;
+int killed_esi_flag;
+char* last_unlocked_key_by_console;
+t_list* g_new_killed_esis;
+t_list* g_esis_sexpecting_keys;
+t_list* g_new_blocked_by_console_esis;
+t_list* g_locked_keys;
+t_list* g_esi_bursts;
+sem_t mutex_coordinador;
+int g_coordinator_fd;
 
 static struct command_t commands[] = {
 	DEF_COMMAND("pausar",      0, pause_scheduler),
@@ -405,7 +416,7 @@ void send_key_to_coordinator(char* key) {
 	add_content(package, &operation, sizeof(operation));
 	add_content_variable(package, key, strlen(key) + 1);
 	void* package_ = build_package(package);
-	send_serialized_package(g_coordinator_fd, package, package_size);
+	send_serialized_package(g_coordinator_fd, package_, package_size);
 }
 
 void receive_and_print_key_status() {
@@ -413,7 +424,7 @@ void receive_and_print_key_status() {
 	protocol_id operation_code;
 	int key_state;
 
-	recv_package(g_coordinator_fd, &operation_code, sizeof(int));
+	recv_package(g_coordinator_fd, &operation_code, sizeof(operation_code));
 
 	if(operation_code != PROTOCOL_CP_KEY_STATUS) {
 

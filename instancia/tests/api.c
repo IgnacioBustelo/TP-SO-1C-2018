@@ -26,6 +26,12 @@ void client_server_execute_server(int fd_client) {
 
 	sem_wait(&handshake_sem);
 
+	messenger_show("INFO", "%sTest Chequeo de conexion%s", COLOR_MAGENTA, COLOR_SERVER);
+
+	coordinador_mock_check_request(fd_client);
+
+	coordinador_mock_check_response(fd_client);
+
 	messenger_show("INFO", "%sTest SET%s", COLOR_MAGENTA, COLOR_SERVER);
 
 	coordinador_mock_set_request(fd_client, true, "A", "Test");
@@ -63,6 +69,10 @@ void client_server_execute_client(int fd_server) {
 	}
 
 	sem_post(&handshake_sem);
+
+	coordinator_api_receive_header();
+
+	coordinator_api_notify_header(PROTOCOL_IC_CONFIRM_CONNECTION);
 
 	coordinator_api_receive_header();
 

@@ -1,16 +1,6 @@
 #ifndef PLANIFICADOR_CONSOLA_H_
 #define PLANIFICADOR_CONSOLA_H_
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <readline/readline.h>
-#include "../libs/comando.h"
-#include "../libs/serializador.h"
-#include "../libs/deserializador.h"
-#include "../protocolo/protocolo.h"
-#include "../libs/conector.h"
-#include "planificador.h"
-
 /**
  * Recibe una linea de comando y lo ejecuta.
  * El valor de retorno indica si fue ejecutado exitosamente u ocurrio un error:

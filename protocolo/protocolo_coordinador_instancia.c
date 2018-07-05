@@ -12,9 +12,7 @@ const char* protocolo_coordinador_instancia_coordinador_header_to_string(request
 
 		case PROTOCOL_CI_REQUEST_VALUE:				return "PROTOCOL_CI_REQUEST_VALUE";				break;
 
-		case PROTOCOL_CI_REQUEST_VALUE:				return "PROTOCOL_CI_REQUEST_VALUE";				break;
-
-		case PROTOCOL_CI_CHECK_CONNECTION:			return "PROTOCOL_CI_CHECK_CONNECTION";			break;
+		case PROTOCOL_CI_IS_ALIVE:					return "PROTOCOL_CI_IS_ALIVE";					break;
 
 		case PROTOCOL_CI_KILL:						return "PROTOCOL_CI_KILL";						break;
 

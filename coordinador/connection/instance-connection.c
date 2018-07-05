@@ -19,7 +19,6 @@ struct setup_t setup;
 
 struct instance_list_t *instance_list;
 
-static void instance_handle_disconnection(struct instance_t *instance);
 static bool instance_handle_set_request(struct instance_t *instance, struct request_node_t *request);
 static bool instance_handle_store_request(struct instance_t *instance, struct request_node_t *request);
 static char *instance_recv_name(int fd);
@@ -64,14 +63,21 @@ void handle_instance_connection(int fd)
 
 	log_info(logger, "[Instancia] Socket %d: Instancia \"%s\" conectada.", fd, instance->name);
 
+	pthread_mutex_lock(&instance->lock);
 	if (!instance_send_confirmation(instance)) {
+		pthread_mutex_unlock(&instance->lock);
 		log_error(logger, "[Instancia %s] Error al enviar confirmacion!", instance->name);
 		return;
 	}
+	pthread_mutex_unlock(&instance->lock);
 
 	bool error = false;
 	while (!error) {
 		struct request_node_t *request = request_list_pop(instance->requests);
+		if (fd != instance->fd) {
+			request_list_push(instance->requests, request);
+			return;
+		}
 		log_info(logger, "[Instancia %s] Atendiendo pedido...", instance->name);
 
 		switch (request->type) {
@@ -83,44 +89,25 @@ void handle_instance_connection(int fd)
 			break;
 		}
 
-		if (!error) {
-			request_node_destroy(request);
-		} else {
-			request_list_push(instance->requests, request);
-			instance_handle_disconnection(instance);
+		request_node_destroy(request);
+		synchronized(instance_list->lock) {
+			if (error && fd == instance->fd) {
+				instance_list_remove(instance_list, instance->name);
+			}
 		}
 	}
-}
-
-static void instance_handle_disconnection(struct instance_t *instance)
-{
-	synchronized(instance_list->lock) {
-		instance_list_remove(instance_list, instance->name);
-	}
-
-	void reselect_instance(void *_elem) {
-		struct request_node_t *request = (struct request_node_t *)_elem;
-		char *key = request->type == INSTANCE_SET ? request->set.key : request->store.key;
-
-		struct instance_t *instance = dispatch(instance_list, key);
-		if (instance != NULL) {
-			request_list_push(instance->requests, request);
-		} else {
-			log_error(logger, "No hay Instancias disponibles!");
-			/* TODO: Definir un protocolo distinto para informar este tipo de error. */
-			esi_send_illegal_operation(request->requesting_esi_fd);
-		}
-	}
-
-	request_list_iterate(instance->requests, reselect_instance);
 }
 
 static bool instance_handle_set_request(struct instance_t *instance, struct request_node_t *request)
 {
+	pthread_mutex_lock(&instance->lock);
+
 	if (!instance_send_set_instruction(instance->fd, request->set.key, request->set.value)) {
+		pthread_mutex_unlock(&instance->lock);
 		log_error(logger, "[Instancia %s] Error al enviar instruccion SET!", instance->name);
-		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", instance->name);
-		esi_send_notify_block(request->requesting_esi_fd);
+		log_error(logger, "[Instancia %s] Se abortara el ESI en ejecucion!", instance->name);
+		key_table_remove(request->set.key);
+		esi_send_illegal_operation(request->requesting_esi_fd);
 
 		return false;
 	}
@@ -128,14 +115,18 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 	int status;
 	size_t used_entries;
 	if (!instance_recv_set_execution_status(instance->fd, &status, &used_entries)) {
+		pthread_mutex_unlock(&instance->lock);
 		log_error(logger, "[Instancia %s] Error al recibir resultado de ejecucion!", instance->name);
-		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", instance->name);
-		esi_send_notify_block(request->requesting_esi_fd);
+		log_error(logger, "[Instancia %s] Se abortara el ESI en ejecucion!", instance->name);
+		key_table_remove(request->set.key);
+		esi_send_illegal_operation(request->requesting_esi_fd);
 
 		return false;
 	}
 
-	instance->used_entries += used_entries;
+	pthread_mutex_unlock(&instance->lock);
+
+	instance->used_entries = used_entries;
 
 	enum set_status_t {
 		SET_STATUS_COMPACT = 2,
@@ -154,18 +145,22 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 		log_info(logger, "[Instancia %s] Se necesita hacer una compactacion.", instance->name);
 		instance_send_compact(instance);
 		log_info(logger, "[Instancia %s] Operacion realizada correctamente.", instance->name);
+		key_table_set_initialized(request->set.key);
 		esi_send_execution_success(request->requesting_esi_fd);
 		return true;
 	case SET_STATUS_REPLACED:
 		log_error(logger, "[Instancia %s] La clave fue previamente reemplazada!", instance->name);
+		key_table_remove(request->set.key);
 		esi_send_illegal_operation(request->requesting_esi_fd);
 		return true;
 	case SET_STATUS_NO_SPACE:
 		log_error(logger, "[Instancia %s] No hay espacio disponible!", instance->name);
+		key_table_remove(request->set.key);
 		esi_send_illegal_operation(request->requesting_esi_fd);
 		return true;
 	default:
 		log_error(logger, "[Instancia %s] Error de comunicacion!", instance->name);
+		key_table_remove(request->set.key);
 		esi_send_illegal_operation(request->requesting_esi_fd);
 		return false;
 	}
@@ -173,22 +168,37 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 
 static bool instance_handle_store_request(struct instance_t *instance, struct request_node_t *request)
 {
+	if (key_table_is_new(request->store.key)) {
+		log_error(logger, "[Instancia %s] Error al realizar un STORE sobre una clave no inicializada.", instance->name);
+		key_table_remove(request->store.key);
+		esi_send_illegal_operation(request->requesting_esi_fd);
+		return true;
+	}
+
+	pthread_mutex_lock(&instance->lock);
+
 	if (!instance_send_store_instruction(instance->fd, request->store.key)) {
+		pthread_mutex_unlock(&instance->lock);
 		log_error(logger, "[Instancia %s] Error al enviar instruccion STORE!", instance->name);
-		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", instance->name);
-		esi_send_notify_block(request->requesting_esi_fd);
+		log_error(logger, "[Instancia %s] Se abortara el ESI en ejecucion!", instance->name);
+		key_table_remove(request->store.key);
+		esi_send_illegal_operation(request->requesting_esi_fd);
 
 		return false;
 	}
 
 	int status;
 	if (!instance_recv_store_execution_status(instance->fd, &status)) {
+		pthread_mutex_unlock(&instance->lock);
 		log_error(logger, "[Instancia %s] Error al recibir resultado de ejecucion!", instance->name);
-		log_error(logger, "[Instancia %s] Se bloqueara el ESI en ejecucion!", instance->name);
-		esi_send_notify_block(request->requesting_esi_fd);
+		log_error(logger, "[Instancia %s] Se abortara el ESI en ejecucion!", instance->name);
+		key_table_remove(request->store.key);
+		esi_send_illegal_operation(request->requesting_esi_fd);
 
 		return false;
 	}
+
+	pthread_mutex_unlock(&instance->lock);
 
 	enum store_status_t {
 		STORE_STATUS_OK = 1,
@@ -204,10 +214,12 @@ static bool instance_handle_store_request(struct instance_t *instance, struct re
 		return true;
 	case STORE_STATUS_REPLACED:
 		log_error(logger, "[Instancia %s] La clave fue previamente reemplazada!", instance->name);
+		key_table_remove(request->store.key);
 		esi_send_illegal_operation(request->requesting_esi_fd);
 		return true;
 	default:
 		log_error(logger, "[Instancia %s] Error de comunicacion!", instance->name);
+		key_table_remove(request->store.key);
 		esi_send_illegal_operation(request->requesting_esi_fd);
 		return false;
 	}
@@ -339,7 +351,7 @@ static bool instance_send_store_instruction(int fd, char *key)
 	struct { void *block; size_t block_size; } blocks[] = {
 		{ &op_code, sizeof(op_code) },
 		{ &key_size, sizeof(key_size) },
-		{ key, key_size },
+		{ key, key_size }
 	};
 
 	int i;
@@ -357,10 +369,75 @@ static void instance_send_compact(struct instance_t *requested_instance)
 	request_coordinador op_code = PROTOCOL_CI_COMPACT;
 	void send_compact(void *elem) {
 		struct instance_t *instance = (struct instance_t *)elem;
+		pthread_mutex_lock(&instance->lock);
 		if (instance != requested_instance && CHECK_SEND(instance->fd, &op_code)) {
 			log_info(logger, "[Instancia] Socket %d: Pedido de compactacion enviada.", instance->fd);
 		}
+		pthread_mutex_unlock(&instance->lock);
 	}
 
 	instance_list_iterate(instance_list, send_compact);
+}
+
+bool instance_request_value(struct instance_t *instance, char *key, char **value)
+{
+	request_coordinador request_op_code = PROTOCOL_CI_REQUEST_VALUE;
+	size_t key_size = strlen(key) + 1;
+
+	struct { void *block; size_t block_size; } blocks[] = {
+		{ &request_op_code, sizeof(request_op_code) },
+		{ &key_size, sizeof(key_size) },
+		{ key, key_size }
+	};
+
+	pthread_mutex_lock(&instance->lock);
+
+	int i;
+	for (i = 0; i < sizeof(blocks) / sizeof(*blocks); i++) {
+		if (!CHECK_SEND_WITH_SIZE(instance->fd, blocks[i].block, blocks[i].block_size)) {
+			pthread_mutex_unlock(&instance->lock);
+			return false;
+		}
+	}
+
+	request_instancia response_op_code;
+	if (!CHECK_RECV(instance->fd, &response_op_code) || response_op_code != PROTOCOL_IC_RETRIEVE_VALUE) {
+		pthread_mutex_unlock(&instance->lock);
+		return false;
+	}
+
+	enum value_status_t {
+		VALUE_STATUS_OK = 1, VALUE_STATUS_REPLACED = 0
+	};
+
+	int status;
+	if (!CHECK_RECV(instance->fd, &status)) {
+		pthread_mutex_unlock(&instance->lock);
+		return false;
+	}
+
+	switch (status) {
+	case VALUE_STATUS_OK: ;
+		size_t value_size;
+		if (!CHECK_RECV(instance->fd, &value_size) || value_size <= 0) {
+			pthread_mutex_unlock(&instance->lock);
+			return false;
+		}
+
+		*value = malloc(value_size);
+		if (!CHECK_RECV_WITH_SIZE(instance->fd, *value, value_size)) {
+			pthread_mutex_unlock(&instance->lock);
+			return false;
+		} else {
+			pthread_mutex_unlock(&instance->lock);
+			return true;
+		}
+	case VALUE_STATUS_REPLACED:
+		pthread_mutex_unlock(&instance->lock);
+		*value = NULL;
+		return true;
+	default:
+		pthread_mutex_unlock(&instance->lock);
+		return false;
+	}
 }

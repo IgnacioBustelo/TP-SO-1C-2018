@@ -103,6 +103,7 @@ void request_node_destroy(struct request_node_t *node)
 		break;
 	case INSTANCE_STORE:
 		free(node->store.key);
+		break;
 	}
 
 	free(node);
