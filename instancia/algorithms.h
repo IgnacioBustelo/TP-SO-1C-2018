@@ -31,7 +31,7 @@ status_t*	convert_entry_t_to_status_t(entry_t * entry);
 
 void		entry_table_status_print_table(t_list* entry_table_status);
 
-t_list*		original_entry_table_migration_to_complete_one();
+t_list*		original_entry_table_migration_to_entry_table_status();
 
 void		algorithm_circular_set_pointer(int index);
 
