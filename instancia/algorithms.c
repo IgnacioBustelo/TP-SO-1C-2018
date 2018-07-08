@@ -2,7 +2,7 @@
 
 #include "algorithms.h"
 #include "globals.h"
-
+t_list* entry_table_status_global;
 
 void algorithms_exec(char algorithm_id, t_list* entry_table, key_value_t* key_value, t_list* replaced_keys) {
 	switch (algorithm_id) {
@@ -26,7 +26,7 @@ int algorithm_circular(t_list* entry_table,key_value_t* key_value,t_list* replac
 
 		int continous_atomic_and_free_entries=0;
 		int first_entry_of_continous_atomic_and_free_entries=-1;
-		t_list* entry_table_status = original_entry_table_migration_to_complete_one();
+		t_list* entry_table_status = original_entry_table_migration_to_entry_table_status();
 		status_t* status;
 		if (algorithm_circular_pointer>=list_size(entry_table_status))
 		{
@@ -87,10 +87,7 @@ bool smallest_reference(void * a, void *b){
 int algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys){
 	if(!entry_table_have_entries(key_value) && new_value_fits(key_value))
 	{
-
-		//int continous_atomic_and_free_entries=0; TODO: La vas a usar?
-		//int first_entry_of_continous_atomic_and_free_entries=-1; TODO: La vas a usar?
-		t_list* entry_table_status = original_entry_table_migration_to_complete_one();
+		t_list* entry_table_status = original_entry_table_migration_to_entry_table_status();
 		status_t* status;
 
 		t_list * copy_entry_table_status = list_create();
@@ -105,18 +102,10 @@ int algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_ke
 		{
 			status = (status_t*)list_get(copy_entry_table_status,i);
 
-			if (status->status==ATOMIC && (status->last_referenced!=((status_t*)list_get(copy_entry_table_status,i+1))->last_referenced))
+			if (status->status==ATOMIC)
 			{
 				list_add(replaced_keys,status->key);
-				//Debo borrar de entry_table_status los entries que ya elegi. aparte entry_table_status debe ser global.
 				entries_neeeded--;
-			}
-			if (status->status==ATOMIC && (status->last_referenced==((status_t*)list_get(copy_entry_table_status,i+1))->last_referenced))
-			{
-			 //Debo borrar de entry_table_status los entries que ya elegi. aparte entry_table_status debe ser global.
-				key_value_t* fake_kv = key_value_create("WTF", "WTF"); // Te la inicializo para que no me tire warnings!!
-				fake_kv->size=entries_neeeded*get_entry_size();
-				algorithm_circular(entry_table,fake_kv,replaced_keys);
 			}
 		}
 
@@ -133,7 +122,7 @@ bool new_value_fits(key_value_t* key_value)
 	return entries_left+entry_table_atomic_entries_count()>=entry_table_entries_needed(key_value);
 }
 
-t_list* original_entry_table_migration_to_complete_one()
+t_list* original_entry_table_migration_to_entry_table_status()
 {
 	t_list * entry_table_status = list_create();
 
@@ -178,6 +167,57 @@ t_list* original_entry_table_migration_to_complete_one()
 	}
 
 return entry_table_status;
+
+}
+
+t_list* init_entry_table_status(){
+	return original_entry_table_migration_to_entry_table_status();
+}
+
+void etry_table_status_add_kv(key_value_t* key_value,int number){
+
+	entry_t * entry=convert_key_value_t_to_entry_t(key_value);
+	int entry_entries=0;
+
+	status_t * status = malloc(sizeof(status_t));
+	status->status=FREE;
+
+
+		 if(entry_table_is_entry_atomic(entry))
+		 {
+			 list_replace(entry_table_status_global,number,convert_entry_t_to_status_t(entry));
+		 }
+		 else
+		 {
+			 int entries=(entry->size/get_entry_size());
+			 entry_entries = entry->size%get_entry_size()==0?entries:entries+1;
+//			 entry_entries = ((entry->size)/get_entry_size())+1;
+			 int number_copy=number;
+			 while (entry_entries>0)
+			 {
+				 list_replace(entry_table_status_global,number_copy,convert_entry_t_to_status_t(entry));
+				 entry_entries-=1;
+				 number_copy++;
+			 }
+		 }
+
+}
+
+void etry_table_status_delete_kv(key_value_t* key_value){
+	int entry_entries=0;
+
+	int i=0;
+	int total_deleted=0
+	status_t * status = malloc(sizeof(status_t));
+	status->status=FREE;
+		while(i<get_total_entries() && total_deleted!=entry_table_entries_needed(key_value))
+		{
+			status_t* entry_status = (status_t*)(list_get(entry_table_status_global,i));
+			if(!strcasecmp(entry_status->key,key_value->key))
+			{
+				list_replace(entry_table_status_global,i,status);
+			}
+		}
 
 }
 
