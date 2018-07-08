@@ -1,6 +1,6 @@
 CC = gcc -Wall
 
-TARGET = chunker client_server configurator logger printfer send_recv_many
+TARGET = chunker client_server configurator list_csv logger printfer send_recv_many
 
 LIBS = -lcommons -lpthread
 
@@ -17,6 +17,8 @@ chunker: DEPS += ../chunker.h ../conector.h ../mocks/color.h ../mocks/client_ser
 client_server: DEPS += ../conector.h ../mocks/color.h ../mocks/client_server.h
 
 configurator: DEPS += ../configurator.h ../mocks/default_color.h
+
+list_csv: DEPS = ../../libs/messenger.h ../mocks/printfer.h ../mocks/default_color.h
 
 logger: DEPS = ../../libs/messenger.h ../logger.h
 
