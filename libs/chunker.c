@@ -110,9 +110,14 @@ int chunk_send_and_destroy(int fd, chunk_t* chunk) {
 
 int chunk_recv(int fd, void* receiver, size_t size) {
 	int bytes_received;
+
 	do {
+
 		bytes_received = recv(fd, receiver, size, MSG_WAITALL | MSG_NOSIGNAL);
-	} while (bytes_received == -1 && errno == EINTR);
+
+	}
+
+	while (bytes_received == -1 && errno == EINTR);
 
 	if(bytes_received != -1) {
 		messenger_show("DEBUG", "Se recibio un cacho serializado de memoria de tamano %d, despues de haber recibido %d bytes", size, bytes_received);
