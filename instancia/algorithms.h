@@ -17,7 +17,9 @@ typedef struct{
 	int last_referenced;
 } status_t;
 
+t_list* entry_table_status_global;
 int algorithm_circular_pointer;
+
 
 void		algorithms_exec(char algorithm_id, t_list* entry_table, key_value_t* key_value, t_list* replaced_keys);
 
@@ -35,6 +37,13 @@ t_list*		original_entry_table_migration_to_entry_table_status();
 
 void		algorithm_circular_set_pointer(int index);
 
-void 		algorithm_lru_add_all();
+void 		entry_table_status_last_referenced_add_all();
+
+void 		entry_table_status_init();
+
+void 		entry_table_status_add_kv(key_value_t* key_value,int number);
+
+void 		entry_table_status_delete_kv(key_value_t* key_value);
+
 
 #endif
