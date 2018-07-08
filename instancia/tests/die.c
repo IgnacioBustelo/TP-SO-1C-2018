@@ -20,16 +20,12 @@ int main(int argc, char* argv[]) {
 
 	do {
 
-		event_handler_alarm(time);
+		sleep(time);
 
-		pause();
-
-		if(instance_requires_dump && instance_is_alive) {
+		if(instance_is_alive) {
 			time_passed += time;
 
 			messenger_show("INFO", "Han pasado %d segundo/s desde el comienzo de la prueba", time_passed);
-
-			instance_requires_dump = false;
 		}
 
 	} while (instance_is_alive);

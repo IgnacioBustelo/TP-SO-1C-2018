@@ -8,30 +8,29 @@
 #include "../globals.h"
 #include "coordinador_mock.h"
 
-static void coordinador_mock_chunk_add_key(chunk_t* chunk, void* content) {
+static void _chunk_add_key(chunk_t* chunk, void* content) {
 	messenger_show("INFO", "Se debe recuperar la clave %s", (char*) content);
 
 	chunk_add_variable(chunk, (char*) content, string_length((char*) content) + 1);
 }
 
-void coordinador_mock_handshake(int fd_client, bool is_accepted, size_t total_entries, size_t entry_size, t_list* recoverable_keys) {
+void coordinador_mock_handshake_base(int fd_client, bool* is_accepted) {
 	receive_handshake(fd_client);
 
-	messenger_show((is_accepted) ? "INFO" : "ERROR", "Se recibio una solictiud de una instancia que va a ser %s", (is_accepted) ? "aceptada" : "rechazada");
+	messenger_show((*is_accepted) ? "INFO" : "ERROR", "Se recibio una solictiud de una instancia que va a ser %s", (*is_accepted) ? "aceptada" : "rechazada");
 
-	send_confirmation(fd_client, is_accepted);
+	send_confirmation(fd_client, *is_accepted);
+}
 
-	if(!is_accepted) {
-		return;
-	}
+void coordinador_mock_handshake_receive_name(int fd_client, char** received_name) {
+	chunk_recv_variable(fd_client, (void**) received_name);
 
+	messenger_show("INFO", "Se recibio una solicitud de handshake de la instancia %s", *received_name);
+
+}
+
+void coordinador_mock_handshake_send_config(int fd_client, char* received_name, size_t total_entries, size_t entry_size, t_list* recoverable_keys) {
 	storage_setup_t setup = {.total_entries = total_entries, .entry_size = entry_size};
-
-	char* received_name;
-
-	chunk_recv_variable(fd_client, (void**) &received_name);
-
-	messenger_show("INFO", "Se recibio una solicitud de handshake de la instancia %s", received_name);
 
 	messenger_show("INFO", "Se va a enviar el tamano del storage de %d entradas de tamano %d a %s", setup.total_entries, setup.entry_size, received_name);
 
@@ -41,11 +40,9 @@ void coordinador_mock_handshake(int fd_client, bool is_accepted, size_t total_en
 
 	chunk_add(chunk, &setup.total_entries, sizeof(size_t));
 
-	chunk_add_list(chunk, recoverable_keys, (void*) coordinador_mock_chunk_add_key);
+	chunk_add_list(chunk, recoverable_keys, (void*) _chunk_add_key);
 
 	chunk_send_and_destroy(fd_client, chunk);
-
-	free(received_name);
 }
 
 void coordinador_mock_set_request(int fd_client, bool is_new, char* key, char* value) {

@@ -49,10 +49,7 @@ int main(int argc, char* argv[]) {
 
 	do
 	{
-
-		event_handler_alarm(dump_interval);
-
-		pause();
+		sleep(dump_interval);
 
 		time_passed += dump_interval;
 
@@ -65,8 +62,6 @@ int main(int argc, char* argv[]) {
 
 			list_destroy_and_destroy_elements(generated_keys, (void*) key_value_destroy);
 		}
-
-		instance_requires_dump = false;
 
 	} while(instance_is_alive);
 

@@ -13,7 +13,7 @@ chunk_t* chunk_create() {
 	chunk->bytes = malloc(0);
 	chunk->current_size = 0;
 
-	messenger_show("DEBUG", "Se inicio un paquete para serializar");
+	messenger_show("TRACE", "Se inicio un paquete para serializar");
 
 	return chunk;
 }
@@ -25,7 +25,7 @@ void chunk_add(chunk_t* chunk, void* content, size_t content_size) {
 
 	chunk->current_size += content_size;
 
-	messenger_show("DEBUG", "Se añadio un contenido de tamano %d al paquete para serializar", content_size);
+	messenger_show("TRACE", "Se añadio un contenido de tamano %d al paquete para serializar", content_size);
 }
 
 void chunk_add_variable(chunk_t* chunk, void* content, size_t content_size) {
@@ -48,7 +48,7 @@ void chunk_add_list(chunk_t* chunk, t_list* list, void(*packager)(chunk_t* chunk
 void chunk_show(chunk_t* chunk) {
 	char* chunk_string = messenger_bytes_to_string(chunk->bytes, chunk->current_size);
 
-	messenger_show("DEBUG", "El paquete contiene la cadena %s serializada", chunk_string);
+	messenger_show("TRACE", "El paquete contiene la cadena %s serializada", chunk_string);
 
 	free(chunk_string);
 }
@@ -58,13 +58,13 @@ void* chunk_build(chunk_t* chunk) {
 
 	memcpy(serialized_chunk, chunk->bytes, chunk->current_size);
 
-	messenger_show("DEBUG", "Se genero un cacho de memoria serializado de tamanio %d", chunk->current_size);
+	messenger_show("TRACE", "Se genero un cacho de memoria serializado de tamanio %d", chunk->current_size);
 
 	return serialized_chunk;
 }
 
 void chunk_destroy(chunk_t* chunk) {
-	messenger_show("DEBUG", "Se libero un paquete de tamano %d para serializar", chunk->current_size);
+	messenger_show("TRACE", "Se libero un paquete de tamano %d para serializar", chunk->current_size);
 
 	free(chunk->bytes);
 	free(chunk);
@@ -73,7 +73,7 @@ void chunk_destroy(chunk_t* chunk) {
 int chunk_send(int fd, void* serialized_chunk, size_t chunk_size) {
 	int bytes_sent;
 
-	messenger_show("DEBUG", "Se enviaran %d bytes", chunk_size);
+	messenger_show("TRACE", "Se enviaran %d bytes", chunk_size);
 
 	bytes_sent = send(fd, serialized_chunk, chunk_size, MSG_NOSIGNAL);
 
@@ -84,7 +84,7 @@ int chunk_send(int fd, void* serialized_chunk, size_t chunk_size) {
 	}
 
 	else if(bytes_sent < chunk_size) {
-		messenger_show("DEBUG", "Faltan enviar %d bytes", bytes_sent);
+		messenger_show("TRACE", "Faltan enviar %d bytes", bytes_sent);
 
 		return chunk_send(fd, serialized_chunk + bytes_sent, chunk_size - bytes_sent);
 	}
@@ -112,22 +112,21 @@ int chunk_recv(int fd, void* receiver, size_t size) {
 	int bytes_received;
 
 	do {
-
 		bytes_received = recv(fd, receiver, size, MSG_WAITALL | MSG_NOSIGNAL);
-
 	}
+	while(bytes_received == -1 && errno == EINTR);
 
-	while (bytes_received == -1 && errno == EINTR);
+	if(bytes_received == size) {
+		messenger_show("TRACE", "Recibo de un cacho serializado de memoria de tamano %d", size);
 
-	if(bytes_received != -1) {
-		messenger_show("DEBUG", "Se recibio un cacho serializado de memoria de tamano %d, despues de haber recibido %d bytes", size, bytes_received);
+		return bytes_received;
 	}
 
 	else {
-		messenger_show("ERROR", "Fallo recibiendo un paquete de tamanio %d", size);
-	}
+		messenger_show("ERROR", "Fallo recibiendo un paquete de tamanio %d, debido a que se retorno el valor %d", size, bytes_received);
 
-	return bytes_received;
+		return -1;
+	}
 }
 
 int chunk_recv_variable(int fd, void** receiver) {
@@ -136,7 +135,7 @@ int chunk_recv_variable(int fd, void** receiver) {
 
 	bytes_size_received = chunk_recv(fd, &size, sizeof(size));
 
-	if(bytes_size_received == -1) {
+	if(bytes_size_received != sizeof(size)) {
 		messenger_show("ERROR", "Fallo recibiendo el tamanio del paquete de tamanio variable");
 
 		return -1;
@@ -146,13 +145,13 @@ int chunk_recv_variable(int fd, void** receiver) {
 
 	bytes_data_received = chunk_recv(fd, *receiver, size);
 
-	if(bytes_data_received == -1) {
+	if(bytes_data_received != size) {
 		messenger_show("ERROR", "Fallo recibiendo el paquete de tamanio variable");
 
-		return bytes_data_received;
+		return -1;
 	}
 
-	messenger_show("DEBUG", "Se recibio un cacho variable serializado de memoria de tamano %d", size);
+	messenger_show("TRACE", "Se recibio un cacho variable serializado de memoria de tamano %d", size);
 
 	return bytes_size_received + bytes_data_received;
 }
@@ -165,10 +164,10 @@ int chunk_recv_list(int fd, t_list** receiver, void*(*unpackager)(int fd, int* b
 
 	bytes_received = chunk_recv(fd, &size, sizeof(size));
 
-	if(bytes_received == -1) {
+	if(bytes_received != sizeof(size)) {
 		messenger_show("ERROR", "Fallo recibiendo la cantidad de nodos de la lista");
 
-		return bytes_received;
+		return -1;
 	}
 
 	if(size < 1) {
@@ -178,7 +177,7 @@ int chunk_recv_list(int fd, t_list** receiver, void*(*unpackager)(int fd, int* b
 	}
 
 	else {
-		messenger_show("INFO", "Se va a recibir una lista de %d elemento/s", size);
+		messenger_show("TRACE", "Se va a recibir una lista de %d elemento/s", size);
 	}
 
 	int i;
@@ -198,7 +197,7 @@ int chunk_recv_list(int fd, t_list** receiver, void*(*unpackager)(int fd, int* b
 		list_add(*receiver, received_data);
 	}
 
-	messenger_show("DEBUG", "Se recibio una lista de %d elemento/s que ocupa %d bytes", size, bytes_received);
+	messenger_show("TRACE", "Se recibio una lista de %d elemento/s que ocupa %d bytes", size, bytes_received);
 
 	return bytes_received;
 }
