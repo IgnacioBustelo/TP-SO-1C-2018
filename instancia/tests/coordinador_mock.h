@@ -5,7 +5,11 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-void	coordinador_mock_handshake(int fd_client, bool is_accepted, size_t total_entries, size_t entry_size, t_list* recoverable_keys);
+void	coordinador_mock_handshake_base(int fd_client, bool* is_accepted);
+
+void	coordinador_mock_handshake_receive_name(int fd_client, char** received_name);
+
+void	coordinador_mock_handshake_send_config(int fd_client, char* received_name, size_t total_entries, size_t entry_size, t_list* recoverable_keys);
 
 void	coordinador_mock_set_request(int fd_client, bool is_new, char* key, char* value);
 

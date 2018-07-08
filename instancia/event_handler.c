@@ -7,7 +7,7 @@
 #include "event_handler.h"
 
 void event_handler_init() {
-	instance_is_alive = true, instance_requires_dump = false;
+	instance_is_alive = true;
 
 	struct sigaction action;
 
@@ -23,23 +23,11 @@ void event_handler_init() {
 
 	sigaction(SIGTERM, &action, NULL);
 
-	sigaction(SIGALRM, &action, NULL);
-
 	// TODO: Manejar errores
 }
 
 void event_handler_action(int signal) {
-	switch(signal) {
-		case SIGINT		: instance_is_alive = false;		break;
-
-		case SIGTERM	: instance_is_alive = false; 		break;
-
-		case SIGALRM	: instance_requires_dump = true;	break;
-
-		default			: /* TODO: No se... */				break;
+	if(signal == SIGINT || signal == SIGTERM) {
+		instance_is_alive = false;
 	}
-}
-
-void event_handler_alarm(int time) {
-	alarm(time);
 }

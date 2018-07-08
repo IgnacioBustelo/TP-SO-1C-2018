@@ -28,7 +28,8 @@ typedef enum {
 	STATUS_COMPACT = 2,
 	STATUS_OK = 1,
 	STATUS_REPLACED = 0,
-	STATUS_NO_SPACE = -1
+	STATUS_NO_SPACE = -1,
+	STATUS_ERROR = -2
 } status_ci;
 
 const char* protocolo_coordinador_instancia_coordinador_header_to_string(request_coordinador header);
