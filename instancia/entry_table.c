@@ -25,7 +25,7 @@ bool entry_table_insert(int next_entry, key_value_t* key_value)
 
 		}else
 		{
-		entries_left += entry_table_entries_needed(entry_table_get_entry(key_value->key));
+		entries_left += entry_table_entries_needed(key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size));
 		list_replace(entry_table,next_entry,new_entry);
 		entries_left -= entry_table_entries_needed(key_value);
 		}
