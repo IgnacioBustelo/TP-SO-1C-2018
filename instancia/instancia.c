@@ -174,11 +174,8 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 
 		if(status) {
 			// Ejecutar el algoritmo circular en caso de empate entre claves a reemplazar. MANEJO YO INTERNAMENTE EL EMPATE EN EL ALGORITMO MISMO
-			algorithms_exec(cfg_instancia_get_replacement_algorithm_id(), entry_table, key_value, replaced_keys);
-		}
-
 		entry_table_delete_few(replaced_keys);
-
+		}
 
 
 //		algorithm_circular(entry_table, key_value, replaced_keys); // TODO: Cuando se implemente lo de arriba, reemplazar
