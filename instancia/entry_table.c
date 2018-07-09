@@ -109,7 +109,8 @@ int entry_table_next_entry(key_value_t* key_value){
 			}
 			else
 			{
-				extra_entries_needed = entries_needed(key_value) - entries_needed(entry_table_get_entry(key_value->key));
+				key_value_t* existing_kv = key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size);
+				extra_entries_needed = entries_needed - entry_table_entries_needed(existing_kv);
 				key_value_t * key_value_replaced = key_value_generator("X",entries_needed*get_entry_size());
 				if(entry_table_have_entries(key_value_replaced))
 				{
