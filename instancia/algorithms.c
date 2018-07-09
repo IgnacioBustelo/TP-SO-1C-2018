@@ -248,9 +248,10 @@ void entry_table_status_delete_kv(key_value_t* key_value){
 
 	int i=0;
 	int deleted=0;
+	status_t* entry_status;
 		while(i<get_total_entries() && deleted!=entry_table_entries_needed(key_value))
 		{
-			status_t* entry_status = (status_t*)(list_get(entry_table_status_global,i));
+			 entry_status = (status_t*)(list_get(entry_table_status_global,i));
 			if(!strcasecmp(entry_status->key,key_value->key))
 			{
 				entry_status->last_referenced=0;
@@ -263,6 +264,46 @@ void entry_table_status_delete_kv(key_value_t* key_value){
 			i++;
 		}
 
+}
+
+bool entry_table_status_continuous_entries(t_list* replaced_keys)
+{
+	int i=0;
+	char* key;
+	int last_index=0;
+	while(i<list_size(replaced_keys))
+			{
+				key = (char*)(list_get(replaced_keys,i));
+				if (last_index==0)
+				{
+					last_index= entry_table_status_find_and_get_index(key);
+				}
+				else
+				{
+					if(entry_table_status_find_and_get_index(key)!=last_index+1)
+					{
+						return 0;
+					}
+					last_index=entry_table_status_find_and_get_index(key);
+				}
+
+			}
+	return 1;
+}
+
+int entry_table_status_find_and_get_index(char * key){
+	int i=0;
+	status_t* entry_status;
+	while(i<get_total_entries())
+				{
+					entry_status = (status_t*)(list_get(entry_table_status_global,i));
+					if (!strcasecmp(key,entry_status->key))
+					{
+						return i;
+					}
+					i++;
+				}
+	return -1;
 }
 
 void entry_table_status_last_referenced_add_all(){

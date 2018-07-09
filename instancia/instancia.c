@@ -157,9 +157,15 @@ int	instance_handshake(storage_setup_t* setup, t_list** recoverable_keys) {
 int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 	int operation_result;
 
-	// TODO: Chequear tambien que haya suficiente entradas atomicas para reemplazar
 
-	if(!entry_table_have_entries(key_value) /* && entry_table_has_atomic_values() */) {
+	if(!entry_table_have_entries(key_value) && new_value_fits(key_value) ) {
+
+		if(!entry_table_status_continuous_entries) {
+				messenger_show("INFO", "La Instancia tiene que compactar para ingresar la clave %s", key_value->key);
+
+				operation_result = instance_compact();
+			}
+
 		void replace_and_show_key(void* key) {
 			dumper_remove_key_value((char*) key);
 
@@ -179,7 +185,6 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 		messenger_show("INFO", "Reemplazo ejecutado correctamente");
 	}
 
-	/*
 
 	else {
 		messenger_show("ERROR", "La Instancia no tiene entradas atomicas para ejecutar un reemplazo");
@@ -187,13 +192,8 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 		return 0;
 	}
 
-	if(TODO: bool entry_table_requires_compact(size) -> Dado el tamaño de una clave, decidir si requiere compactacion la Instancia) {
-		messenger_show("INFO", "La Instancia tiene que compactar para ingresar la clave %s", key_value->key);
 
-		status = instance_compact();
-	}
 
-	*/
 
 	int next_entry = entry_table_next_entry(key_value);
 
