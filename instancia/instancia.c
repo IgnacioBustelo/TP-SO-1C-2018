@@ -175,10 +175,10 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 
 	if(!entry_table_have_entries(key_value) && new_value_fits(key_value) ) {
 
-		if(!entry_table_status_continuous_entries) {
+		if(!entry_table_status_continuous_entries(replaced_keys)) {
 				messenger_show("INFO", "La Instancia tiene que compactar para ingresar la clave %s", key_value->key);
 
-				operation_result = instance_compact();
+				operation_result = compactation_compact();
 			}
 
 		void replace_and_show_key(void* key) {
