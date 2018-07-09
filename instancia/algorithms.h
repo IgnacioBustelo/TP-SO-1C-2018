@@ -15,6 +15,7 @@ typedef struct{
 	int status;
 	char * key;
 	int last_referenced;
+	int space_used;
 } status_t;
 
 t_list* entry_table_status_global;
@@ -26,6 +27,8 @@ void		algorithms_exec(char algorithm_id, t_list* entry_table, key_value_t* key_v
 int			algorithm_circular(t_list* entry_table,key_value_t* key_value, t_list* replaced_keys);
 
 int			algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys);
+
+int			algorithm_bsu(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys);
 
 bool		new_value_fits(key_value_t* key_value); // Se fija si el tamanio del nuevo key_value entra entre todas las entradas atomicas que hay y los lugares libres dentro de la tabla
 

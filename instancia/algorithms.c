@@ -83,6 +83,12 @@ bool smallest_reference(void * a, void *b){
 	return e1->last_referenced<e2->last_referenced?false:true;
 }
 
+bool biggest_size(void * a, void *b){
+	status_t * e1 = (status_t*)a;
+	status_t * e2 = (status_t*)b;
+	return e1->space_used>e2->space_used?false:true;
+}
+
 int algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys){
 	if(!entry_table_have_entries(key_value) && new_value_fits(key_value))
 	{
@@ -108,6 +114,39 @@ int algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_ke
 			}
 			i++;
 		}
+	list_destroy(copy_entry_table_status);
+	return 1;
+	}
+
+	else {
+		return -666; // TODO: Santi - Agregue esto porque no compila nada... Segui tu logica para el else de tu if.
+	}
+}
+
+int algorithm_bsu(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys){
+	if(!entry_table_have_entries(key_value) && new_value_fits(key_value))
+	{
+		t_list* entry_table_status = entry_table_status_global;
+		status_t* status;
+		t_list * copy_entry_table_status = list_create();
+
+		list_add_all(copy_entry_table_status,entry_table_status);
+		list_sort(copy_entry_table_status,biggest_size);
+
+		int entries_neeeded = entry_table_entries_needed(key_value) - entries_left;
+
+		int i=0;
+		while(i<list_size(copy_entry_table_status) && entries_neeeded)
+		{
+			status = (status_t*)list_get(copy_entry_table_status,i);
+			if (status->status==ATOMIC)
+			{
+				list_add(replaced_keys,status->key);
+				entries_neeeded--;
+			}
+			i++;
+		}
+	list_destroy(copy_entry_table_status);
 	return 1;
 	}
 
@@ -132,7 +171,7 @@ t_list* original_entry_table_migration_to_entry_table_status()
 	status_t * status = malloc(sizeof(status_t));
 	status->last_referenced=0;
 	status->status=FREE;
-
+	status->space_used=0;
 	int i=0;
 	while(i<get_total_entries())
 	{
@@ -183,6 +222,7 @@ void entry_table_status_add_kv(key_value_t* key_value,int number){ // Reeveer lo
 	status_t * status = malloc(sizeof(status_t));
 	status->status=FREE;
 	status->last_referenced=0;
+	status->space_used=0;
 
 		 if(entry_table_is_entry_atomic(entry))
 		 {
@@ -217,6 +257,7 @@ void entry_table_status_delete_kv(key_value_t* key_value){
 				free(entry_status->key);
 				entry_status->key=strdup("NULL");
 				entry_status->status=FREE;
+				entry_status->space_used=0;
 				deleted++;
 			}
 			i++;
@@ -240,10 +281,14 @@ status_t * convert_entry_t_to_status_t(entry_t* entry){
 	status_t * status = malloc(sizeof(status_t));
 	status->key = strdup(entry->key);
 	status->last_referenced=0;
-	if (entry_table_is_entry_atomic(entry))
-	status->status=ATOMIC;
-	else
+	status->space_used=-1;
+	if (entry_table_is_entry_atomic(entry)){
+		status->status=ATOMIC;
+		status->space_used=entry->size;
+	}
+	else{
 	status->status=NON_ATOMIC;
+	}
 	return status;
 }
 
@@ -252,6 +297,6 @@ void entry_table_status_print_table(t_list* entry_table_status){
 	for (int i=0; i<list_size(entry_table_status);i++)
 		{
 		status_t * status=(status_t *) list_get(entry_table_status,i);
-		printf("Indice %d con estado %d, KEY %s, Referenciado hace:%d \n",i,status->status,status->key,status->last_referenced);
+		printf("Indice %d con estado %d, KEY %s, Referenciado hace: %d y Ocupa bits: %d \n",i,status->status,status->key,status->last_referenced,status->space_used);
 		}
 }
