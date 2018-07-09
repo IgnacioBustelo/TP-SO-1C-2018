@@ -22,7 +22,7 @@ t_list* entry_table_status_global;
 int algorithm_circular_pointer;
 
 
-void		algorithms_exec(char algorithm_id, t_list* entry_table, key_value_t* key_value, t_list* replaced_keys);
+int			algorithms_exec(char algorithm_id, t_list* entry_table, key_value_t* key_value, t_list* replaced_keys);
 
 int			algorithm_circular(t_list* entry_table,key_value_t* key_value, t_list* replaced_keys);
 
