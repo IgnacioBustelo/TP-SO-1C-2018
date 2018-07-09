@@ -3,6 +3,7 @@
 !*.c
 !*.h
 !*.esi
+!esi/scripts/*
 !Makefile
 !.gitignore
 /.metadata/

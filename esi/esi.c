@@ -61,7 +61,11 @@ int main(int argc, char **argv) {
     size_t len = 0;
     ssize_t read;
 
-    fp = fopen(argv[argc - 1], "r");
+    char* route = string_from_format("scripts/%s", argv[argc - 1]);
+
+    fp = fopen(route, "r");
+
+    free(route);
 
     if (fp == NULL){
 
