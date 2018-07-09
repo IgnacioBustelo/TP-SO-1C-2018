@@ -25,7 +25,9 @@ bool entry_table_insert(int next_entry, key_value_t* key_value)
 
 		}else
 		{
+		entries_left += entry_table_entries_needed(entry_table_get_entry(key_value->key));
 		list_replace(entry_table,next_entry,new_entry);
+		entries_left -= entry_table_entries_needed(key_value);
 		}
 		return true;
 	}
@@ -107,27 +109,31 @@ int entry_table_next_entry(key_value_t* key_value){
 	entry_t* e1;
 	entry_t* e2;
 
-	 if (entry_table_get_entry(key_value->key)!=NULL )
+	entry_t * entry_to_be_modified = entry_table_get_entry(key_value->key);
+	 if (entry_to_be_modified!=NULL )
 	    {
 	    	int extra_entries_needed=0;
-			if(key_value->size<=(entry_table_get_entry(key_value->key)->size))
+			if(key_value->size<=(entry_to_be_modified->size))
 			{
-				return entry_table_get_entry(key_value->key)->number;
+				return entry_to_be_modified->number;
 			}
 			else
 			{
-				key_value_t* existing_kv = key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size);
+
+				key_value_t* existing_kv = key_value_generator(entry_to_be_modified->key,entry_to_be_modified->size);
 				extra_entries_needed = entries_needed - entry_table_entries_needed(existing_kv);
-				key_value_t * key_value_replaced = key_value_generator("X",entries_needed*get_entry_size());
+				key_value_t * key_value_replaced = key_value_generator("X",extra_entries_needed*get_entry_size());
 				if(entry_table_have_entries(key_value_replaced))
 				{
+
 					int i=0;
-					int number = entry_table_get_entry(key_value->key)->number;
+					int number = entry_table_get_entry(key_value->key)->number+entry_table_entries_needed(existing_kv);
+					printf("\n %d \n", number);
 					while (entry_table_get_entry_by_entry_number(number+i)==NULL && i<extra_entries_needed)
 					{
 						i++;
 					}
-					if (i+1==extra_entries_needed)
+					if (i==extra_entries_needed)
 					{
 						return entry_table_get_entry(key_value->key)->number;
 					}
