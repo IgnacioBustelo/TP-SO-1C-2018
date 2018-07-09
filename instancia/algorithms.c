@@ -213,7 +213,7 @@ void entry_table_status_init(){
 	entry_table_status_global = original_entry_table_migration_to_entry_table_status();
 }
 
-void entry_table_status_add_kv(key_value_t* key_value,int number){ // Reeveer logica de como agrego a la tabla las cosas!
+void entry_table_status_add_kv(key_value_t* key_value,int number){ // TODO:FIJARSE LOGICA DE COMO MODIFICAR SI YA EXISTE
 
 	entry_table_status_last_referenced_add_all();
 	entry_t * entry=convert_key_value_t_to_entry_t(key_value);

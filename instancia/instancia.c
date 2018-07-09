@@ -164,13 +164,11 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 
 		if(!entry_table_status_continuous_entries(key_value)) {
 				messenger_show("INFO", "La Instancia tiene que compactar para ingresar la clave %s", key_value->key);
-
 				operation_result = instance_compact();
 			}
 
 		void replace_and_show_key(void* key) {
 			dumper_remove_key_value((char*) key);
-
 			messenger_show("WARNING", "La clave %s fue reemplazada por %s", (char*) key, key_value->key);
 		}
 
@@ -190,7 +188,6 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 
 	else {
 		messenger_show("ERROR", "La Instancia no tiene entradas atomicas para ejecutar un reemplazo");
-
 		return 0;
 	}
 
