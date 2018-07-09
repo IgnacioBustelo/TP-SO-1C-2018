@@ -26,7 +26,6 @@ void coordinador_mock_handshake_receive_name(int fd_client, char** received_name
 	chunk_recv_variable(fd_client, (void**) received_name);
 
 	messenger_show("INFO", "Se recibio una solicitud de handshake de la instancia %s", *received_name);
-
 }
 
 void coordinador_mock_handshake_send_config(int fd_client, char* received_name, size_t total_entries, size_t entry_size, t_list* recoverable_keys) {

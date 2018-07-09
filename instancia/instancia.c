@@ -111,7 +111,7 @@ void instance_init(char* process_name, char* logger_route, char* log_level, char
 	if(!list_is_empty(recoverable_keys)) {
 		instance_recover(recoverable_keys);
 
-		// TODO: t_list* entry_table_get_key_list() -> Devuelve lista de claves de la Instancia, que en este caso deben coincidir con las reincorporadas
+		t_list* entry_table_get_key_list();
 
 		messenger_show("ERROR", "Falta la funcion t_list* entry_table_get_key_list() para obtener las claves que solicito el Coordinador que fueron recuperadas");
 	}
@@ -157,9 +157,6 @@ int	instance_handshake(storage_setup_t* setup, t_list** recoverable_keys) {
 int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 	int operation_result;
 
-
-
-
 	if(!entry_table_have_entries(key_value) && new_value_fits(key_value) ) {
 
 		if(!entry_table_status_continuous_entries(replaced_keys)) {
@@ -170,7 +167,6 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 
 		void replace_and_show_key(void* key) {
 			dumper_remove_key_value((char*) key);
-
 			messenger_show("WARNING", "La clave %s fue reemplazada por %s", (char*) key, key_value->key);
 		}
 
@@ -337,17 +333,11 @@ void instance_thread_api(void* args) {
 				operation_result = coordinator_api_receive_set(&is_new, &key_value);
 				API_B_CHECK("Fallo en la recepcion del pedido del SET del Coordinador")
 
-				// TODO: Crear funcion entry_table_has_key(key_value->key), que dada una clave, determina si existe
-
-				messenger_show("ERROR", "Crear funcion entry_table_has_key(key_value->key), que dada una clave, determina si existe");
-
 				t_list* replaced_keys = list_create();
 
 				pthread_mutex_lock(&instance_mutex);
 
-				/*
-
-				if(!(is_new || entry_table_has_key(key_value->key))) {
+				if(!(is_new || entry_table_has_key(key_value->key, is_new))) {
 					messenger_show("WARNING", "La clave solicitada no existe en la Instancia dado que fue reemplazada");
 
 					key_value_destroy(key_value);
@@ -358,8 +348,6 @@ void instance_thread_api(void* args) {
 
 					break;
 				}
-
-				*/
 
 				status = instance_set(key_value, replaced_keys);
 
@@ -549,15 +537,13 @@ void instance_thread_dump(void* args) {
 
 		messenger_show("INFO", "Ejecutando Dump en el instante %f", time_passed/10E6);
 
-		// TODO: t_list* stored_keys = entry_table_get_key_list() -> Devuelve lista de claves de la Instancia
+		t_list* stored_keys = entry_table_get_key_list();
 
 		messenger_show("ERROR", "Falta implementar la funcion t_list* entry_table_get_key_list() que la tabla de entradas pueda devolver la lista de claves para meter el Dump!!");
 
-		/*
-		 * list_iterate(stored_keys, (void*) _dump);
-		 *
-		 * list_destroy_and_destroy_elements(stored_keys, free);
-		 */
+		list_iterate(stored_keys, (void*) _dump);
+
+		list_destroy_and_destroy_elements(stored_keys, free);
 
 		messenger_show("INFO", "Fin de ejecucion de Dump");
 
@@ -605,8 +591,6 @@ void instance_die() {
 	storage_destroy();
 
 	dumper_destroy();
-
-	messenger_show("ERROR", "Falta el destroyer de la tabla de entradas");
 
 	entry_table_destroy();
 

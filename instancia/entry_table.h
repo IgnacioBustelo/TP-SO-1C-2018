@@ -66,5 +66,12 @@ void		entry_table_delete_few(t_list* keys);
 
 
 
+void entry_table_key_value_destroy(entry_t * entry);
+
+
+bool entry_table_has_key(char* key,bool is_new);
+
+t_list* entry_table_get_key_list();
+
 
 #endif

@@ -17,9 +17,16 @@ bool entry_table_insert(int next_entry, key_value_t* key_value)
 	new_entry->number=next_entry;
 	if(next_entry>=0)
 	{
+		if(entry_table_get_entry_by_entry_number(next_entry)==NULL)
+		{
 		list_add(entry_table,(void *)new_entry);
 		entries_left-=entry_table_entries_needed(key_value);
 		list_sort(entry_table,ascending);
+
+		}else
+		{
+		list_replace(entry_table,next_entry,new_entry);
+		}
 		return true;
 	}
 
