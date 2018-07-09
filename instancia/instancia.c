@@ -102,6 +102,8 @@ void instance_init(char* process_name, char* logger_route, char* log_level, char
 
 	entry_table_init();
 
+	entry_table_status_init();
+
 	messenger_show("INFO", "Inicio de la Tabla De Entradas");
 
 	algorithm_circular_set_pointer(0);
@@ -166,23 +168,22 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 
 		messenger_show("WARNING", "La Instancia debe ejecutar un reemplazo");
 
-		/* TODO: Reemplazar por algo mas polimorfico:
-		 *
-		 * int status = algorithms_exec(id, entry_table, key_value, replaced_keys);
-		 *
-		 * if(status == TIE && status > 0) {
-		 * 		// Ejecutar el algoritmo circular en caso de empate entre claves a reemplazar
-		 *
-		 * 		status = algorithms_exec('C', entry_table, key_value, replaced_keys);
-		 * }
-		 *
-		 * entry_table_delete_few(replaced_keys);
-		 *
-		 */
 
-		algorithm_circular(entry_table, key_value, replaced_keys); // TODO: Cuando se implemente lo de arriba, reemplazar
+
+		int status = algorithms_exec(cfg_instancia_get_replacement_algorithm_id(), entry_table, key_value, replaced_keys);
+
+		if(status) {
+			// Ejecutar el algoritmo circular en caso de empate entre claves a reemplazar. MANEJO YO INTERNAMENTE EL EMPATE EN EL ALGORITMO MISMO
+			algorithms_exec(cfg_instancia_get_replacement_algorithm_id(), entry_table, key_value, replaced_keys);
+		}
 
 		entry_table_delete_few(replaced_keys);
+
+
+
+//		algorithm_circular(entry_table, key_value, replaced_keys); // TODO: Cuando se implemente lo de arriba, reemplazar
+//
+//		entry_table_delete_few(replaced_keys);
 
 		list_iterate(replaced_keys, (void*) replace_and_show_key);
 
@@ -228,6 +229,7 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 	messenger_show("INFO", "Se inserto el valor '%s' en el Storage", key_value->value);
 
 	operation_result = entry_table_insert(next_entry, key_value);
+	entry_table_status_add_kv(key_value,next_entry);
 
 	if(operation_result == 1) {
 		messenger_show("INFO", "Se proceso correctamente el SET de la clave %s en la entrada %d", key_value->key, next_entry);

@@ -7,7 +7,7 @@ void algorithms_exec(char algorithm_id, t_list* entry_table, key_value_t* key_va
 	switch (algorithm_id) {
 		case 'C':	algorithm_circular(entry_table, key_value, replaced_keys);	break;
 
-		case 'L':	/*TODO: Desarrollar algoritmo Least Recently Used*/			break;
+		case 'L':	algorithm_circular(entry_table, key_value, replaced_keys);	break;
 
 		case 'B':	/*TODO: Desarrollar algoritmo Biggest Space Used*/			break;
 

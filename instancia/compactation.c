@@ -8,6 +8,7 @@
 #include "compactation.h"
 #include "entry_table.h"
 #include "storage.h"
+#include "algorithms.h"
 
 int compactation_compact(){
 	t_list * key_value_list = list_create();
@@ -32,10 +33,12 @@ int compactation_compact(){
 		//list_add(key_value_list,key_value);
 
 		entry_table_delete(key_value);
+		entry_table_status_delete_kv(key_value);
 
 		next_entry = entry_table_next_entry(key_value);
 
 		entry_table_insert(next_entry,key_value);
+		entry_table_status_add_kv(key_value,next_entry);
 
 		storage_set(next_entry, value, size);
 
