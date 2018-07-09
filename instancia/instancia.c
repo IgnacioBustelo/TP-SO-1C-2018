@@ -537,13 +537,11 @@ void instance_thread_dump(void* args) {
 
 		messenger_show("INFO", "Ejecutando Dump en el instante %f", time_passed/10E6);
 
-		t_list* stored_keys = entry_table_get_key_list();
-
-		messenger_show("ERROR", "Falta implementar la funcion t_list* entry_table_get_key_list() que la tabla de entradas pueda devolver la lista de claves para meter el Dump!!");
+		/* t_list* stored_keys = entry_table_get_key_list();
 
 		list_iterate(stored_keys, (void*) _dump);
 
-		list_destroy_and_destroy_elements(stored_keys, free);
+		list_destroy(stored_keys); */
 
 		messenger_show("INFO", "Fin de ejecucion de Dump");
 

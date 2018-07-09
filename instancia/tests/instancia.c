@@ -30,7 +30,7 @@ void client_server_execute_server(int fd_client) {
 
 	free(received_name);
 
-	int i, et_initial_size = list_size(entry_table);
+	int i;
 
 	for(i = 1; i < key_amount; i++) {
 		coordinador_mock_check_request(fd_client);
