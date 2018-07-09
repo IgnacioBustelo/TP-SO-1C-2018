@@ -26,6 +26,41 @@ bool entry_table_insert(int next_entry, key_value_t* key_value)
 return false;
 }
 
+t_list* entry_table_get_key_list()
+{
+	t_list* key_values = list_create();
+	for(int i=0;i<list_size(entry_table);i++)
+	{
+		list_add(key_values,list_get(entry_table,i));
+	}
+	return key_values;
+}
+
+bool entry_table_has_key(char* key,bool is_new){
+	if(!is_new)
+	{
+		for (int i=0; i<list_size(entry_table);i++)
+		{
+			entry_t * entry = (entry_t*) list_get(entry_table,i);
+			if (!strcmp(key,entry->key))
+				return true;
+		}
+	}
+	return false;
+}
+
+void entry_table_key_value_destroy(entry_t * entry)
+{
+	free(entry->key);
+	free(entry);
+}
+
+void entry_table_destroy()
+{
+	list_destroy_and_destroy_elements(entry_table, (void*) entry_table_key_value_destroy);
+}
+
+
 bool ascending(void * a, void *b){
 	entry_t * e1 = (entry_t*)a;
 	entry_t * e2 = (entry_t*)b;
@@ -65,7 +100,34 @@ int entry_table_next_entry(key_value_t* key_value){
 	entry_t* e1;
 	entry_t* e2;
 
-    if(entry_table_have_entries(key_value))
+	 if (entry_table_get_entry(key_value->key)!=NULL )
+	    {
+	    	int extra_entries_needed=0;
+			if(key_value->size<=(entry_table_get_entry(key_value->key)->size))
+			{
+				return entry_table_get_entry(key_value->key)->number;
+			}
+			else
+			{
+				key_value_t* existing_kv = key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size);
+				extra_entries_needed = entries_needed - entry_table_entries_needed(existing_kv);
+				key_value_t * key_value_replaced = key_value_generator("X",entries_needed*get_entry_size());
+				if(entry_table_have_entries(key_value_replaced))
+				{
+					int i=0;
+					int number = entry_table_get_entry(key_value->key)->number;
+					while (entry_table_get_entry_by_entry_number(number+i)==NULL && i<extra_entries_needed)
+					{
+						i++;
+					}
+					if (i+1==extra_entries_needed)
+					{
+						return entry_table_get_entry(key_value->key)->number;
+					}
+				}
+			}
+	    }
+	else if(entry_table_have_entries(key_value))
     {
     	if (entry_table!=NULL )
     	{
