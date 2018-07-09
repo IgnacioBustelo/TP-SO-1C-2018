@@ -157,25 +157,12 @@ int	instance_handshake(storage_setup_t* setup, t_list** recoverable_keys) {
 int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 	int operation_result;
 
-//
-//	if(entry_table_get_entry(key_value->key)!=NULL)
-//	{
-//		if(key_value->size<=(entry_table_get_entry(key_value->key)->size))
-//				{
-//					entry_table_delete(key_value);
-//					entry_table_status_delete_kv(key_value);
-//					int next_entry = entry_table_next_entry(key_value);
-//					entry_table_insert(next_entry,key_value);
-//					entry_table_status_add_kv(key_value,next_entry);
-//				}
-//		else{
-//
-//		}
-//	}
+
+
 
 	if(!entry_table_have_entries(key_value) && new_value_fits(key_value) ) {
 
-		if(!entry_table_status_continuous_entries) {
+		if(!entry_table_status_continuous_entries(key_value)) {
 				messenger_show("INFO", "La Instancia tiene que compactar para ingresar la clave %s", key_value->key);
 
 				operation_result = instance_compact();
