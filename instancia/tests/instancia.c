@@ -37,7 +37,7 @@ void client_server_execute_server(int fd_client) {
 
 		coordinador_mock_check_response(fd_client);
 
-		coordinador_mock_set_request(fd_client, i <= et_initial_size, keys[i - 1], values[i]);
+		coordinador_mock_set_request(fd_client, false, keys[i - 1], values[i]);
 
 		coordinador_mock_set_response(fd_client);
 
