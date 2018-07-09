@@ -3,15 +3,15 @@
 #include "algorithms.h"
 #include "globals.h"
 
-void algorithms_exec(char algorithm_id, t_list* entry_table, key_value_t* key_value, t_list* replaced_keys) {
+int algorithms_exec(char algorithm_id, t_list* entry_table, key_value_t* key_value, t_list* replaced_keys) {
 	switch (algorithm_id) {
-		case 'C':	algorithm_circular(entry_table, key_value, replaced_keys);	break;
+		case 'C':	return algorithm_circular(entry_table, key_value, replaced_keys);	break;
 
-		case 'L':	algorithm_circular(entry_table, key_value, replaced_keys);	break;
+		case 'L':	return algorithm_lru(entry_table, key_value, replaced_keys);		break;
 
-		case 'B':	/*TODO: Desarrollar algoritmo Biggest Space Used*/			break;
+		case 'B':	return -1; /*TODO: Desarrollar algoritmo Biggest Space Used*/		break;
 
-		default:	/*TODO: Generar error*/										break;
+		default:	return -1; /*TODO: Generar error*/									break;
 	}
 }
 
