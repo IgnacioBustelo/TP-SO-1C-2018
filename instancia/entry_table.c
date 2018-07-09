@@ -26,6 +26,41 @@ bool entry_table_insert(int next_entry, key_value_t* key_value)
 return false;
 }
 
+t_list* entry_table_get_key_list()
+{
+	t_list* key_values = list_create();
+	for(int i=0;i<list_size(entry_table);i++)
+	{
+		list_add(key_values,list_get(entry_table,i));
+	}
+	return key_values;
+}
+
+bool entry_table_has_key(char* key,bool is_new){
+	if(!is_new)
+	{
+		for (int i=0; i<list_size(entry_table);i++)
+		{
+			entry_t * entry = (entry_t*) list_get(entry_table,i);
+			if (!strcmp(key,entry->key))
+				return true;
+		}
+	}
+	return false;
+}
+
+void entry_table_key_value_destroy(entry_t * entry)
+{
+	free(entry->key);
+	free(entry);
+}
+
+void entry_table_destroy()
+{
+	list_destroy_and_destroy_elements(entry_table,entry_table_key_value_destroy);
+}
+
+
 bool ascending(void * a, void *b){
 	entry_t * e1 = (entry_t*)a;
 	entry_t * e2 = (entry_t*)b;
