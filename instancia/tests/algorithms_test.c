@@ -64,30 +64,31 @@ int main(void)
 		entry_table_status_delete_kv(key_value);
 	}
 	key_value=key_value_generator("FF",20);
-	entry_table_insert(entry_table_next_entry(key_value),key_value);
-	entry_table_status_add_kv(key_value,entry_table_next_entry(key_value));
+	next_entry = entry_table_next_entry(key_value);
+	entry_table_insert(next_entry,key_value);
+	entry_table_status_add_kv(key_value,next_entry);
 	printf("Aplique algoritmo circular \n\n");
 	}
 
-//	list_destroy(replaced_key);
-//
-//	key_value=key_value_generator("AZ",10);
+
+
+	list_destroy(replaced_key);
+	key_value=key_value_generator("AZ",10);
 //	replaced_key = list_create();
-//
-//
-//	if (algorithm_lru(entry_table,key_value,replaced_key))
-//	{
-//		for(int i=0;i<list_size(replaced_key);i++)
-//		{
-//			key_value= key_value_generator(list_get(replaced_key,i),0);
-//			entry_table_delete(key_value);
-//			entry_table_status_delete_kv(key_value);
-//		}
-//	key_value=key_value_generator("AZ",10);
-//	entry_table_insert(entry_table_next_entry(key_value),key_value);
-//	entry_table_status_add_kv(key_value,entry_table_next_entry(key_value));
-//	printf("Aplique algoritmo circular \n\n");
-//		}
+	if (algorithm_lru(entry_table,key_value,replaced_key))
+	{
+		for(int i=0;i<list_size(replaced_key);i++)
+		{
+			key_value= key_value_generator(list_get(replaced_key,i),0);
+			entry_table_delete(key_value);
+			entry_table_status_delete_kv(key_value);
+		}
+	key_value=key_value_generator("AZ",10);
+	next_entry = entry_table_next_entry(key_value);
+	entry_table_insert(next_entry,key_value);
+	entry_table_status_add_kv(key_value,next_entry);
+	printf("Aplique algoritmo circular \n\n");
+		}
 
 
 

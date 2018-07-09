@@ -193,7 +193,7 @@ void entry_table_status_add_kv(key_value_t* key_value,int number){ // Reeveer lo
 			 int entries=(entry->size/get_entry_size());
 			 entry_entries = entry->size%get_entry_size()==0?entries:entries+1;
 			 int number_copy=number;
-			 while (entry_entries>=0)
+			 while (entry_entries>0)
 			 {
 				 list_replace(entry_table_status_global,number_copy,convert_entry_t_to_status_t(entry));
 				 entry_entries-=1;
