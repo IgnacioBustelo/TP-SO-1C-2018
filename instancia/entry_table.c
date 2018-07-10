@@ -19,16 +19,26 @@ bool entry_table_insert(int next_entry, key_value_t* key_value)
 	{
 		if(entry_table_get_entry_by_entry_number(next_entry)==NULL)
 		{
-		list_add(entry_table,(void *)new_entry);
-		entries_left-=entry_table_entries_needed(key_value);
-		list_sort(entry_table,ascending);
+			if (entry_table_get_entry(key_value->key)!=NULL)
+			{
+			entry_table_delete(key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size));
+			}
 
-		}else
-		{
-		entries_left += entry_table_entries_needed(key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size));
-		list_replace(entry_table,next_entry,new_entry);
-		entries_left -= entry_table_entries_needed(key_value);
+			list_add(entry_table,(void *)new_entry);
+			entries_left-=entry_table_entries_needed(key_value);
+			list_sort(entry_table,ascending);
+
+
 		}
+	else
+	{
+		if(next_entry==(entry_table_get_entry(key_value->key)->number))
+		{
+			entries_left += entry_table_entries_needed(key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size));
+			list_replace(entry_table,next_entry,new_entry);
+			entries_left -= entry_table_entries_needed(key_value);
+		}
+	}
 		return true;
 	}
 
@@ -110,44 +120,45 @@ int entry_table_next_entry(key_value_t* key_value){
 	entry_t* e2;
 
 	entry_t * entry_to_be_modified = entry_table_get_entry(key_value->key);
-	 if (entry_to_be_modified!=NULL )
-	    {
-	    	int extra_entries_needed=0;
-			if(key_value->size<=(entry_to_be_modified->size))
-			{
-				return entry_to_be_modified->number;
-			}
-			else
-			{
+	if (entry_to_be_modified!=NULL )
+	{
+		int extra_entries_needed=0;
+		if(key_value->size<=(entry_to_be_modified->size))
+		{
+			return entry_to_be_modified->number;
+		}
+		else
+		{
 
-				key_value_t* existing_kv = key_value_generator(entry_to_be_modified->key,entry_to_be_modified->size);
-				extra_entries_needed = entries_needed - entry_table_entries_needed(existing_kv);
-				key_value_t * key_value_replaced = key_value_generator("X",extra_entries_needed*get_entry_size());
-				if(entry_table_have_entries(key_value_replaced))
+			key_value_t* existing_kv = key_value_generator(entry_to_be_modified->key,entry_to_be_modified->size);
+			extra_entries_needed = entries_needed - entry_table_entries_needed(existing_kv);
+			key_value_t * key_value_replaced = key_value_generator("X",extra_entries_needed*get_entry_size());
+			if(extra_entries_needed<=entries_left)
+			{
+				int i=0;
+				int number = entry_table_get_entry(key_value->key)->number+entry_table_entries_needed(existing_kv);
+				while (entry_table_get_entry_by_entry_number(number+i)==NULL && i<extra_entries_needed)
 				{
+					i++;
+				}
+				if (i==extra_entries_needed)
+				{
+					return entry_table_get_entry(key_value->key)->number;
 
-					int i=0;
-					int number = entry_table_get_entry(key_value->key)->number+entry_table_entries_needed(existing_kv);
-					printf("\n %d \n", number);
-					while (entry_table_get_entry_by_entry_number(number+i)==NULL && i<extra_entries_needed)
-					{
-						i++;
-					}
-					if (i==extra_entries_needed)
-					{
-						return entry_table_get_entry(key_value->key)->number;
-					}
 				}
 			}
-	    }
-	else if(entry_table_have_entries(key_value))
+		}
+	}
+	 if(entry_table_have_entries(key_value) || entry_to_be_modified!=NULL)
     {
+
     	if (entry_table!=NULL )
     	{
     		if(entries_used==0)
     			return 0;
     		else
     		{
+
     			e1 = (entry_t*) list_get(entry_table,0);
 
     			if (e1->number>0)
@@ -203,7 +214,7 @@ entry_t * convert_key_value_t_to_entry_t(key_value_t * key_value){
 	return entry;
 }
 
-bool entry_table_delete(key_value_t * key_value)
+bool entry_table_delete(key_value_t * key_value)//TODO: GUARDA ACA DEBO BUSCAR EL TAMANIO A ELIMINAR DE LA ENTRIE
 {
 	for (int i=0; i<list_size(entry_table);i++)
 	{
