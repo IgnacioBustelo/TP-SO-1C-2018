@@ -27,8 +27,6 @@ int		instance_status(char* key, key_value_t** key_value);
 
 int		instance_recover(t_list* recoverable_keys);
 
-int		instance_compact();
-
 void	instance_thread_api(void* args);
 
 void	instance_thread_dump(void* args);

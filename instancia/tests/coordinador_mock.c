@@ -26,7 +26,6 @@ void coordinador_mock_handshake_receive_name(int fd_client, char** received_name
 	chunk_recv_variable(fd_client, (void**) received_name);
 
 	messenger_show("INFO", "Se recibio una solicitud de handshake de la instancia %s", *received_name);
-
 }
 
 void coordinador_mock_handshake_send_config(int fd_client, char* received_name, size_t total_entries, size_t entry_size, t_list* recoverable_keys) {
@@ -114,9 +113,18 @@ char* coordinador_mock_status_response(int fd_client, char* key) {
 
 	chunk_recv(fd_client, &header, sizeof(header));
 	chunk_recv(fd_client, &status_received, sizeof(status_received));
-	chunk_recv_variable(fd_client, (void**) &value);
 
-	messenger_show("INFO", "Se obtuvo el valor '%s' de la clave '%s' con estado '%s'", value, key, CI_STATUS(status_received));
+	if(status_received == STATUS_OK) {
+		chunk_recv_variable(fd_client, (void**) &value);
+
+		messenger_show("INFO", "Se obtuvo el valor '%s' de la clave '%s' con estado '%s'", value, key, CI_STATUS(status_received));
+	}
+
+	else {
+		value = string_duplicate("NULL");
+
+		messenger_show("INFO", "No se pudo obtener el valor de la clave '%s' dado que se recibio el estado '%s'", CI_STATUS(status_received), key);
+	}
 
 	return value;
 }

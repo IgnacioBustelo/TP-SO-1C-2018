@@ -48,5 +48,8 @@ void 		entry_table_status_add_kv(key_value_t* key_value,int number);
 
 void 		entry_table_status_delete_kv(key_value_t* key_value);
 
+bool		entry_table_status_continuous_entries(t_list* replaced_keys);
+
+int			entry_table_status_find_and_get_index(char * key);
 
 #endif

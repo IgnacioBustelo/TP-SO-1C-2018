@@ -244,8 +244,6 @@ void entry_table_status_add_kv(key_value_t* key_value,int number){ // TODO:FIJAR
 }
 
 void entry_table_status_delete_kv(key_value_t* key_value){
-	int entry_entries=0;
-
 	int i=0;
 	int deleted=0;
 	status_t* entry_status;

@@ -76,7 +76,7 @@ void entry_table_key_value_destroy(entry_t * entry)
 
 void entry_table_destroy()
 {
-	list_destroy_and_destroy_elements(entry_table,entry_table_key_value_destroy);
+	list_destroy_and_destroy_elements(entry_table, (void*) entry_table_key_value_destroy);
 }
 
 
