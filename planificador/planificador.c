@@ -56,6 +56,7 @@ t_list* g_esis_sexpecting_keys;
 t_list* g_esi_bursts;
 t_list* g_new_blocked_by_console_esis;
 t_list* g_new_killed_esis;
+t_list* g_last_unlocked_by_console_keys;
 
 t_list* g_new_queue;
 t_list* g_ready_queue;
@@ -244,6 +245,7 @@ int main(void) {
 
 						send_protocol_answer(fd, PROTOCOL_PC_KEY_BLOCKED_BY_EXECUTING_ESI);
 						log_info(logger, "La clave %s que fue solicitada fue bloqueada por el ESI en ejecución", last_key_inquired);
+						free(last_key_inquired);
 					}
 					else {
 
@@ -353,13 +355,16 @@ int main(void) {
 							free(key_to_unlock);
 						}
 
-						if (unlock_esi_by_console_flag >= 1) {
+						if (unlock_esi_by_console_flag == 1) {
 
-							int i;
-							for(i = unlock_esi_by_console_flag; i > 0 ;i--) {
+							void release_key(void* key) {
 
-								update_blocked_esi_queue(last_unlocked_key_by_console, &unlock_esi_by_console_flag, false);
+								update_blocked_esi_queue((char*)key, &unlock_esi_by_console_flag, false);
 							}
+
+							list_iterate(g_last_unlocked_by_console_keys, release_key);
+
+							list_clean(g_last_unlocked_by_console_keys);
 						}
 
 						if (new_esi_flag == 1) update_new_esi_queue(&new_esi_flag);
@@ -400,11 +405,14 @@ int main(void) {
 
 			if (unlock_esi_by_console_flag >= 1) {
 
-				int i;
-				for(i = unlock_esi_by_console_flag; i > 0 ;i--) {
+				void release_key(void* key) {
 
-					update_blocked_esi_queue(last_unlocked_key_by_console, &unlock_esi_by_console_flag, false);
+					update_blocked_esi_queue((char*)key, &unlock_esi_by_console_flag, false);
 				}
+
+				list_iterate(g_last_unlocked_by_console_keys, release_key);
+
+				list_clean(g_last_unlocked_by_console_keys);
 			}
 
 			if (new_esi_flag == 1 && !list_is_empty(g_new_queue)) update_new_esi_queue(&new_esi_flag);
@@ -461,6 +469,7 @@ void create_administrative_structures() {
 	g_finished_queue = list_create();
 	g_new_blocked_by_console_esis = list_create();
 	g_new_killed_esis = list_create();
+	g_last_unlocked_by_console_keys = list_create();
 
 	int i = 0;
 	while(setup.blocked_keys[i] != NULL) {
@@ -471,8 +480,6 @@ void create_administrative_structures() {
 }
 
 void destroy_administrative_structures() {
-
-	free(last_unlocked_key_by_console);
 
 	void destroy_key_blocker(void* key_blocker_) {
 
@@ -502,6 +509,11 @@ void destroy_administrative_structures() {
 		free((int*)esi_fd);
 	}
 
+	void destroy_key(void* key) {
+
+		free((char*)key);
+	}
+
 	list_destroy_and_destroy_elements(g_ready_queue, delete_int_node);
 	list_destroy_and_destroy_elements(g_execution_queue, delete_int_node);
 	list_destroy_and_destroy_elements(g_blocked_queue, delete_int_node);
@@ -510,6 +522,7 @@ void destroy_administrative_structures() {
 	list_destroy_and_destroy_elements(g_new_killed_esis, delete_int_node);
 
 	list_destroy_and_destroy_elements(g_new_blocked_by_console_esis, destroy_esi_sexpecting_key);
+	list_destroy_and_destroy_elements(g_last_unlocked_by_console_keys, destroy_key);
 }
 
 void put_new_esi_on_new_queue(int new_client_fd) {

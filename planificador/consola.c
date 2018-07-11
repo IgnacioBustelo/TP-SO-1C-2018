@@ -27,7 +27,8 @@ int scheduler_paused_flag;
 int block_esi_by_console_flag;
 int unlock_esi_by_console_flag;
 int killed_esi_flag;
-char* last_unlocked_key_by_console;
+
+t_list* g_last_unlocked_by_console_keys;
 t_list* g_new_killed_esis;
 t_list* g_esis_sexpecting_keys;
 t_list* g_new_blocked_by_console_esis;
@@ -99,7 +100,8 @@ static void lock_process(char **args)
 		int pfd = obtain_esi_fd_by_esi_pid(atoi(pid));
 
 		list_add(g_new_blocked_by_console_esis, (void*)create_esi_sexpecting_key(pfd, key));
-
+		free(key);
+		free(pid);
 	}
 	_lock_process(args[0], args[1]);
 }
@@ -108,8 +110,8 @@ static void unlock_process(char **args)
 {
 	void _unlock_process(char* key) {
 		printf("Desbloquear proceso ESI (clave = %s)\n", key);
-		unlock_esi_by_console_flag++;
-		last_unlocked_key_by_console = strdup(key);
+		unlock_esi_by_console_flag = 1;
+		list_add(g_last_unlocked_by_console_keys, (void*)key);
 	}
 
 	_unlock_process(args[0]);
@@ -141,6 +143,8 @@ static void kill_process(char **args)
 
 			list_add(g_new_killed_esis, (void*)pfd);
 		}
+
+		free(pid);
 	}
 	_kill_process(args[0]);
 }
