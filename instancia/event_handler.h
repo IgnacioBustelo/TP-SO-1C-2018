@@ -3,12 +3,10 @@
 
 #include <stdbool.h>
 
-bool instance_is_alive, instance_requires_dump;
+bool instance_is_alive;
 
 void event_handler_init();
 
 void event_handler_action(int signal);
-
-void event_handler_alarm(int time);
 
 #endif

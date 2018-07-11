@@ -32,6 +32,24 @@ char* messenger_bytes_to_string(void* data, size_t size) {
 	return chunk_string;
 }
 
+char* messenger_list_to_string(t_list* string_list) {
+	if(list_is_empty(string_list)) {
+		return string_duplicate("-");
+	}
+
+	char* csv_string_list = string_new();
+
+	int i, size = list_size(string_list) - 1;
+	for(i = 0; i < size; i++) {
+		string_append(&csv_string_list, (char*) list_get(string_list, i));
+		string_append(&csv_string_list, ", ");
+	}
+
+	string_append(&csv_string_list, (char*) list_get(string_list, i));
+
+	return csv_string_list;
+}
+
 int messenger_longest_string_length(int max_number) {
 	char* max_number_string = string_itoa(max_number);
 

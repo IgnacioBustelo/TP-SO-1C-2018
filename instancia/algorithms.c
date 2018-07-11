@@ -3,16 +3,15 @@
 #include "algorithms.h"
 #include "globals.h"
 
-
-void algorithms_exec(char algorithm_id, t_list* entry_table, key_value_t* key_value, t_list* replaced_keys) {
+int algorithms_exec(char algorithm_id, t_list* entry_table, key_value_t* key_value, t_list* replaced_keys) {
 	switch (algorithm_id) {
-		case 'C':	algorithm_circular(entry_table, key_value, replaced_keys);	break;
+		case 'C':	return algorithm_circular(entry_table, key_value, replaced_keys);	break;
 
-		case 'L':	/*TODO: Desarrollar algoritmo Least Recently Used*/			break;
+		case 'L':	return algorithm_lru(entry_table, key_value, replaced_keys);		break;
 
-		case 'B':	/*TODO: Desarrollar algoritmo Biggest Space Used*/			break;
+		case 'B':	return algorithm_bsu(entry_table, key_value, replaced_keys);		break;
 
-		default:	/*TODO: Generar error*/										break;
+		default:	return -1; /*TODO: Generar error*/									break;
 	}
 }
 
@@ -26,7 +25,7 @@ int algorithm_circular(t_list* entry_table,key_value_t* key_value,t_list* replac
 
 		int continous_atomic_and_free_entries=0;
 		int first_entry_of_continous_atomic_and_free_entries=-1;
-		t_list* entry_table_status = original_entry_table_migration_to_complete_one();
+		t_list* entry_table_status = original_entry_table_migration_to_entry_table_status();
 		status_t* status;
 		if (algorithm_circular_pointer>=list_size(entry_table_status))
 		{
@@ -81,46 +80,74 @@ int algorithm_circular(t_list* entry_table,key_value_t* key_value,t_list* replac
 bool smallest_reference(void * a, void *b){
 	status_t * e1 = (status_t*)a;
 	status_t * e2 = (status_t*)b;
-	return e1->last_referenced>e2->last_referenced?false:true;
+	return e1->last_referenced<e2->last_referenced?false:true;
+}
+
+bool biggest_size(void * a, void *b){
+	status_t * e1 = (status_t*)a;
+	status_t * e2 = (status_t*)b;
+	return e1->space_used>e2->space_used?false:true;
 }
 
 int algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys){
 	if(!entry_table_have_entries(key_value) && new_value_fits(key_value))
 	{
-
-		//int continous_atomic_and_free_entries=0; TODO: La vas a usar?
-		//int first_entry_of_continous_atomic_and_free_entries=-1; TODO: La vas a usar?
-		t_list* entry_table_status = original_entry_table_migration_to_complete_one();
+		t_list* entry_table_status = entry_table_status_global;
 		status_t* status;
+
 
 		t_list * copy_entry_table_status = list_create();
 
 		list_add_all(copy_entry_table_status,entry_table_status);
 		list_sort(copy_entry_table_status,smallest_reference);
 
-		int i=0;
 		int entries_neeeded = entry_table_entries_needed(key_value) - entries_left;
 
-		while(i+1<list_size(copy_entry_table_status) && entries_neeeded)
+		int i=0;
+		while(i<list_size(copy_entry_table_status) && entries_neeeded)
 		{
 			status = (status_t*)list_get(copy_entry_table_status,i);
-
-			if (status->status==ATOMIC && (status->last_referenced!=((status_t*)list_get(copy_entry_table_status,i+1))->last_referenced))
+			if (status->status==ATOMIC)
 			{
 				list_add(replaced_keys,status->key);
-				//Debo borrar de entry_table_status los entries que ya elegi. aparte entry_table_status debe ser global.
 				entries_neeeded--;
 			}
-			if (status->status==ATOMIC && (status->last_referenced==((status_t*)list_get(copy_entry_table_status,i+1))->last_referenced))
-			{
-			 //Debo borrar de entry_table_status los entries que ya elegi. aparte entry_table_status debe ser global.
-				key_value_t* fake_kv = key_value_create("WTF", "WTF"); // Te la inicializo para que no me tire warnings!!
-				fake_kv->size=entries_neeeded*get_entry_size();
-				algorithm_circular(entry_table,fake_kv,replaced_keys);
-			}
+			i++;
 		}
+	list_destroy(copy_entry_table_status);
+	return 1;
+	}
 
-	return 0;
+	else {
+		return -666; // TODO: Santi - Agregue esto porque no compila nada... Segui tu logica para el else de tu if.
+	}
+}
+
+int algorithm_bsu(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys){
+	if(!entry_table_have_entries(key_value) && new_value_fits(key_value))
+	{
+		t_list* entry_table_status = entry_table_status_global;
+		status_t* status;
+		t_list * copy_entry_table_status = list_create();
+
+		list_add_all(copy_entry_table_status,entry_table_status);
+		list_sort(copy_entry_table_status,biggest_size);
+
+		int entries_neeeded = entry_table_entries_needed(key_value) - entries_left;
+
+		int i=0;
+		while(i<list_size(copy_entry_table_status) && entries_neeeded)
+		{
+			status = (status_t*)list_get(copy_entry_table_status,i);
+			if (status->status==ATOMIC)
+			{
+				list_add(replaced_keys,status->key);
+				entries_neeeded--;
+			}
+			i++;
+		}
+	list_destroy(copy_entry_table_status);
+	return 1;
 	}
 
 	else {
@@ -133,7 +160,7 @@ bool new_value_fits(key_value_t* key_value)
 	return entries_left+entry_table_atomic_entries_count()>=entry_table_entries_needed(key_value);
 }
 
-t_list* original_entry_table_migration_to_complete_one()
+t_list* original_entry_table_migration_to_entry_table_status()
 {
 	t_list * entry_table_status = list_create();
 
@@ -142,8 +169,9 @@ t_list* original_entry_table_migration_to_complete_one()
 	int entry_entries=0;
 
 	status_t * status = malloc(sizeof(status_t));
+	status->last_referenced=0;
 	status->status=FREE;
-
+	status->space_used=0;
 	int i=0;
 	while(i<get_total_entries())
 	{
@@ -181,13 +209,125 @@ return entry_table_status;
 
 }
 
+void entry_table_status_init(){
+	entry_table_status_global = original_entry_table_migration_to_entry_table_status();
+}
+
+void entry_table_status_add_kv(key_value_t* key_value,int number){ // TODO:FIJARSE LOGICA DE COMO MODIFICAR SI YA EXISTE
+
+	entry_table_status_last_referenced_add_all();
+	entry_t * entry=convert_key_value_t_to_entry_t(key_value); // TODO: Esto esta causando leaks: liberar espacio cuando sea necesario
+	int entry_entries=0;
+
+	status_t * status = malloc(sizeof(status_t)); // TODO: Esto esta causando leaks: liberar espacio cuando sea necesario
+	status->status=FREE;
+	status->last_referenced=0;
+	status->space_used=0;
+
+		 if(entry_table_is_entry_atomic(entry))
+		 {
+			 list_replace(entry_table_status_global,number,convert_entry_t_to_status_t(entry));
+		 }
+		 else
+		 {
+			 int entries=(entry->size/get_entry_size());
+			 entry_entries = entry->size%get_entry_size()==0?entries:entries+1;
+			 int number_copy=number;
+			 while (entry_entries>0)
+			 {
+				 list_replace(entry_table_status_global,number_copy,convert_entry_t_to_status_t(entry));
+				 entry_entries-=1;
+				 number_copy++;
+			 }
+		 }
+
+}
+
+void entry_table_status_delete_kv(key_value_t* key_value){
+	int i=0;
+	int deleted=0;
+	status_t* entry_status;
+		while(i<get_total_entries() && deleted!=entry_table_entries_needed(key_value))
+		{
+			 entry_status = (status_t*)(list_get(entry_table_status_global,i));
+			if(!strcasecmp(entry_status->key,key_value->key))
+			{
+				entry_status->last_referenced=0;
+				free(entry_status->key);
+				entry_status->key=strdup("NULL");
+				entry_status->status=FREE;
+				entry_status->space_used=0;
+				deleted++;
+			}
+			i++;
+		}
+
+}
+
+bool entry_table_status_continuous_entries(t_list* replaced_keys)
+{
+	int i=0;
+	char* key;
+	int last_index=0;
+	while(i<list_size(replaced_keys))
+			{
+				key = (char*)(list_get(replaced_keys,i));
+				if (last_index==0)
+				{
+					last_index= entry_table_status_find_and_get_index(key);
+				}
+				else
+				{
+					if(entry_table_status_find_and_get_index(key)!=last_index+1)
+					{
+						return 0;
+					}
+					last_index=entry_table_status_find_and_get_index(key);
+				}
+
+			}
+	return 1;
+}
+
+int entry_table_status_find_and_get_index(char * key){
+	int i=0;
+	status_t* entry_status;
+	while(i<get_total_entries())
+				{
+					entry_status = (status_t*)(list_get(entry_table_status_global,i));
+					if (!strcasecmp(key,entry_status->key))
+					{
+						return i;
+					}
+					i++;
+				}
+	return -1;
+}
+
+void entry_table_status_last_referenced_add_all(){
+	int i=0;
+	status_t* status;
+	while(i<get_total_entries())
+			{
+				status=list_get(entry_table_status_global,i);
+				if(status->status!=FREE)
+					status->last_referenced++;
+				i++;
+			}
+}
+
 status_t * convert_entry_t_to_status_t(entry_t* entry){
 	status_t * status = malloc(sizeof(status_t));
 	status->key = strdup(entry->key);
-	if (entry_table_is_entry_atomic(entry))
-	status->status=ATOMIC;
-	else
+	status->last_referenced=0;
+	status->space_used=-1;
+	if (entry_table_is_entry_atomic(entry)){
+		status->status=ATOMIC;
+		status->space_used=entry->size;
+	}
+	else{
 	status->status=NON_ATOMIC;
+	}
 	return status;
 }
 
@@ -196,7 +336,6 @@ void entry_table_status_print_table(t_list* entry_table_status){
 	for (int i=0; i<list_size(entry_table_status);i++)
 		{
 		status_t * status=(status_t *) list_get(entry_table_status,i);
-		printf("Indice %d con estado %d y KEY %s \n",i,status->status,status->key);
+		printf("Indice %d con estado %d, KEY %s, Referenciado hace: %d y Ocupa bits: %d \n",i,status->status,status->key,status->last_referenced,status->space_used);
 		}
-
 }

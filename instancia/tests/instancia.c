@@ -1,28 +1,50 @@
 #include <commons/string.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 #include "../../libs/mocks/client_server.h"
+#include "../../libs/mocks/printfer.h"
+
 #include "../coordinator_api.h"
+#include "../dumper.h"
 #include "../instancia.h"
 #include "coordinador_mock.h"
+
+sem_t	handshake_sem;
 
 int		total_entries, entry_size, key_amount;
 char	**keys, **values;
 t_list	*recoverable_keys;
 
 void client_server_execute_server(int fd_client) {
+	char* received_name;
+
 	bool is_accepted = key_amount > 1;
 
-	coordinador_mock_handshake(fd_client, is_accepted, total_entries, entry_size, recoverable_keys);
+	coordinador_mock_handshake_base(fd_client, &is_accepted);
 
 	if(!is_accepted) {
 		pthread_exit(NULL);
 	}
 
-	int i;
+	coordinador_mock_handshake_receive_name(fd_client, &received_name);
+
+	coordinador_mock_handshake_send_config(fd_client, received_name, 16, 4, recoverable_keys);
+
+	free(received_name);
+
+	sem_wait(&handshake_sem);
+
+	int i, initial_mount_point_count = dumper_get_stored_keys_count();
+
+	messenger_show("INFO", "Hay %d claves persistidas en la Instancia", initial_mount_point_count);
 
 	for(i = 1; i < key_amount; i++) {
-		coordinador_mock_set_request(fd_client, i % 2 == 0, keys[i - 1], values[i]);
+		coordinador_mock_check_request(fd_client);
+
+		coordinador_mock_check_response(fd_client);
+
+		coordinador_mock_set_request(fd_client, i - 1 >= initial_mount_point_count, keys[i - 1], values[i]);
 
 		coordinador_mock_set_response(fd_client);
 
@@ -32,7 +54,7 @@ void client_server_execute_server(int fd_client) {
 
 		coordinador_mock_status_request(fd_client, keys[i - 1]);
 
-		coordinador_mock_status_response(fd_client, keys[i - 1]);
+		free(coordinador_mock_status_response(fd_client, keys[i - 1]));
 	}
 
 	coordinador_mock_kill(fd_client);
@@ -43,11 +65,9 @@ void client_server_execute_client(int fd_server) {
 
 	fd_coordinador = fd_server;
 
-	int status = instance_init("Instancia", "../instancia.log", "INFO", "../instancia.cfg");
+	instance_init("Instancia", "../instancia.log", "INFO", "../instancia.cfg");
 
-	if(status == INSTANCE_INIT_ERROR) {
-		pthread_exit(NULL);
-	}
+	sem_post(&handshake_sem);
 
 	instance_main();
 
@@ -55,6 +75,10 @@ void client_server_execute_client(int fd_server) {
 }
 
 int main(int argc, char* argv[]) {
+	sem_init(&handshake_sem, 0, 0);
+
+	printfer_set_levels(false, true);
+
 	server_name = "Coordinador";
 	client_name = "Instancia 1";
 
@@ -79,4 +103,6 @@ int main(int argc, char* argv[]) {
 	list_destroy_and_destroy_elements(recoverable_keys, free);
 
 	free(keys);
+
+	sem_destroy(&handshake_sem);
 }

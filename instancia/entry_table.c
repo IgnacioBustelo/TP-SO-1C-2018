@@ -2,6 +2,8 @@
 #include <stdio.h>
 
 #include "tests/utils.h"
+
+#include "algorithms.h"
 #include "entry_table.h"
 #include "globals.h"
 
@@ -17,14 +19,67 @@ bool entry_table_insert(int next_entry, key_value_t* key_value)
 	new_entry->number=next_entry;
 	if(next_entry>=0)
 	{
-		list_add(entry_table,(void *)new_entry);
-		entries_left-=entry_table_entries_needed(key_value);
-		list_sort(entry_table,ascending);
+		if(entry_table_get_entry_by_entry_number(next_entry)==NULL)
+		{
+			if (entry_table_get_entry(key_value->key)!=NULL)
+			{
+			entry_table_delete(key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size));
+			}
+
+			list_add(entry_table,(void *)new_entry);
+			entries_left-=entry_table_entries_needed(key_value);
+			list_sort(entry_table,ascending);
+
+
+		}
+	else
+	{
+		if(next_entry==(entry_table_get_entry(key_value->key)->number))
+		{
+			entries_left += entry_table_entries_needed(key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size));
+			list_replace(entry_table,next_entry,new_entry);
+			entries_left -= entry_table_entries_needed(key_value);
+		}
+	}
 		return true;
 	}
 
 return false;
 }
+
+t_list* entry_table_get_key_list()
+{
+	void* map(entry_t* entry) {
+		return (void*) strdup(entry->key);
+	}
+
+	return list_map(entry_table, (void*) map);
+}
+
+bool entry_table_has_key(char* key,bool is_new){
+	if(!is_new)
+	{
+		for (int i=0; i<list_size(entry_table);i++)
+		{
+			entry_t * entry = (entry_t*) list_get(entry_table,i);
+			if (!strcmp(key,entry->key))
+				return true;
+		}
+	}
+	return false;
+}
+
+void entry_table_key_value_destroy(entry_t * entry)
+{
+	free(entry->key);
+	free(entry);
+}
+
+void entry_table_destroy()
+{
+	list_destroy_and_destroy_elements(entry_table, (void*) entry_table_key_value_destroy);
+}
+
 
 bool ascending(void * a, void *b){
 	entry_t * e1 = (entry_t*)a;
@@ -65,14 +120,46 @@ int entry_table_next_entry(key_value_t* key_value){
 	entry_t* e1;
 	entry_t* e2;
 
-    if(entry_table_have_entries(key_value))
+	entry_t * entry_to_be_modified = entry_table_get_entry(key_value->key);
+	if (entry_to_be_modified!=NULL )
+	{
+		int extra_entries_needed=0;
+		if(key_value->size<=(entry_to_be_modified->size))
+		{
+			return entry_to_be_modified->number;
+		}
+		else
+		{
+
+			key_value_t* existing_kv = key_value_generator(entry_to_be_modified->key,entry_to_be_modified->size);
+			extra_entries_needed = entries_needed - entry_table_entries_needed(existing_kv);
+			// TODO: Lo vas a usar? -> key_value_t * key_value_replaced = key_value_generator("X",extra_entries_needed*get_entry_size());
+			if(extra_entries_needed<=entries_left)
+			{
+				int i=0;
+				int number = entry_table_get_entry(key_value->key)->number+entry_table_entries_needed(existing_kv);
+				while (entry_table_get_entry_by_entry_number(number+i)==NULL && i<extra_entries_needed)
+				{
+					i++;
+				}
+				if (i==extra_entries_needed)
+				{
+					return entry_table_get_entry(key_value->key)->number;
+
+				}
+			}
+		}
+	}
+	 if(entry_table_have_entries(key_value) || entry_to_be_modified!=NULL)
     {
+
     	if (entry_table!=NULL )
     	{
     		if(entries_used==0)
     			return 0;
     		else
     		{
+
     			e1 = (entry_t*) list_get(entry_table,0);
 
     			if (e1->number>0)
@@ -128,7 +215,7 @@ entry_t * convert_key_value_t_to_entry_t(key_value_t * key_value){
 	return entry;
 }
 
-bool entry_table_delete(key_value_t * key_value)
+bool entry_table_delete(key_value_t * key_value)//TODO: GUARDA ACA DEBO BUSCAR EL TAMANIO A ELIMINAR DE LA ENTRIE
 {
 	for (int i=0; i<list_size(entry_table);i++)
 	{
