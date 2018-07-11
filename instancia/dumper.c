@@ -116,12 +116,44 @@ int dumper_init(char* mount_point) {
 	return directory_exists;
 }
 
+t_list*	dumper_get_stored_keys() {
+	t_list* stored_keys = list_create();
+
+	DIR* mount_directory = opendir(dumper->mount_point);
+
+	struct dirent* current_file;
+
+	while((current_file = readdir(mount_directory)) != NULL) {
+		char* key = get_file_name_key_value(current_file->d_name);
+
+		if(key != NULL) {
+			list_add(stored_keys, string_duplicate(key));
+		}
+
+		free(key);
+	}
+
+	free(current_file);
+
+	closedir(mount_directory);
+
+	return stored_keys;
+}
+
+int dumper_get_stored_keys_count() {
+	t_list* stored_keys = dumper_get_stored_keys();
+
+	int count = list_size(stored_keys);
+
+	list_destroy_and_destroy_elements(stored_keys, free);
+
+	return count;
+}
+
 void dumper_store(char* key, void* data, size_t size) {
 	int fd_key = dictionary_has_key(dumper->file_dictionary, key) ? (int) dictionary_get(dumper->file_dictionary, key) : dumper_create_key_value(key);
 
 	ftruncate(fd_key, size);
-
-	// TODO: Podria poner este mmap en el dictionary e inicializarlo cuando se añade la clave, y munmapearlo cuando se elimina
 
 	void* mapped_memory = mmap(NULL, size, PROT_WRITE | PROT_READ | PROT_EXEC, MAP_SHARED, fd_key, 0);
 

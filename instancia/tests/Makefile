@@ -20,7 +20,7 @@ api:				DEPS += $(COORDINADOR_DEPS)
 
 cfg:				DEPS += ../cfg_instancia.h ../../libs/configurator.h ../../libs/mocks/default_color.h
 
-compact:			DEPS += ../compactation.h ../entry_table.h ../globals.h ../storage.h ../../libs/mocks/default_color.h utils.h
+compact:			DEPS += ../algorithms.h ../compactation.h ../entry_table.h ../globals.h ../storage.h ../../libs/mocks/default_color.h utils.h
 
 die:				DEPS += ../event_handler.h ../../libs/mocks/color.h
 

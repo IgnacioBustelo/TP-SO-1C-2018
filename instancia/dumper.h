@@ -18,6 +18,10 @@ int		dumper_create_key_value(char* key);
 
 void	dumper_remove_key_value(char* key);
 
+t_list*	dumper_get_stored_keys();
+
+int		dumper_get_stored_keys_count();
+
 void	dumper_store(char* key, void* data, size_t size);
 
 t_list*	dumper_recover(t_list* keys);

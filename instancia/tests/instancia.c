@@ -6,8 +6,11 @@
 #include "../../libs/mocks/printfer.h"
 
 #include "../coordinator_api.h"
+#include "../dumper.h"
 #include "../instancia.h"
 #include "coordinador_mock.h"
+
+sem_t	handshake_sem;
 
 int		total_entries, entry_size, key_amount;
 char	**keys, **values;
@@ -30,14 +33,16 @@ void client_server_execute_server(int fd_client) {
 
 	free(received_name);
 
-	int i;
+	sem_wait(&handshake_sem);
+
+	int i, initial_mount_point_count = dumper_get_stored_keys_count();
 
 	for(i = 1; i < key_amount; i++) {
 		coordinador_mock_check_request(fd_client);
 
 		coordinador_mock_check_response(fd_client);
 
-		coordinador_mock_set_request(fd_client, false, keys[i - 1], values[i]);
+		coordinador_mock_set_request(fd_client, i < initial_mount_point_count, keys[i - 1], values[i]);
 
 		coordinador_mock_set_response(fd_client);
 
@@ -60,12 +65,16 @@ void client_server_execute_client(int fd_server) {
 
 	instance_init("Instancia", "../instancia.log", "INFO", "../instancia.cfg");
 
+	sem_post(&handshake_sem);
+
 	instance_main();
 
 	instance_die();
 }
 
 int main(int argc, char* argv[]) {
+	sem_init(&handshake_sem, 0, 0);
+
 	printfer_set_levels(false, true);
 
 	server_name = "Coordinador";
@@ -92,4 +101,6 @@ int main(int argc, char* argv[]) {
 	list_destroy_and_destroy_elements(recoverable_keys, free);
 
 	free(keys);
+
+	sem_destroy(&handshake_sem);
 }

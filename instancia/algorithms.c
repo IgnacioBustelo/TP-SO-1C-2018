@@ -9,7 +9,7 @@ int algorithms_exec(char algorithm_id, t_list* entry_table, key_value_t* key_val
 
 		case 'L':	return algorithm_lru(entry_table, key_value, replaced_keys);		break;
 
-		case 'B':	return algorithm_bsu(entry_table, key_value, replaced_keys);	break;
+		case 'B':	return algorithm_bsu(entry_table, key_value, replaced_keys);		break;
 
 		default:	return -1; /*TODO: Generar error*/									break;
 	}

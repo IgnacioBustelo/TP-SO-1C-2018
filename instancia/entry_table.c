@@ -2,6 +2,8 @@
 #include <stdio.h>
 
 #include "tests/utils.h"
+
+#include "algorithms.h"
 #include "entry_table.h"
 #include "globals.h"
 
@@ -132,7 +134,7 @@ int entry_table_next_entry(key_value_t* key_value){
 
 			key_value_t* existing_kv = key_value_generator(entry_to_be_modified->key,entry_to_be_modified->size);
 			extra_entries_needed = entries_needed - entry_table_entries_needed(existing_kv);
-			key_value_t * key_value_replaced = key_value_generator("X",extra_entries_needed*get_entry_size());
+			// TODO: Lo vas a usar? -> key_value_t * key_value_replaced = key_value_generator("X",extra_entries_needed*get_entry_size());
 			if(extra_entries_needed<=entries_left)
 			{
 				int i=0;
