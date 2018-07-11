@@ -13,7 +13,7 @@
 #include "dumper.h"
 #include "globals.h"
 
-static size_t get_stored_value(int key_fd, void** value) {
+static size_t _get_stored_value(int key_fd, void** value) {
 	struct stat key_fd_stat;
 
 	fstat(key_fd, &key_fd_stat);
@@ -29,13 +29,13 @@ static size_t get_stored_value(int key_fd, void** value) {
 	return value_size;
 }
 
-static char* get_key_value_file_name(char* key) {
+static char* _get_key_value_file_name(char* key) {
 	char* file_name = string_from_format("%s%s.txt", dumper->mount_point, key);
 
 	return file_name;
 }
 
-static char* get_file_name_key_value(char* file_name) {
+static char* _get_file_name_key_value(char* file_name) {
 	if(!string_contains(file_name, ".txt")) {
 		return string_new();
 	}
@@ -45,12 +45,12 @@ static char* get_file_name_key_value(char* file_name) {
 	return string_substring_until(file_name, length);
 }
 
-static key_value_t* recover_key_value(char* key) {
+static key_value_t* _recover_key_value(char* key) {
 	void* data;
 
 	int fd_key = dumper_create_key_value(key);
 
-	size_t data_size = get_stored_value(fd_key, &data);
+	size_t data_size = _get_stored_value(fd_key, &data);
 
 	char* data_string = messenger_bytes_to_string(data, data_size);
 
@@ -63,20 +63,8 @@ static key_value_t* recover_key_value(char* key) {
 	return recovered_key_value;
 }
 
-static bool is_recoverable(char* recovered_key, t_list* keys) {
-	bool key_equals(void* key) {
-		return string_equals_ignore_case(recovered_key, (char*) key);
-	}
-
-	bool is_valid_file_name = !string_equals_ignore_case(recovered_key, ".") && !string_equals_ignore_case(recovered_key, "..");
-
-	bool is_in_keys = list_any_satisfy(keys, (void*) key_equals);
-
-	return is_valid_file_name && is_in_keys;
-}
-
 int dumper_create_key_value(char* key) {
-	char* file_name = get_key_value_file_name(key);
+	char* file_name = _get_key_value_file_name(key);
 
 	int key_fd = open(file_name, O_RDWR | O_CREAT, S_IRWXU);
 
@@ -92,7 +80,7 @@ void dumper_remove_key_value(char* key) {
 
 	close(key_fd);
 
-	char* file_name = get_key_value_file_name(key);
+	char* file_name = _get_key_value_file_name(key);
 
 	remove(file_name);
 
@@ -124,9 +112,9 @@ t_list*	dumper_get_stored_keys() {
 	struct dirent* current_file;
 
 	while((current_file = readdir(mount_directory)) != NULL) {
-		char* key = get_file_name_key_value(current_file->d_name);
+		char* key = _get_file_name_key_value(current_file->d_name);
 
-		if(key != NULL) {
+		if(!string_is_empty(key)) {
 			list_add(stored_keys, string_duplicate(key));
 		}
 
@@ -163,27 +151,23 @@ void dumper_store(char* key, void* data, size_t size) {
 }
 
 t_list* dumper_recover(t_list* keys) {
-	t_list* recovered_key_values = list_create();
+	t_list* recovered_key_values = list_create(), *stored_keys = dumper_get_stored_keys();
 
-	DIR* mount_directory = opendir(dumper->mount_point);
+	void _recover(void* key) {
+		bool _exists(void* stored_key) {
+			return string_equals_ignore_case((char*) key, (char*) stored_key);
+		}
 
-	struct dirent* current_file;
-
-	while((current_file = readdir(mount_directory)) != NULL) {
-		char* recovered_key = get_file_name_key_value(current_file->d_name);
-
-		if (is_recoverable(recovered_key, keys)) {
-			key_value_t* recovered_key_value = recover_key_value(recovered_key);
+		if(list_any_satisfy(stored_keys, (void*) _exists)) {
+			key_value_t* recovered_key_value = _recover_key_value((char*) key);
 
 			list_add(recovered_key_values, (void*) recovered_key_value);
 		}
-
-		free(recovered_key);
 	}
 
-	free(current_file);
+	list_iterate(keys, (void*) _recover);
 
-	closedir(mount_directory);
+	list_destroy_and_destroy_elements(stored_keys, free);
 
 	return recovered_key_values;
 }
@@ -192,7 +176,7 @@ void dumper_show() {
 	void fd_show(char* key, void* value) {
 		void* content;
 
-		size_t content_size = get_stored_value((int) value, &content);
+		size_t content_size = _get_stored_value((int) value, &content);
 
 		char* content_string = messenger_bytes_to_string(content, content_size);
 

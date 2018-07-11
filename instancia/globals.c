@@ -18,7 +18,7 @@ key_value_t* key_value_create(char* key, char* value) {
 
 	key_value->key = string_substring_until(key, 40);
 	key_value->value = string_duplicate(value);
-	key_value->size = (size_t) (string_length(value) + 1);
+	key_value->size = (size_t) (string_length(value));
 
 	return key_value;
 }

@@ -40,6 +40,8 @@ int main()
 
 		printf("\n %d \n",entries_left);
 		entry_table_print_table(); //X,Y
+
+		entry_table_destroy();
 }
 
 

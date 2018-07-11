@@ -37,12 +37,14 @@ void client_server_execute_server(int fd_client) {
 
 	int i, initial_mount_point_count = dumper_get_stored_keys_count();
 
+	messenger_show("INFO", "Hay %d claves persistidas en la Instancia", initial_mount_point_count);
+
 	for(i = 1; i < key_amount; i++) {
 		coordinador_mock_check_request(fd_client);
 
 		coordinador_mock_check_response(fd_client);
 
-		coordinador_mock_set_request(fd_client, i < initial_mount_point_count, keys[i - 1], values[i]);
+		coordinador_mock_set_request(fd_client, i - 1 >= initial_mount_point_count, keys[i - 1], values[i]);
 
 		coordinador_mock_set_response(fd_client);
 

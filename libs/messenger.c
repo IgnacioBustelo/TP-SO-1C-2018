@@ -33,6 +33,10 @@ char* messenger_bytes_to_string(void* data, size_t size) {
 }
 
 char* messenger_list_to_string(t_list* string_list) {
+	if(list_is_empty(string_list)) {
+		return string_duplicate("-");
+	}
+
 	char* csv_string_list = string_new();
 
 	int i, size = list_size(string_list) - 1;

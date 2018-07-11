@@ -216,10 +216,10 @@ void entry_table_status_init(){
 void entry_table_status_add_kv(key_value_t* key_value,int number){ // TODO:FIJARSE LOGICA DE COMO MODIFICAR SI YA EXISTE
 
 	entry_table_status_last_referenced_add_all();
-	entry_t * entry=convert_key_value_t_to_entry_t(key_value);
+	entry_t * entry=convert_key_value_t_to_entry_t(key_value); // TODO: Esto esta causando leaks: liberar espacio cuando sea necesario
 	int entry_entries=0;
 
-	status_t * status = malloc(sizeof(status_t));
+	status_t * status = malloc(sizeof(status_t)); // TODO: Esto esta causando leaks: liberar espacio cuando sea necesario
 	status->status=FREE;
 	status->last_referenced=0;
 	status->space_used=0;

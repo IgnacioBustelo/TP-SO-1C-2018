@@ -49,12 +49,11 @@ return false;
 
 t_list* entry_table_get_key_list()
 {
-	t_list* key_values = list_create();
-	for(int i=0;i<list_size(entry_table);i++)
-	{
-		list_add(key_values,list_get(entry_table,i));
+	void* map(entry_t* entry) {
+		return (void*) strdup(entry->key);
 	}
-	return key_values;
+
+	return list_map(entry_table, (void*) map);
 }
 
 bool entry_table_has_key(char* key,bool is_new){

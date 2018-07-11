@@ -201,7 +201,7 @@ int	coordinator_api_notify_key_value(key_value_t* key_value, int op_result) {
 
 	chunk_add(chunk, &header, sizeof(header));
 	chunk_add(chunk, &op_result, sizeof(op_result));
-	chunk_add_variable(chunk, key_value->value, key_value->size);
+	chunk_add_variable(chunk, key_value->value, key_value->size + 1);
 
 	messenger_show("DEBUG", "Envio del header %s con el resultado de operacion %s y el valor '%s' de la clave '%s'", I_HEADER(header), CI_STATUS(op_result), key_value->value, key_value->key);
 

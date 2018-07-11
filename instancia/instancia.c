@@ -107,18 +107,8 @@ void instance_init(char* process_name, char* logger_route, char* log_level, char
 	messenger_show("INFO", "Inicio de la Tabla De Entradas");
 
 	algorithm_circular_set_pointer(0);
-
-	if(!list_is_empty(recoverable_keys)) {
-		instance_recover(recoverable_keys);
-
-		t_list* entry_table_get_key_list();
-
-		messenger_show("ERROR", "Falta la funcion t_list* entry_table_get_key_list() para obtener las claves que solicito el Coordinador que fueron recuperadas");
-	}
-
-	else {
-		messenger_show("INFO", "No fue necesario recuperar claves");
-	}
+	
+	instance_recover(recoverable_keys);
 
 	messenger_show("INFO", "La Instancia se inicio correctamente");
 
@@ -160,13 +150,14 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 	if(!entry_table_have_entries(key_value) && new_value_fits(key_value) ) {
 
 		if(!entry_table_status_continuous_entries(replaced_keys)) {
-				messenger_show("INFO", "La Instancia tiene que compactar para ingresar la clave %s", key_value->key);
+			messenger_show("INFO", "La Instancia tiene que compactar para ingresar la clave %s", key_value->key);
 
-				operation_result = compactation_compact();
-			}
+			operation_result = compactation_compact();
+		}
 
 		void replace_and_show_key(void* key) {
 			dumper_remove_key_value((char*) key);
+
 			messenger_show("WARNING", "La clave %s fue reemplazada por %s", (char*) key, key_value->key);
 		}
 
@@ -213,6 +204,7 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 	messenger_show("INFO", "Se inserto el valor '%s' en el Storage", key_value->value);
 
 	operation_result = entry_table_insert(next_entry, key_value);
+
 	entry_table_status_add_kv(key_value,next_entry);
 
 	if(operation_result == 1) {
@@ -289,21 +281,31 @@ int	instance_recover(t_list* recoverable_keys) {
 
 	messenger_show("INFO", "Es necesario recuperar %d claves", list_size(recoverable_keys));
 
-	t_list *recovered_keys = dumper_recover(recoverable_keys);
+	t_list* recovered_key_values = dumper_recover(recoverable_keys);
 
-	if(list_size(recovered_keys) < list_size(recoverable_keys)) {
-		messenger_show("WARNING", "Solo se pudieron recuperar %d claves de %d pedidas", list_size(recovered_keys), list_size(recoverable_keys));
+	if(list_size(recovered_key_values) < list_size(recoverable_keys)) {
+		messenger_show("WARNING", "Solo se pueden recuperar %d claves de %d pedidas", list_size(recovered_key_values), list_size(recoverable_keys));
 	}
 
 	else {
-		messenger_show("INFO", "Se pudieron recuperar todas las claves solicitadas");
+		messenger_show("INFO", "Se puden recuperar todas las claves solicitadas");
 	}
 
-	list_iterate(recovered_keys, (void*) recovered_key_value_set);
+	list_iterate(recovered_key_values, (void*) recovered_key_value_set);
+
+	t_list* recovered_keys = entry_table_get_key_list();
+	
+	char* recovered_keys_csv = messenger_list_to_string(recovered_keys);
+
+	messenger_show("INFO", "Se recuperaron las claves [%s]", recovered_keys_csv);
+
+	free(recovered_keys_csv);
+
+	list_destroy(recovered_keys);
 
 	list_destroy_and_destroy_elements(replaced_keys, free);
 
-	list_destroy_and_destroy_elements(recovered_keys, (void*) key_value_destroy);
+	list_destroy_and_destroy_elements(recovered_key_values, (void*) key_value_destroy);
 
 	messenger_show("INFO", "Fin de la recuperacion de la Instancia");
 
@@ -537,11 +539,17 @@ void instance_thread_dump(void* args) {
 
 		messenger_show("INFO", "Ejecutando Dump en el instante %f", time_passed/10E6);
 
-		/* t_list* stored_keys = entry_table_get_key_list();
+		t_list* stored_keys = entry_table_get_key_list();
 
 		list_iterate(stored_keys, (void*) _dump);
 
-		list_destroy(stored_keys); */
+		char* stored_keys_csv = messenger_list_to_string(stored_keys);
+
+		messenger_show("INFO", "Se dumpeo el valor de las claves [%s]", stored_keys_csv);
+
+		free(stored_keys_csv);
+
+		list_destroy(stored_keys);
 
 		messenger_show("INFO", "Fin de ejecucion de Dump");
 
