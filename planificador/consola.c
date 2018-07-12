@@ -111,7 +111,8 @@ static void unlock_process(char **args)
 	void _unlock_process(char* key) {
 		printf("Desbloquear proceso ESI (clave = %s)\n", key);
 		unlock_esi_by_console_flag = 1;
-		list_add(g_last_unlocked_by_console_keys, (void*)key);
+		char* key_ = strdup(key);
+		list_add(g_last_unlocked_by_console_keys, (void*)key_);
 	}
 
 	_unlock_process(args[0]);
@@ -320,14 +321,12 @@ void detect_and_show_all_deadlocks(t_list* locked_keys, t_list* esi_requests, t_
 
 				if(esi_sexpecting == NULL) return false;
 
-				bool esi_owner(void* esi_blocker) {
+				bool has_asked_key_and_it_is_the_first_one(void* esi_blocker) {
 
-					return ((key_blocker*)esi_blocker)->esi_id == first_esi;
+					return ((key_blocker*)esi_blocker)->esi_id == first_esi && strcmp(esi_sexpecting->key, ((key_blocker*)esi_blocker)->key) == 0;
 				}
 
-				key_blocker* esi_blocker = list_find(locked_keys, esi_owner);
-
-				return strcmp(esi_sexpecting->key, esi_blocker->key) == 0;
+				return list_any_satisfy(locked_keys, has_asked_key_and_it_is_the_first_one);
 			}
 
 			list_add(current_esi_cycle, (void*)create_esi(esi_id));

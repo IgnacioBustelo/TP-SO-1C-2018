@@ -403,7 +403,7 @@ int main(void) {
 				free(key_to_unlock);
 			}
 
-			if (unlock_esi_by_console_flag >= 1) {
+			if (unlock_esi_by_console_flag == 1) {
 
 				void release_key(void* key) {
 
