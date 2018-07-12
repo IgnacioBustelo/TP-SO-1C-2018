@@ -11,8 +11,7 @@
 
 sem_t	test_sem, handshake_sem;
 
-bool	is_testing;
-int		total_entries, entry_size, fd_instancia;
+int		chosen_test, total_entries, entry_size, fd_instancia;
 char*	current_cfg;
 
 static void handshake(t_list* recoverable_keys) {
@@ -60,6 +59,8 @@ static void test_template_full(char* test_message, char* cfg, t_list* recoverabl
 
 	test();
 
+	coordinador_mock_kill(fd_instancia);
+
 	messenger_show("INFO", "%sFin de la prueba: '%s'%s", COLOR_MAGENTA, test_message, COLOR_RESET);
 
 	list_destroy_and_destroy_elements(recoverable_keys, free);
@@ -72,11 +73,13 @@ static void test_template(char* test_message, char* cfg, void(*test)(void)) {
 }
 
 static void test_1() {
-	set("A", "XXX", true);
+	set("A", "WWW", true);
 
-	set("B", "YYYYY", true);
+	set("B", "XXXXX", true);
 
-	set("C", "ZZZZ", true);
+	set("C", "YYYY", true);
+
+	set("D", "ZZZZZZZZZZZZZZZZ", true);
 
 	store("A");
 
@@ -84,17 +87,57 @@ static void test_1() {
 
 	status("A");
 
-	status("B");
+	status("D");
+}
+
+static void test_2() {
+	set("A", "AAAAAAAAAA", true);
+
+	instance_show();
+
+	set("B", "BBBBBB", true);
+
+	instance_show();
+
+	set("A", "CCCCCCCCCC", false);
+
+	instance_show();
+
+	set("A", "DDD", false);
+
+	instance_show();
+
+	set("A", "EEEEEE", false);
+
+	instance_show();
+
+	set("C", "F", true);
+
+	instance_show();
+
+	set("A", "EEEEEE", false);
+
+	instance_show();
+
+	set("A", "GGGGGGGG", false);
+
+	instance_show();
+
+	set("A", "HHHHHHHHH", false);
+
+	instance_show();
 }
 
 void client_server_execute_server(int fd_client) {
 	fd_instancia = fd_client;
 
-	test_template("Prueba simple de SET, STORE, y STATUS", "test_1", test_1);
+	switch(chosen_test) {
+		case 1: test_template("Test 1: Prueba simple de SET, STORE, y STATUS", "test_1", test_1);			break;
 
-	is_testing = false;
+		case 2: test_template("Test 2: Prueba de multiples SET sobre la misma clave", "test_2", test_2);	break;
 
-	coordinador_mock_kill(fd_instancia);
+		default: messenger_show("ERROR", "Test desconocido");												break;
+	}
 }
 
 void client_server_execute_client(int fd_server) {
@@ -102,22 +145,20 @@ void client_server_execute_client(int fd_server) {
 
 	fd_coordinador = fd_server;
 
-	while(is_testing) {
-		char* cfg_path = string_from_format("final_tests_cfg/%s.cfg", current_cfg);
+	char* cfg_path = string_from_format("final_tests_cfg/%s.cfg", current_cfg);
 
-		instance_init("Instancia", "../instancia.log", "INFO", cfg_path);
+	instance_init("Instancia", "../instancia.log", "INFO", cfg_path);
 
-		sem_post(&handshake_sem);
+	sem_post(&handshake_sem);
 
-		instance_main();
+	instance_main();
 
-		instance_die();
+	instance_die();
 
-		free(cfg_path);
-	}
+	free(cfg_path);
 }
 
-int main() {
+int main(int argc, char* argv[]) {
 	sem_init(&test_sem, 0, 0);
 	sem_init(&handshake_sem, 0, 0);
 
@@ -127,7 +168,7 @@ int main() {
 	total_entries = 8;
 	entry_size = 4;
 
-	is_testing = true;
+	chosen_test = (argc == 2) ? atoi(argv[1]) : 0;
 
 	client_server_run();
 
