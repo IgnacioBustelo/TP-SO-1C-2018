@@ -39,23 +39,23 @@ int main()
 //		entry_table_destroy();
 
 //		//Caso b
-//		key_value_t* key_value=key_value_generator("X",9);
+//		key_value_t* key_value=key_value_generator("X",10);
 //				int next_entry = entry_table_next_entry(key_value);
 //				entry_table_insert(next_entry,key_value);
 //
-//				key_value=key_value_generator("Y",29);
+//				key_value=key_value_generator("Y",30);
 //				next_entry = entry_table_next_entry(key_value);
 //				entry_table_insert(next_entry,key_value);
 //
-//				key_value=key_value_generator("Z",9);
+//				key_value=key_value_generator("Z",10);
 //				next_entry = entry_table_next_entry(key_value);
 //				entry_table_insert(next_entry,key_value);
-//
-//				key_value=key_value_generator("Y",29);
+//////
+//				key_value=key_value_generator("Y",30);
 //				entry_table_delete(key_value);
 //
 //
-//				key_value=key_value_generator("X",39);
+//				key_value=key_value_generator("X",40);
 //				next_entry = entry_table_next_entry(key_value);
 //				entry_table_insert(next_entry,key_value);
 //
@@ -65,26 +65,26 @@ int main()
 //
 //				entry_table_destroy();
 
-		//Caso c
-		key_value_t* key_value=key_value_generator("X",9);
+//		//Caso c
+		key_value_t* key_value=key_value_generator("X",10);
 				int next_entry = entry_table_next_entry(key_value);
 				entry_table_insert(next_entry,key_value);
 				entry_table_status_add_kv(key_value,next_entry);
 
 
-				key_value=key_value_generator("Y",9);
+				key_value=key_value_generator("Y",10);
 				next_entry = entry_table_next_entry(key_value);
 				entry_table_insert(next_entry,key_value);
 				entry_table_status_add_kv(key_value,next_entry);
 
 
-				key_value=key_value_generator("Z",29);
+				key_value=key_value_generator("Z",30);
 				next_entry = entry_table_next_entry(key_value);
 				entry_table_insert(next_entry,key_value);
 				entry_table_status_add_kv(key_value,next_entry);
 
 
-				key_value=key_value_generator("Z",29);
+				key_value=key_value_generator("Z",30);
 				entry_table_delete(key_value);
 				entry_table_status_delete_kv(key_value);
 
@@ -93,10 +93,10 @@ int main()
 				entry_table_insert(next_entry,key_value);
 				entry_table_status_add_kv(key_value,next_entry);
 
-//				key_value=key_value_generator("A",9);
-//				next_entry = entry_table_next_entry(key_value);
-//				entry_table_insert(next_entry,key_value);
-//				entry_table_status_add_kv(key_value,next_entry);
+				key_value=key_value_generator("A",10);
+				next_entry = entry_table_next_entry(key_value);
+				entry_table_insert(next_entry,key_value);
+				entry_table_status_add_kv(key_value,next_entry);
 
 
 				printf("\n %d \n",entries_left);
