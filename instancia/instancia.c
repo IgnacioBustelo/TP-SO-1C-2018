@@ -50,7 +50,7 @@ void _dump(void* key) {
 	dumper_store(key, data, entry->size);
 }
 
-void instance_init(char* process_name, char* logger_route, char* log_level, char* cfg_route) {
+int instance_init(char* process_name, char* logger_route, char* log_level, char* cfg_route) {
 	int status;
 
 	storage_setup_t	setup;
@@ -79,13 +79,13 @@ void instance_init(char* process_name, char* logger_route, char* log_level, char
 			}
 		}
 
-		messenger_show("ERROR", "No se pudo conectar la Instancia al Coordinador");
+		messenger_show("ERROR", "No se pudo conectar al Coordinador");
 
 		configurator_destroy();
 
 		messenger_destroy();
 
-		exit(EXIT_FAILURE);
+		return INSTANCE_INIT_ERROR;
 	}
 
 	messenger_show("INFO", "Ejecucion correcta del Handshake con el Coordinador en la IP %s en el puerto %d", IP, HOST);
@@ -117,6 +117,8 @@ void instance_init(char* process_name, char* logger_route, char* log_level, char
 	instance_show();
 
 	list_destroy_and_destroy_elements(recoverable_keys, free);
+
+	return INSTANCE_INIT_SUCCESS;
 }
 
 int	instance_handshake(storage_setup_t* setup, t_list** recoverable_keys) {
@@ -543,7 +545,7 @@ void instance_thread_dump(void* args) {
 
 		pthread_mutex_lock(&instance_mutex);
 
-		messenger_show("INFO", "Ejecutando Dump en el instante %f", time_passed/10E6);
+		messenger_show("INFO", "Ejecutando Dump en el instante %f ms", time_passed);
 
 		t_list* stored_keys = entry_table_get_key_list();
 
