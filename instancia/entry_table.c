@@ -25,7 +25,9 @@ bool entry_table_insert(int next_entry, key_value_t* key_value)
 		{
 			if (entry_table_get_entry(key_value->key)!=NULL)
 			{
-			entry_table_delete(key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size));
+			key_value_t* kv_old = key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size);
+			entry_table_delete(kv_old);
+			entry_table_status_delete_kv(kv_old);
 			}
 
 			list_add(entry_table,(void *)new_entry);
@@ -177,17 +179,17 @@ int entry_table_next_entry(key_value_t* key_value){
 					e1 = (entry_t*) list_get(entry_table,i);
 					e2 = (entry_t*) list_get(entry_table,i+1);
 
-					in_beetwen_entry_space = (e2->number)-(e1->number+(e1->size/get_entry_size()+1));
+					in_beetwen_entry_space = (e2->number)-(e1->number+((e1->size%get_entry_size())==0?(e1->size/get_entry_size())+ e1->number:(e1->size/get_entry_size()+1)+ e1->number) );
 
 					if (in_beetwen_entry_space>=entries_needed)
 					{
-						return i+(e1->size/get_entry_size()+1);
+						return i+(e1->number+((e1->size%get_entry_size())==0?(e1->size/get_entry_size())+ e1->number:(e1->size/get_entry_size()+1)+ e1->number) );
 					}
 				}
 				e2 = (entry_t *) list_get(entry_table,list_size(entry_table)-1);
-				if(get_total_entries()- e2->number>=entries_needed)
+				if(get_total_entries()- e2->number>=entries_needed && e2->number+entries_needed<get_total_entries())
 				{
-					return (e2->size/get_entry_size()+ 1) + e2->number;
+					return ((e2->size%get_entry_size())==0?(e2->size/get_entry_size())+ e2->number:(e2->size/get_entry_size()+1)+ e2->number) ;
 				}
     		}
     	}
@@ -224,8 +226,10 @@ bool entry_table_delete(key_value_t * key_value)//TODO: GUARDA ACA DEBO BUSCAR E
 		entry_t * entry = (entry_t*) list_get(entry_table,i);
 		if (!strcmp(key_value->key,entry->key))
 		{
+			entry_t* entry = entry_table_get_entry(key_value->key);
+			key_value_t* kv_old= key_value_generator(entry->key,entry->size);
 			list_remove(entry_table,i);
-			entries_left+=entry_table_entries_needed(key_value);
+			entries_left+=entry_table_entries_needed(kv_old);
 			return true;
 		}
 	}
@@ -269,8 +273,6 @@ void entry_table_delete_few(t_list* keys){
 void entry_table_show() {
 	if(list_is_empty(entry_table)) {
 		messenger_show("INFO", "La tabla de entradas esta vacia");
-
-		return;
 	}
 
 	void _read(void* data) {
@@ -283,7 +285,7 @@ void entry_table_show() {
 
 	list_sort(sorted_list, (void*) ascending);
 
-	list_iterate(entry_table, (void*) _read);
+	list_iterate(sorted_list, (void*) _read);
 
 	list_destroy(sorted_list);
 }

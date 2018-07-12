@@ -86,7 +86,7 @@ bool smallest_reference(void * a, void *b){
 bool biggest_size(void * a, void *b){
 	status_t * e1 = (status_t*)a;
 	status_t * e2 = (status_t*)b;
-	return e1->space_used>e2->space_used?false:true;
+	return e1->space_used<e2->space_used?false:true;
 }
 
 int algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys){
@@ -223,7 +223,8 @@ void entry_table_status_add_kv(key_value_t* key_value,int number){ // TODO:FIJAR
 	status->status=FREE;
 	status->last_referenced=0;
 	status->space_used=0;
-
+if(number>=0)
+{
 		 if(entry_table_is_entry_atomic(entry))
 		 {
 			 list_replace(entry_table_status_global,number,convert_entry_t_to_status_t(entry));
@@ -240,6 +241,7 @@ void entry_table_status_add_kv(key_value_t* key_value,int number){ // TODO:FIJAR
 				 number_copy++;
 			 }
 		 }
+}
 
 }
 
@@ -331,11 +333,11 @@ status_t * convert_entry_t_to_status_t(entry_t* entry){
 	return status;
 }
 
-void entry_table_status_print_table(t_list* entry_table_status){
+void entry_table_status_print_table(){
 
-	for (int i=0; i<list_size(entry_table_status);i++)
+	for (int i=0; i<list_size(entry_table_status_global);i++)
 		{
-		status_t * status=(status_t *) list_get(entry_table_status,i);
+		status_t * status=(status_t *) list_get(entry_table_status_global,i);
 		printf("Indice %d con estado %d, KEY %s, Referenciado hace: %d y Ocupa bits: %d \n",i,status->status,status->key,status->last_referenced,status->space_used);
 		}
 }
