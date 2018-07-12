@@ -284,7 +284,7 @@ int	instance_recover(t_list* recoverable_keys) {
 	t_list* recovered_key_values = dumper_recover(recoverable_keys);
 
 	if(list_size(recovered_key_values) < list_size(recoverable_keys)) {
-		messenger_show("WARNING", "Solo se pueden recuperar %d claves de %d pedidas", list_size(recovered_key_values), list_size(recoverable_keys));
+		messenger_show("WARNING", "Solo se pueden recuperar %d clave/s de %d pedida/s", list_size(recovered_key_values), list_size(recoverable_keys));
 	}
 
 	else {
@@ -303,7 +303,7 @@ int	instance_recover(t_list* recoverable_keys) {
 
 	list_destroy(recovered_keys);
 
-	list_destroy_and_destroy_elements(replaced_keys, free);
+	list_destroy_and_destroy_elements(replaced_keys, (void*) key_value_destroy);
 
 	list_destroy_and_destroy_elements(recovered_key_values, (void*) key_value_destroy);
 
@@ -530,6 +530,12 @@ void instance_thread_api(void* args) {
 void instance_thread_dump(void* args) {
 	float time_passed = 0.0;
 
+	if(DUMP_INTERVAL == 0) {
+		messenger_show("WARNING", "Decidimos no ejecutar el Dump cuando el intervalo del mismo es 0");
+
+		pthread_exit(NULL);
+	}
+
 	while(instance_is_alive) {
 		usleep(DUMP_INTERVAL);
 
@@ -574,7 +580,7 @@ void instance_show() {
 
 	messenger_show("INFO", "Estado de la Tabla de Entradas");
 
-	entry_table_print_table();
+	entry_table_show();
 
 	messenger_show("INFO", "Estado del Storage");
 

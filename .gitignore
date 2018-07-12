@@ -4,6 +4,7 @@
 !*.h
 !*.esi
 !esi/scripts/*
+!instancia/tests/final_tests_cfg/test_*.cfg
 !Makefile
 !.gitignore
 /.metadata/

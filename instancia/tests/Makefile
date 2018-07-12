@@ -1,6 +1,6 @@
 CC = gcc -Wall
 
-TARGET = algorithms_test api cfg compact die dump entry_table_test instancia recover storage store
+TARGET = algorithms_test api cfg compact die dump final entry_table_test instancia recover storage store
 
 LIBS = -lcommons -lpthread
 
@@ -27,6 +27,8 @@ die:				DEPS += ../event_handler.h ../../libs/mocks/color.h
 dump:				DEPS += ../dumper.h ../globals.h ../event_handler.h ../../libs/mocks/color.h ../../libs/mocks/default_color.h
 
 entry_table_test:	DEPS += ./utils.h ../entry_table.h ../globals.h ../../libs/mocks/default_color.h
+
+final:				DEPS += $(COORDINADOR_DEPS) ../algorithms.h ../cfg_instancia.h ../compactation.h ../../libs/configurator.h ../dumper.h ../event_handler.h ../entry_table.h ../instancia.h ../storage.h utils.h
 
 instancia:			DEPS += $(COORDINADOR_DEPS) ../algorithms.h ../cfg_instancia.h ../compactation.h ../../libs/configurator.h ../dumper.h ../event_handler.h ../entry_table.h ../instancia.h ../storage.h utils.h
 
