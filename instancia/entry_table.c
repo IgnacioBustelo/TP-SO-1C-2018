@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "../libs/messenger.h"
+
 #include "tests/utils.h"
 
 #include "algorithms.h"
@@ -264,4 +266,24 @@ void entry_table_delete_few(t_list* keys){
 		}
 }
 
+void entry_table_show() {
+	if(list_is_empty(entry_table)) {
+		messenger_show("INFO", "La tabla de entradas esta vacia");
 
+		return;
+	}
+
+	void _read(void* data) {
+		entry_t* entry = (entry_t*) data;
+
+		messenger_show("INFO", "Entrada %d: Tamano: %d - Clave: %s", entry->number, entry->size, entry->key);
+	}
+
+	t_list* sorted_list = list_duplicate(entry_table);
+
+	list_sort(sorted_list, (void*) ascending);
+
+	list_iterate(entry_table, (void*) _read);
+
+	list_destroy(sorted_list);
+}

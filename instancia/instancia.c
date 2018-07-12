@@ -50,7 +50,7 @@ void _dump(void* key) {
 	dumper_store(key, data, entry->size);
 }
 
-void instance_init(char* process_name, char* logger_route, char* log_level, char* cfg_route) {
+int instance_init(char* process_name, char* logger_route, char* log_level, char* cfg_route) {
 	int status;
 
 	storage_setup_t	setup;
@@ -79,13 +79,13 @@ void instance_init(char* process_name, char* logger_route, char* log_level, char
 			}
 		}
 
-		messenger_show("ERROR", "No se pudo conectar la Instancia al Coordinador");
+		messenger_show("ERROR", "No se pudo conectar al Coordinador");
 
 		configurator_destroy();
 
 		messenger_destroy();
 
-		exit(EXIT_FAILURE);
+		return INSTANCE_INIT_ERROR;
 	}
 
 	messenger_show("INFO", "Ejecucion correcta del Handshake con el Coordinador en la IP %s en el puerto %d", IP, HOST);
@@ -117,6 +117,8 @@ void instance_init(char* process_name, char* logger_route, char* log_level, char
 	instance_show();
 
 	list_destroy_and_destroy_elements(recoverable_keys, free);
+
+	return INSTANCE_INIT_SUCCESS;
 }
 
 int	instance_handshake(storage_setup_t* setup, t_list** recoverable_keys) {
@@ -284,7 +286,7 @@ int	instance_recover(t_list* recoverable_keys) {
 	t_list* recovered_key_values = dumper_recover(recoverable_keys);
 
 	if(list_size(recovered_key_values) < list_size(recoverable_keys)) {
-		messenger_show("WARNING", "Solo se pueden recuperar %d claves de %d pedidas", list_size(recovered_key_values), list_size(recoverable_keys));
+		messenger_show("WARNING", "Solo se pueden recuperar %d clave/s de %d pedida/s", list_size(recovered_key_values), list_size(recoverable_keys));
 	}
 
 	else {
@@ -303,7 +305,7 @@ int	instance_recover(t_list* recoverable_keys) {
 
 	list_destroy(recovered_keys);
 
-	list_destroy_and_destroy_elements(replaced_keys, free);
+	list_destroy_and_destroy_elements(replaced_keys, (void*) key_value_destroy);
 
 	list_destroy_and_destroy_elements(recovered_key_values, (void*) key_value_destroy);
 
@@ -530,6 +532,12 @@ void instance_thread_api(void* args) {
 void instance_thread_dump(void* args) {
 	float time_passed = 0.0;
 
+	if(DUMP_INTERVAL == 0) {
+		messenger_show("WARNING", "Decidimos no ejecutar el Dump cuando el intervalo del mismo es 0");
+
+		pthread_exit(NULL);
+	}
+
 	while(instance_is_alive) {
 		usleep(DUMP_INTERVAL);
 
@@ -537,7 +545,7 @@ void instance_thread_dump(void* args) {
 
 		pthread_mutex_lock(&instance_mutex);
 
-		messenger_show("INFO", "Ejecutando Dump en el instante %f", time_passed/10E6);
+		messenger_show("INFO", "Ejecutando Dump en el instante %f ms", time_passed);
 
 		t_list* stored_keys = entry_table_get_key_list();
 
@@ -574,7 +582,7 @@ void instance_show() {
 
 	messenger_show("INFO", "Estado de la Tabla de Entradas");
 
-	entry_table_print_table();
+	entry_table_show();
 
 	messenger_show("INFO", "Estado del Storage");
 

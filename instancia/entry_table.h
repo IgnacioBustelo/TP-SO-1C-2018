@@ -61,6 +61,8 @@ bool		entry_table_has_key(char* key,bool is_new);
 
 t_list*		entry_table_get_key_list();
 
+void		entry_table_show();
+
 bool		ascending(void * a, void *b);
 
 entry_t *	convert_key_value_t_to_entry_t(key_value_t * key_value);

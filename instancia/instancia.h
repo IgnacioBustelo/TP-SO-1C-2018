@@ -6,6 +6,8 @@
 #include "globals.h"
 
 typedef enum {
+	INSTANCE_INIT_SUCCESS,
+	INSTANCE_INIT_ERROR,
 	INSTANCE_HANDSHAKE_SUCCESS,
 	INSTANCE_HANDSHAKE_REJECTED,
 	INSTANCE_REQUEST_SUCCESS,
@@ -15,7 +17,7 @@ typedef enum {
 	INSTANCE_DIE
 } request_result;
 
-void	instance_init(char* process_name, char* logger_route, char* log_level, char* cfg_route);
+int		instance_init(char* process_name, char* logger_route, char* log_level, char* cfg_route);
 
 int		instance_handshake(storage_setup_t* setup, t_list** recoverable_keys);
 
