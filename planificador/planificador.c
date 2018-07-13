@@ -381,6 +381,8 @@ int main(void) {
 
 				finished_esi_flag = 0;
 
+				while(scheduler_paused_flag == 1);
+
 				if (reschedule_flag == 1 && !list_is_empty(g_ready_queue)){
 
 					reschedule(&reschedule_flag, &executing_esi);
@@ -716,9 +718,9 @@ int schedule_esis() {
 								? last_estimated_burst1
 								: next_estimated_burst_hrrn(esi1->waited_bursts, next_estimated_burst_sjf(setup.alpha, last_real_burst1, last_estimated_burst1));
 
-			result1 = last_real_burst1 == 0
-					            ? last_estimated_burst1
-					            : next_estimated_burst_hrrn(esi1->waited_bursts, next_estimated_burst_sjf(setup.alpha, last_real_burst1, last_estimated_burst1));
+			result2 = last_real_burst2 == 0
+					            ? last_estimated_burst2
+					            : next_estimated_burst_hrrn(esi2->waited_bursts, next_estimated_burst_sjf(setup.alpha, last_real_burst2, last_estimated_burst2));
 
 			return result1 >= result2;
 
@@ -1154,7 +1156,7 @@ static float next_estimated_burst_sjf(float alpha, int last_real_burst, float la
 
 static float next_estimated_burst_hrrn(int waited_time, float next_service_time) {
 
-	return waited_time/next_service_time;
+	return 1 + waited_time/next_service_time;
 }
 
 static void update_esi_information_next_estimated_burst(int esi_fd) {
