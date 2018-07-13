@@ -67,4 +67,8 @@ bool		ascending(void * a, void *b);
 
 entry_t *	convert_key_value_t_to_entry_t(key_value_t * key_value);
 
+void 		entry_table_show();
+
+void        _read(void* data);
+
 #endif
