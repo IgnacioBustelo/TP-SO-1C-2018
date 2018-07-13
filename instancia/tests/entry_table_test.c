@@ -88,7 +88,7 @@ int main()
 				entry_table_delete(key_value);
 				entry_table_status_delete_kv(key_value);
 
-				key_value=key_value_generator("X",39);
+				key_value=key_value_generator("X",30);
 				next_entry = entry_table_next_entry(key_value);
 				entry_table_insert(next_entry,key_value);
 				entry_table_status_add_kv(key_value,next_entry);
