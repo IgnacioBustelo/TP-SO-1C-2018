@@ -21,6 +21,7 @@ struct request_node_t {
 			char* key;
 		} store;
 	};
+	t_list *excluded_instances;
 };
 
 struct request_list_t {

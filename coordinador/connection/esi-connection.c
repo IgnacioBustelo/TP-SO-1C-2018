@@ -92,10 +92,6 @@ void handle_esi_connection(int fd)
 
 static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *operation)
 {
-	/* TODO:
-	 *   - Manejar desconexion del planificador.
-	 */
-
 	if (!esi_check_key_size(operation)) {
 		esi_log_error(logger, "La clave no puede tener mas de 40 caracteres!");
 		esi_send_illegal_operation(esi.fd);
@@ -104,13 +100,6 @@ static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *opera
 
 	if (operation->type == ESI_GET) {
 		esi_log_operation("GET %s", operation->get.key);
-
-		struct instance_t *instance = dispatch(instance_list, operation->get.key);
-		if (instance == NULL) {
-			esi_log_error(logger, "No hay Instancias disponibles!");
-			esi_send_illegal_operation(esi.fd);
-			return false;
-		}
 
 		switch (scheduler_recv_key_state(operation->get.key)) {
 		case KEY_UNBLOCKED:
@@ -136,7 +125,7 @@ static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *opera
 			return false;
 		}
 
-		struct instance_t *instance = dispatch(instance_list, key);
+		struct instance_t *instance = dispatch(instance_list, key, NULL);
 		if (instance == NULL) {
 			esi_log_error(logger, "No hay Instancias conectadas!");
 			esi_send_illegal_operation(esi.fd);
