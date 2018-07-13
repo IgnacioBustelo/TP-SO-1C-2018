@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "../algorithms.h"
 #include "../entry_table.h"
 #include "../globals.h"
 #include "./utils.h"

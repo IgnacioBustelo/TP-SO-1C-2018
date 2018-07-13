@@ -265,20 +265,19 @@ int instance_status(char* key, key_value_t** key_value) {
 
 
 int	instance_recover(t_list* recoverable_keys) {
-	// TODO: Manejar errores
-
-	t_list* replaced_keys = list_create();
-
-	void recovered_key_value_set(void* key_value) {
-		instance_set((key_value_t*) key_value, replaced_keys);
-	}
-
 	messenger_show("INFO", "Inicio de la Recuperacion de la Instancia");
 
 	if(list_is_empty(recoverable_keys)) {
 		messenger_show("INFO", "No es necesario recuperar claves");
 
 		return STATUS_OK;
+	}
+
+	// TODO: Manejar errores
+	t_list* replaced_keys = list_create();
+
+	void recovered_key_value_set(void* key_value) {
+		instance_set((key_value_t*) key_value, replaced_keys);
 	}
 
 	messenger_show("INFO", "Es necesario recuperar %d claves", list_size(recoverable_keys));
@@ -621,6 +620,8 @@ void instance_die() {
 	dumper_destroy();
 
 	entry_table_destroy();
+
+	entry_table_status_destroy();
 
 	coordinator_api_disconnect();
 

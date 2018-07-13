@@ -1,9 +1,17 @@
+#include <commons/string.h>
 #include <stdio.h>
 
 #include "../libs/messenger.h"
 
 #include "algorithms.h"
 #include "globals.h"
+
+void status_t_destroy(status_t* status) {
+	if(status->key != NULL) {
+		free(status->key);
+	}
+	free(status);
+}
 
 int algorithms_exec(char algorithm_id, t_list* entry_table, key_value_t* key_value, t_list* replaced_keys) {
 	switch (algorithm_id) {
@@ -170,10 +178,6 @@ t_list* original_entry_table_migration_to_entry_table_status()
 
 	int entry_entries=0;
 
-	status_t * status = malloc(sizeof(status_t));
-	status->last_referenced=0;
-	status->status=FREE;
-	status->space_used=0;
 	int i=0;
 	while(i<get_total_entries())
 	{
@@ -202,8 +206,14 @@ t_list* original_entry_table_migration_to_entry_table_status()
 	 }
 	 else
 	 {
-		 list_add(entry_table_status,status);
-		 i++;
+		status_t * status = malloc(sizeof(status_t));
+		status->last_referenced=0;
+		status->status=FREE;
+		status->space_used=0;
+		status->key = string_new();
+
+		list_add(entry_table_status,status);
+		i++;
 	 }
 	}
 
@@ -217,20 +227,22 @@ void entry_table_status_init(){
 }
 
 void entry_table_status_add_kv(key_value_t* key_value,int number){ // TODO:FIJARSE LOGICA DE COMO MODIFICAR SI YA EXISTE
-
 	entry_table_status_last_referenced_add_all();
 	entry_t * entry=convert_key_value_t_to_entry_t(key_value);
 	int entry_entries=0;
+	/*
+
+	TENES TOTALMENTE AL PEDO ESTO!!!!!!
 
 	status_t * status = malloc(sizeof(status_t));
 	status->status=FREE;
 	status->last_referenced=0;
-	status->space_used=0;
+	status->space_used=0;*/
 if(number>=0)
 {
 		 if(entry_table_is_entry_atomic(entry))
 		 {
-			 list_replace(entry_table_status_global,number,convert_entry_t_to_status_t(entry));
+			 list_replace_and_destroy_element(entry_table_status_global,number,convert_entry_t_to_status_t(entry), (void*) status_t_destroy);
 		 }
 		 else
 		 {
@@ -239,14 +251,14 @@ if(number>=0)
 			 int number_copy=number;
 			 while (entry_entries>0)
 			 {
-				 list_replace(entry_table_status_global,number_copy,convert_entry_t_to_status_t(entry));
+				 list_replace_and_destroy_element(entry_table_status_global,number_copy,convert_entry_t_to_status_t(entry), (void*) status_t_destroy);
 				 entry_entries-=1;
 				 number_copy++;
 			 }
 		 }
 }
-free(entry);
-free(status);
+entry_table_key_value_destroy(entry);
+//free(status);
 }
 
 void entry_table_status_delete_kv(key_value_t* key_value){
@@ -345,4 +357,8 @@ void entry_table_status_print_table(){
 		messenger_show("INFO","Indice %d con estado %d, KEY %s, Referenciado hace: %d y Ocupa bits: %d",i,status->status,status->key,status->last_referenced,status->space_used);
 
 		}
+}
+
+void entry_table_status_destroy() {
+	list_destroy_and_destroy_elements(entry_table_status_global, (void*) status_t_destroy);
 }
