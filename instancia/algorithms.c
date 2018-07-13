@@ -338,6 +338,7 @@ void entry_table_status_print_table(){
 	for (int i=0; i<list_size(entry_table_status_global);i++)
 		{
 		status_t * status=(status_t *) list_get(entry_table_status_global,i);
-		printf("Indice %d con estado %d, KEY %s, Referenciado hace: %d y Ocupa bits: %d \n",i,status->status,status->key,status->last_referenced,status->space_used);
+		messenger_show("INFO","Indice %d con estado %d, KEY %s, Referenciado hace: %d y Ocupa bits: %d",i,status->status,status->key,status->last_referenced,status->space_used);
+
 		}
 }

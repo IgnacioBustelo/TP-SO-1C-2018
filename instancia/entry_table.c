@@ -240,7 +240,7 @@ void entry_table_print_table(){
 	for (int i=0; i<list_size(entry_table);i++)
 		{
 		entry_t * entry=(entry_t *) list_get(entry_table,i);
-		printf("Registro %d, KEY: %s, TAMANIO: %d y tiene INDICE STORAGE: %d \n",i,entry->key,entry->size,entry->number);
+		messenger_show("INFO", "Clave %s: - Tamanio: %d - Indice Storage: %d",entry->key, entry->size, entry->number  );
 		}
 }
 
