@@ -18,6 +18,7 @@ static void instance_list_node_destroy(struct instance_t *victim);
 static bool string_equals(char *actual, char *expected);
 static bool instance_is_connected(void *_instance);
 static bool instance_test_connection(struct instance_t *instance);
+static bool list_contains(t_list *list, void *elem);
 
 struct instance_list_t *instance_list_create(void)
 {
@@ -38,9 +39,14 @@ void instance_list_destroy(struct instance_list_t *victim)
 	free(victim);
 }
 
-size_t instance_list_size(struct instance_list_t *instance_list)
+size_t instance_list_size(struct instance_list_t *instance_list, t_list *excluded_instances)
 {
-	return list_count_satisfying(instance_list->elements, instance_is_connected);
+	bool instance_is_available(void *instance) {
+		return (excluded_instances == NULL || !list_contains(excluded_instances, instance))
+				&& instance_is_connected(instance);
+	}
+
+	return list_count_satisfying(instance_list->elements, instance_is_available);
 }
 
 struct instance_t *instance_list_get_by_name(struct instance_list_t *instance_list, char *name)
@@ -53,11 +59,16 @@ struct instance_t *instance_list_get_by_name(struct instance_list_t *instance_li
 	return (struct instance_t *)list_find(instance_list->elements, find_by_name);
 }
 
-struct instance_t *instance_list_get_by_index(struct instance_list_t *instance_list, int index)
+struct instance_t *instance_list_get_by_index(struct instance_list_t *instance_list, int index, t_list *excluded_instances)
 {
+	bool instance_is_available(void *instance) {
+		return (excluded_instances == NULL || !list_contains(excluded_instances, instance))
+				&& instance_is_connected(instance);
+	}
+
 	int i = 0;
-	bool is_connected_instance_with_index(void *instance) {
-		if (instance_is_connected(instance)) {
+	bool is_available_instance_with_index(void *instance) {
+		if (instance_is_available(instance)) {
 			if (i == index) {
 				return true;
 			} else {
@@ -67,7 +78,7 @@ struct instance_t *instance_list_get_by_index(struct instance_list_t *instance_l
 		return false;
 	}
 
-	return (struct instance_t *)list_find(instance_list->elements, is_connected_instance_with_index);
+	return (struct instance_t *)list_find(instance_list->elements, is_available_instance_with_index);
 }
 
 struct instance_t *instance_list_add(struct instance_list_t *instance_list, char *name, int fd)
@@ -97,9 +108,13 @@ struct instance_t *instance_list_remove(struct instance_list_t *instance_list, c
 	return node;
 }
 
-struct instance_t *instance_list_first(struct instance_list_t *instance_list)
+struct instance_t *instance_list_first(struct instance_list_t *instance_list, t_list *excluded_instances)
 {
-	return list_find(instance_list->elements, instance_is_connected);
+	bool instance_is_available(void *instance) {
+		return (excluded_instances == NULL || !list_contains(excluded_instances, instance))
+				&& instance_is_connected(instance);
+	}
+	return list_find(instance_list->elements, instance_is_available);
 }
 
 struct instance_t *instance_list_push(struct instance_list_t *instance_list, struct instance_t *elem)
@@ -108,9 +123,13 @@ struct instance_t *instance_list_push(struct instance_list_t *instance_list, str
 	return elem;
 }
 
-struct instance_t *instance_list_pop(struct instance_list_t *instance_list)
+struct instance_t *instance_list_pop(struct instance_list_t *instance_list, t_list *excluded_instances)
 {
-	return list_remove_by_condition(instance_list->elements, instance_is_connected);
+	bool instance_is_available(void *instance) {
+		return (excluded_instances == NULL || !list_contains(excluded_instances, instance))
+				&& instance_is_connected(instance);
+	}
+	return list_remove_by_condition(instance_list->elements, instance_is_available);
 }
 
 void instance_list_sort(struct instance_list_t *instance_list, bool (*comparator)(void *, void *))
@@ -185,4 +204,13 @@ static bool instance_test_connection(struct instance_t *instance)
 
 	pthread_mutex_unlock(&instance->lock);
 	return true;
+}
+
+static bool list_contains(t_list *list, void *elem)
+{
+	bool equals(void *find_list_elem) {
+		return find_list_elem == elem;
+	}
+
+	return list_find(list, equals) != NULL;
 }

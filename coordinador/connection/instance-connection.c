@@ -20,6 +20,7 @@ struct setup_t setup;
 struct instance_list_t *instance_list;
 
 static bool instance_handle_set_request(struct instance_t *instance, struct request_node_t *request);
+static void instance_dispatch_failed_set(struct instance_t *failed_instance, struct request_node_t *request);
 static bool instance_handle_store_request(struct instance_t *instance, struct request_node_t *request);
 static char *instance_recv_name(int fd);
 static bool instance_recv_set_execution_status(int fd, int *status_code, size_t *used_entries);
@@ -105,9 +106,8 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 	if (!instance_send_set_instruction(instance->fd, request->set.key, request->set.value)) {
 		pthread_mutex_unlock(&instance->lock);
 		log_error(logger, "[Instancia %s] Error al enviar instruccion SET!", instance->name);
-		log_error(logger, "[Instancia %s] Se abortara el ESI en ejecucion!", instance->name);
 		key_table_remove(request->set.key);
-		esi_send_illegal_operation(request->requesting_esi_fd);
+		instance_dispatch_failed_set(instance, request);
 
 		return false;
 	}
@@ -117,9 +117,8 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 	if (!instance_recv_set_execution_status(instance->fd, &status, &used_entries)) {
 		pthread_mutex_unlock(&instance->lock);
 		log_error(logger, "[Instancia %s] Error al recibir resultado de ejecucion!", instance->name);
-		log_error(logger, "[Instancia %s] Se abortara el ESI en ejecucion!", instance->name);
 		key_table_remove(request->set.key);
-		esi_send_illegal_operation(request->requesting_esi_fd);
+		instance_dispatch_failed_set(instance, request);
 
 		return false;
 	}
@@ -156,13 +155,26 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 	case SET_STATUS_NO_SPACE:
 		log_error(logger, "[Instancia %s] No hay espacio disponible!", instance->name);
 		key_table_remove(request->set.key);
-		esi_send_illegal_operation(request->requesting_esi_fd);
+		instance_dispatch_failed_set(instance, request);
 		return true;
 	default:
 		log_error(logger, "[Instancia %s] Error de comunicacion!", instance->name);
 		key_table_remove(request->set.key);
-		esi_send_illegal_operation(request->requesting_esi_fd);
+		instance_dispatch_failed_set(instance, request);
 		return false;
+	}
+}
+
+static void instance_dispatch_failed_set(struct instance_t *failed_instance, struct request_node_t *request)
+{
+	list_add(request->excluded_instances, failed_instance);
+
+	log_info(logger, "[ESI %d] Se buscara otra instancia para ejecutar la operacion!", request->requesting_esi_fd);
+
+	struct instance_t *instance = dispatch(instance_list, request->set.key, request->excluded_instances);
+	if (instance == NULL) {
+		log_error(logger, "[ESI %d] No hay Instancias disponibles para ejecutar la operacion!", request->requesting_esi_fd);
+		esi_send_illegal_operation(request->requesting_esi_fd);
 	}
 }
 
@@ -301,6 +313,8 @@ static bool instance_send_confirmation(struct instance_t *instance)
 		}
 	}
 
+	free(key_list);
+
 	return true;
 }
 
@@ -320,13 +334,13 @@ static bool instance_send_confirmation_error(int fd)
 static bool instance_send_set_instruction(int fd, char *key, char *value)
 {
 	request_coordinador op_code = PROTOCOL_CI_SET;
-	bool is_key = key_table_is_new(key);
+	bool is_new = key_table_is_new(key);
 	size_t key_size = strlen(key) + 1;
 	size_t value_size = strlen(value) + 1;
 
 	struct { void *block; size_t block_size; } blocks[] = {
 		{ &op_code, sizeof(op_code) },
-		{ &is_key, sizeof(is_key) },
+		{ &is_new, sizeof(is_new) },
 		{ &key_size, sizeof(key_size) },
 		{ key, key_size },
 		{ &value_size, sizeof(value_size) },

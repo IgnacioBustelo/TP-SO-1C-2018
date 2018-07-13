@@ -173,17 +173,14 @@ static bool scheduler_send_key_status(void)
 	}
 
 	struct instance_t *instance = key_table_get_instance(key);
-	if (instance == NULL) {
+	if (key_table_is_new(key)) {
+		log_info(logger, "[Planificador] La clave %s no esta inicializada.", key);
+		free(key);
+		return send_key_state(KEY_UNINITIALIZED);
+	} else if (instance == NULL) {
 		log_info(logger, "[Planificador] La clave %s no existe.", key);
 		free(key);
 		return send_key_state(KEY_NOT_EXIST);
-	} else if (key_table_is_new(key)) {
-		log_info(logger,
-				"[Planificador] La clave %s que se asignaria a la instancia %s no esta inicializada.",
-				key, instance->name);
-		free(key);
-		return send_key_state(KEY_UNINITIALIZED)
-				&& send_key_instance(instance->name);
 	} else {
 		char *value;
 		if (instance->fd != DISCONNECTED && instance_request_value(instance, key, &value)) {
@@ -197,10 +194,8 @@ static bool scheduler_send_key_status(void)
 			log_info(logger, "[Planificador] La clave %s esta en la instancia %s que se encuentra desconectada.",
 					key, instance->name);
 			free(key);
-			return send_key_state(KEY_NOT_EXIST);
-			/* TODO: Se necesita un mensaje KEY_INSTANCE_DISCONNECTED. */
-			//		return send_key_state(KEY_INSTANCE_DISCONNECTED)
-			//				&& send_key_instance(instance->name);
+			return send_key_state(KEY_INSTANCE_DISCONNECTED)
+					&& send_key_instance(instance->name);
 		}
 	}
 }
@@ -209,7 +204,7 @@ bool scheduler_block_key(void)
 {
 	protocol_id request = PROTOCOL_CP_BLOCK_KEY;
 	if (!CHECK_SEND(scheduler_fd, &request)) {
-		return false;
+		scheduler_exit();
 	}
 
 	protocol_id response = scheduler_pending_protocol_recv();
@@ -231,7 +226,7 @@ bool scheduler_unblock_key(char *key)
 	int i;
 	for (i = 0; i < sizeof(blocks) / sizeof(*blocks); i++) {
 		if (!CHECK_SEND_WITH_SIZE(scheduler_fd, blocks[i].block, blocks[i].block_size)) {
-			return false;
+			scheduler_exit();
 		}
 	}
 

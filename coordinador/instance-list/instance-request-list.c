@@ -80,6 +80,7 @@ static struct request_node_t *request_node_create_set(int esi_fd, char *key, cha
 	node->type = INSTANCE_SET;
 	node->set.key = strdup(key);
 	node->set.value = strdup(value);
+	node->excluded_instances = list_create();
 
 	return node;
 }
@@ -90,6 +91,7 @@ static struct request_node_t *request_node_create_store(int esi_fd, char *key)
 	node->requesting_esi_fd = esi_fd;
 	node->type = INSTANCE_STORE;
 	node->store.key = strdup(key);
+	node->excluded_instances = list_create();
 
 	return node;
 }
@@ -106,5 +108,6 @@ void request_node_destroy(struct request_node_t *node)
 		break;
 	}
 
+	list_destroy(node->excluded_instances);
 	free(node);
 }

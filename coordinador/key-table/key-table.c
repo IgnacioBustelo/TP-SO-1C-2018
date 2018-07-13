@@ -34,23 +34,18 @@ __attribute__((destructor)) void destroy_key_table(void) {
 	free(key_table);
 }
 
-bool key_table_create_key(char *key, struct instance_t *instance)
+void key_table_create_key(char *key, struct instance_t *instance)
 {
 	struct key_table_data_t *data = malloc(sizeof(*data));
 	data->instance = instance;
 	data->initialized = false;
 
-	bool success;
 	synchronized(key_table->lock) {
-		if (!dictionary_has_key(key_table->table, key)) {
-			dictionary_put(key_table->table, key, data);
-			success = true;
-		} else {
-			success = false;
+		if (dictionary_has_key(key_table->table, key)) {
+			dictionary_remove_and_destroy(key_table->table, key, free);
 		}
+		dictionary_put(key_table->table, key, data);
 	}
-
-	return success;
 }
 
 static struct key_table_data_t *key_table_get(char *key)
@@ -81,7 +76,7 @@ bool key_table_is_new(char *key)
 	if (data != NULL) {
 		return !data->initialized;
 	} else {
-		return true;
+		return false;
 	}
 }
 
