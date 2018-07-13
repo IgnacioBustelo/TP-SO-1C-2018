@@ -327,6 +327,14 @@ void instance_thread_api(void* args) {
 
 		operation_result = coordinator_api_receive_header(&header);
 
+		if(operation_result == API_ERROR) {
+			messenger_show("ERROR", "Fallo en la recepcion del pedido del Coordinador");
+
+			instance_is_alive = false;
+
+			break;
+		}
+
 		API_B_CHECK("Fallo en la recepcion del pedido del Coordinador")
 
 		switch(header) {
