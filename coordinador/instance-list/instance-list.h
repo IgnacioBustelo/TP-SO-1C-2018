@@ -23,14 +23,14 @@ struct instance_t {
 
 struct instance_list_t *instance_list_create(void);
 void instance_list_destroy(struct instance_list_t *victim);
-size_t instance_list_size(struct instance_list_t *instance_list);
+size_t instance_list_size(struct instance_list_t *instance_list, t_list *excluded_instances);
 struct instance_t *instance_list_get_by_name(struct instance_list_t *instance_list, char *name);
-struct instance_t *instance_list_get_by_index(struct instance_list_t *instance_list, int index);
+struct instance_t *instance_list_get_by_index(struct instance_list_t *instance_list, int index, t_list *excluded_instances);
 struct instance_t *instance_list_add(struct instance_list_t *instance_list, char *name, int fd);
 struct instance_t *instance_list_remove(struct instance_list_t *instance_list, char *name);
-struct instance_t *instance_list_first(struct instance_list_t *instance_list);
+struct instance_t *instance_list_first(struct instance_list_t *instance_list, t_list *excluded_instances);
 struct instance_t *instance_list_push(struct instance_list_t *instance_list, struct instance_t *elem);
-struct instance_t *instance_list_pop(struct instance_list_t *instance_list);
+struct instance_t *instance_list_pop(struct instance_list_t *instance_list, t_list *excluded_instances);
 void instance_list_sort(struct instance_list_t *instance_list, bool (*comparator)(void *, void *));
 bool instance_list_delete(struct instance_list_t *instance_list, char *name);
 void instance_list_iterate(struct instance_list_t *instance_list, void (*closure)(void *));

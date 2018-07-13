@@ -438,6 +438,17 @@ void receive_and_print_key_status() {
 
 	switch(key_state) {
 
+	case -2: {
+
+		printf("La clave solicitada está asignada a una instancia que se encuentra desconectada\n");
+
+		char *instance_name;
+		recv_package_variable(g_coordinator_fd, (void**) &instance_name);
+
+		printf("Instancia: %s\n", instance_name);
+		break;
+	}
+
 	case -1:
 
 		printf("La clave solicitada no existe, por lo que no tiene valor ni instancia\n");
@@ -446,9 +457,6 @@ void receive_and_print_key_status() {
 	case 0: {
 
 		printf("La clave existe pero no está asignada actualmente a una instancia\n");
-		char* instance_name;
-		recv_package_variable(g_coordinator_fd, (void**) &instance_name);
-		printf("Instancia en la que se asignaría: %s\n", instance_name);
 		break;
 	}
 

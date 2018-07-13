@@ -3,7 +3,7 @@
 
 #include "../instance-list/instance-list.h"
 
-bool key_table_create_key(char *key, struct instance_t *instance);
+void key_table_create_key(char *key, struct instance_t *instance);
 void key_table_remove(char *key);
 struct instance_t *key_table_get_instance(char *key);
 bool key_table_is_new(char *key);
