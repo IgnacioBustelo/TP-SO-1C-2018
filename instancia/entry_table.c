@@ -28,6 +28,7 @@ bool entry_table_insert(int next_entry, key_value_t* key_value)
 			key_value_t* kv_old = key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size);
 			entry_table_delete(kv_old);
 			entry_table_status_delete_kv(kv_old);
+			free(kv_old);
 			}
 
 			list_add(entry_table,(void *)new_entry);
@@ -40,14 +41,17 @@ bool entry_table_insert(int next_entry, key_value_t* key_value)
 	{
 		if(next_entry==(entry_table_get_entry(key_value->key)->number))
 		{
-			entries_left += entry_table_entries_needed(key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size));
+			key_value_t* kv_old = key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size);
+			entries_left += entry_table_entries_needed(kv_old);
 			list_replace(entry_table,next_entry,new_entry);
 			entries_left -= entry_table_entries_needed(key_value);
+			free (kv_old);
 		}
 	}
+		free(new_entry);
 		return true;
 	}
-
+free(new_entry);
 return false;
 }
 
@@ -152,6 +156,7 @@ int entry_table_next_entry(key_value_t* key_value){
 
 				}
 			}
+			free(existing_kv);
 		}
 	}
 	 if(entry_table_have_entries(key_value) || entry_to_be_modified!=NULL)
@@ -230,6 +235,7 @@ bool entry_table_delete(key_value_t * key_value)//TODO: GUARDA ACA DEBO BUSCAR E
 			key_value_t* kv_old= key_value_generator(entry->key,entry->size);
 			list_remove(entry_table,i);
 			entries_left+=entry_table_entries_needed(kv_old);
+			free(kv_old);
 			return true;
 		}
 	}
