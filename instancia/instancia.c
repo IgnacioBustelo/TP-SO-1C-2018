@@ -553,21 +553,27 @@ void instance_thread_dump(void* args) {
 
 		pthread_mutex_lock(&instance_mutex);
 
-		messenger_show("INFO", "Ejecutando Dump en el instante %f ms", time_passed);
+		messenger_show("DEBUG", "Ejecutando Dump en tras %d ms", time_passed);
 
 		t_list* stored_keys = entry_table_get_key_list();
 
-		list_iterate(stored_keys, (void*) _dump);
+		if(!list_is_empty(stored_keys)) {
+			list_iterate(stored_keys, (void*) _dump);
 
-		char* stored_keys_csv = messenger_list_to_string(stored_keys);
+			char* stored_keys_csv = messenger_list_to_string(stored_keys);
 
-		messenger_show("INFO", "Se dumpeo el valor de las claves [%s]", stored_keys_csv);
+			messenger_show("DEBUG", "Se Dumpeo el valor de las claves [%s]", stored_keys_csv);
 
-		free(stored_keys_csv);
+			free(stored_keys_csv);
+		}
+
+		else {
+			messenger_show("DEBUG", "No hay claves para Dumpear");
+		}
 
 		list_destroy(stored_keys);
 
-		messenger_show("INFO", "Fin de ejecucion de Dump");
+		messenger_show("DEBUG", "Fin de ejecucion de Dump");
 
 		pthread_mutex_unlock(&instance_mutex);
 	}

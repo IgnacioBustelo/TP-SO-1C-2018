@@ -48,7 +48,7 @@ bool entry_table_insert(int next_entry, key_value_t* key_value)
 			free (kv_old);
 		}
 	}
-		free(new_entry);
+		//free(new_entry); COMO VAS A LIBERAR LO QUE ACABAS DE INSERTAR??????? ESTAS LOCO????
 		return true;
 	}
 free(new_entry);
@@ -61,7 +61,7 @@ t_list* entry_table_get_key_list()
 		return (void*) strdup(entry->key);
 	}
 
-	return list_map(entry_table, (void*) map);
+	return (list_is_empty(entry_table)) ? list_create() : list_map(entry_table, (void*) map);
 }
 
 bool entry_table_has_key(char* key,bool is_new){

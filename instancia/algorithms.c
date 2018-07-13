@@ -207,7 +207,7 @@ t_list* original_entry_table_migration_to_entry_table_status()
 	 }
 	}
 
-free(status);
+//free(status);
 return entry_table_status;
 
 }
