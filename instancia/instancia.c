@@ -538,7 +538,7 @@ void instance_thread_api(void* args) {
 }
 
 void instance_thread_dump(void* args) {
-	float time_passed = 0.0;
+	int time_passed = 0;
 
 	if(DUMP_INTERVAL == 0) {
 		messenger_show("WARNING", "Decidimos no ejecutar el Dump cuando el intervalo del mismo es 0");
