@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+#include "../libs/messenger.h"
+
 #include "algorithms.h"
 #include "globals.h"
 
@@ -86,7 +88,7 @@ bool smallest_reference(void * a, void *b){
 bool biggest_size(void * a, void *b){
 	status_t * e1 = (status_t*)a;
 	status_t * e2 = (status_t*)b;
-	return e1->space_used>e2->space_used?false:true;
+	return e1->space_used<e2->space_used?false:true;
 }
 
 int algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys){
@@ -205,6 +207,7 @@ t_list* original_entry_table_migration_to_entry_table_status()
 	 }
 	}
 
+free(status);
 return entry_table_status;
 
 }
@@ -216,14 +219,15 @@ void entry_table_status_init(){
 void entry_table_status_add_kv(key_value_t* key_value,int number){ // TODO:FIJARSE LOGICA DE COMO MODIFICAR SI YA EXISTE
 
 	entry_table_status_last_referenced_add_all();
-	entry_t * entry=convert_key_value_t_to_entry_t(key_value); // TODO: Esto esta causando leaks: liberar espacio cuando sea necesario
+	entry_t * entry=convert_key_value_t_to_entry_t(key_value);
 	int entry_entries=0;
 
-	status_t * status = malloc(sizeof(status_t)); // TODO: Esto esta causando leaks: liberar espacio cuando sea necesario
+	status_t * status = malloc(sizeof(status_t));
 	status->status=FREE;
 	status->last_referenced=0;
 	status->space_used=0;
-
+if(number>=0)
+{
 		 if(entry_table_is_entry_atomic(entry))
 		 {
 			 list_replace(entry_table_status_global,number,convert_entry_t_to_status_t(entry));
@@ -240,7 +244,9 @@ void entry_table_status_add_kv(key_value_t* key_value,int number){ // TODO:FIJAR
 				 number_copy++;
 			 }
 		 }
-
+}
+free(entry);
+free(status);
 }
 
 void entry_table_status_delete_kv(key_value_t* key_value){
@@ -331,11 +337,12 @@ status_t * convert_entry_t_to_status_t(entry_t* entry){
 	return status;
 }
 
-void entry_table_status_print_table(t_list* entry_table_status){
+void entry_table_status_print_table(){
 
-	for (int i=0; i<list_size(entry_table_status);i++)
+	for (int i=0; i<list_size(entry_table_status_global);i++)
 		{
-		status_t * status=(status_t *) list_get(entry_table_status,i);
-		printf("Indice %d con estado %d, KEY %s, Referenciado hace: %d y Ocupa bits: %d \n",i,status->status,status->key,status->last_referenced,status->space_used);
+		status_t * status=(status_t *) list_get(entry_table_status_global,i);
+		messenger_show("INFO","Indice %d con estado %d, KEY %s, Referenciado hace: %d y Ocupa bits: %d",i,status->status,status->key,status->last_referenced,status->space_used);
+
 		}
 }

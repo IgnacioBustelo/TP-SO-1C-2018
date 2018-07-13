@@ -171,7 +171,7 @@ int chunk_recv_list(int fd, t_list** receiver, void*(*unpackager)(int fd, int* b
 	}
 
 	if(size < 1) {
-		messenger_show("WARNING", "No se recibio ningun elemento");
+		messenger_show("TRACE", "No se recibio ningun elemento");
 
 		return bytes_received;
 	}

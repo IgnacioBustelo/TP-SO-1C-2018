@@ -34,7 +34,7 @@ bool		new_value_fits(key_value_t* key_value); // Se fija si el tamanio del nuevo
 
 status_t*	convert_entry_t_to_status_t(entry_t * entry);
 
-void		entry_table_status_print_table(t_list* entry_table_status);
+void		entry_table_status_print_table();
 
 t_list*		original_entry_table_migration_to_entry_table_status();
 

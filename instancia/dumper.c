@@ -180,14 +180,14 @@ void dumper_show() {
 
 		char* content_string = messenger_bytes_to_string(content, content_size);
 
-		messenger_show("DEBUG", "FD: %d - Clave: %s - Valor: %s - Tamanio = %d", (int) value, key, content_string, content_size);
+		messenger_show("INFO", "FD: %d - Clave: %s - Valor: %s - Tamanio = %d", (int) value, key, content_string, content_size);
 
 		free(content_string);
 
 		free(content);
 	}
 
-	messenger_show("DEBUG", "Muestra de claves persistidas en el punto de montaje %s", dumper->mount_point);
+	messenger_show("INFO", "Muestra de claves persistidas en el punto de montaje %s", dumper->mount_point);
 
 	dictionary_iterator(dumper->file_dictionary, (void*) fd_show);
 }
