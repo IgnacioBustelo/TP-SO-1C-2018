@@ -179,7 +179,7 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 		free(replaced_keys_csv);
 	}
 
-	if(!entry_table_status_continuous_entries(replaced_keys)) {
+	if(!entry_table_has_continous_entries(key_value->size)) {
 		messenger_show("WARNING", "La Instancia tiene que compactar para ingresar la clave %s", key_value->key);
 
 		return STATUS_COMPACT;
@@ -366,17 +366,44 @@ void instance_thread_api(void* args) {
 
 				status = instance_set(key_value, replaced_keys);
 
+				entry_table_show();
+
+				storage_show();
+
 				pthread_mutex_unlock(&instance_mutex);
 
 				operation_result = coordinator_api_notify_set(get_total_entries() - entries_left, status);
 				API_B_CHECK("Fallo en el envio del resultado del SET al Coordinador")
 
 				switch(status) {
-					case STATUS_OK: request_result = INSTANCE_REQUEST_SUCCESS;			break;
+					case STATUS_OK: {
 
-					case STATUS_COMPACT: request_result = INSTANCE_COMPACT;				break;
+						request_result = INSTANCE_REQUEST_SUCCESS;
 
-					case STATUS_REPLACED: request_result = INSTANCE_REQUEST_FAILURE;	break;
+						break;
+					}
+
+					case STATUS_COMPACT: {
+						pthread_mutex_lock(&instance_mutex);
+
+						compactation_compact();
+
+						status = instance_set(key_value, replaced_keys);
+
+						entry_table_show();
+
+						storage_show();
+
+						pthread_mutex_unlock(&instance_mutex);
+
+						request_result = INSTANCE_COMPACT;
+
+						messenger_show("INFO", "Fin de la compactacion de la Instancia");
+
+						break;
+					}
+
+					default: request_result = INSTANCE_REQUEST_FAILURE;	break;
 				}
 
 				key_value_destroy(key_value);
@@ -506,15 +533,7 @@ void instance_thread_api(void* args) {
 			}
 
 			case INSTANCE_COMPACT: {
-				messenger_show("WARNING", "La Instancia requiere compactarse");
-
-				pthread_mutex_lock(&instance_mutex);
-
-				compactation_compact();
-
-				pthread_mutex_unlock(&instance_mutex);
-
-				messenger_show("INFO", "Fin de la compactacion de la Instancia");
+				messenger_show("WARNING", "La Instancia envio el valor y se compacto");
 
 				break;
 			}

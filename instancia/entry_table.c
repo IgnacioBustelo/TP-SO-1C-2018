@@ -9,6 +9,11 @@
 #include "entry_table.h"
 #include "globals.h"
 
+int _req_entries(int size) {
+	int entries = size/get_entry_size();
+
+	return size % get_entry_size() == 0 ? entries : entries + 1;
+}
 
 void entry_table_init() {
 	entry_table = list_create();
@@ -210,12 +215,6 @@ int entry_table_next_entry(key_value_t* key_value){
 }
 
 bool entry_table_has_entries(key_value_t* key_value) {
-	int _req_entries(int size) {
-		int entries = size/get_entry_size();
-
-		return size % get_entry_size() == 0 ? entries : entries+1;
-	}
-
 	int current_req = _req_entries(key_value->size);
 
 	if(entry_table_has_key(key_value->key, false)) {
@@ -318,8 +317,9 @@ void entry_table_show() {
 	list_destroy(sorted_list);
 }
 
-bool entry_table_has_continous_entries(int entries_needed)
+bool entry_table_has_continous_entries(int size)
 {
+	int entries_needed = _req_entries(size);
 	int in_beetwen_entry_space=0;
 		int entries_used=list_size(entry_table);
 		entry_t* e1;
@@ -327,7 +327,7 @@ bool entry_table_has_continous_entries(int entries_needed)
 	if (entry_table!=NULL )
 	    	{
 	    		if(entries_used==0)
-	    			return 0;
+	    			return 1;
 	    		else
 	    		{
 
@@ -337,7 +337,7 @@ bool entry_table_has_continous_entries(int entries_needed)
 					{
 						if ((e1->number)>=entries_needed)
 						{
-							true;
+							return true;
 						}
 					}
 					for (int i=0;i+1<entries_used;i++)
@@ -346,7 +346,7 @@ bool entry_table_has_continous_entries(int entries_needed)
 						e1 = (entry_t*) list_get(entry_table,i);
 						e2 = (entry_t*) list_get(entry_table,i+1);
 
-						in_beetwen_entry_space = (e2->number)-(e1->number+((e1->size%get_entry_size())==0?(e1->size/get_entry_size())+ e1->number:(e1->size/get_entry_size()+1)+ e1->number) );
+						in_beetwen_entry_space = (e2->number)-(((e1->size%get_entry_size())==0?(e1->size/get_entry_size())+ e1->number:(e1->size/get_entry_size()+1)+ e1->number) );
 
 						if (in_beetwen_entry_space>=entries_needed)
 						{
@@ -356,9 +356,12 @@ bool entry_table_has_continous_entries(int entries_needed)
 					e2 = (entry_t *) list_get(entry_table,list_size(entry_table)-1);
 					if(get_total_entries()- e2->number>=entries_needed && e2->number+entries_needed<get_total_entries())
 					{
-						return true;;
+						return true;
 					}
 	    		}
 	    		return false;
 	    	}
+	else {
+		return false;
+	}
 }
