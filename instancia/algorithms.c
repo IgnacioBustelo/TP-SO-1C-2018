@@ -170,6 +170,11 @@ bool new_value_fits(key_value_t* key_value)
 	return entries_left+entry_table_atomic_entries_count()>=entry_table_entries_needed(key_value);
 }
 
+bool new_value_fits_with_replaced(key_value_t* key_value, t_list* replaced_keys)
+{
+	return entries_left+entry_table_atomic_entries_count()+list_size(replaced_keys)>=entry_table_entries_needed(key_value);
+}
+
 t_list* original_entry_table_migration_to_entry_table_status()
 {
 	t_list * entry_table_status = list_create();

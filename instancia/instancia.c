@@ -152,49 +152,48 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 	int operation_result;
 
 	if(!entry_table_has_entries(key_value) && new_value_fits(key_value) ) {
-		if(!entry_table_status_continuous_entries(replaced_keys)) {
-			messenger_show("INFO", "La Instancia tiene que compactar para ingresar la clave %s", key_value->key);
-
-			operation_result = compactation_compact();
-		}
-
-		void replace_and_show_key(void* key) {
-			dumper_remove_key_value((char*) key);
-
-			messenger_show("WARNING", "La clave %s fue reemplazada por %s", (char*) key, key_value->key);
-		}
-
-		messenger_show("WARNING", "La Instancia debe ejecutar un reemplazo");
+		messenger_show("WARNING", "La Instancia debe ejecutar un reemplazo para ingresar el valor de la clave %s", key_value->key);
 
 		operation_result = algorithms_exec(cfg_instancia_get_replacement_algorithm_id(), entry_table, key_value, replaced_keys);
 
-		if(operation_result) {
-			entry_table_delete_few(replaced_keys);
+		if(!operation_result) {
+			messenger_show("ERROR", "No se puede ejecutar el algoritmo de reemplazo");
+
+			return STATUS_ERROR;
 		}
 
-		list_iterate(replaced_keys, (void*) replace_and_show_key);
+		if(!new_value_fits_with_replaced(key_value, replaced_keys)){
+			messenger_show("ERROR", "La Instancia no tiene entradas atomicas para ejecutar un reemplazo");
 
-		messenger_show("INFO", "Reemplazo ejecutado correctamente");
+			return STATUS_NO_SPACE;
+		}
+
+		entry_table_delete_few(replaced_keys);
+
+		list_iterate(replaced_keys, (void*) dumper_remove_key_value);
+
+		char* replaced_keys_csv = messenger_list_to_string(replaced_keys);
+
+		messenger_show("WARNING", "La clave %s se va a insertar tras reemplazar las claves [%s]", key_value->key, replaced_keys_csv);
+
+		free(replaced_keys_csv);
 	}
 
+	if(!entry_table_status_continuous_entries(replaced_keys)) {
+		messenger_show("WARNING", "La Instancia tiene que compactar para ingresar la clave %s", key_value->key);
 
-	else if(!new_value_fits(key_value)){
-		messenger_show("ERROR", "La Instancia no tiene entradas atomicas para ejecutar un reemplazo");
-
-		return STATUS_NO_SPACE;
+		return STATUS_COMPACT;
 	}
 
 	int next_entry = entry_table_next_entry(key_value);
 
-	if(next_entry >= 0) {
-		messenger_show("INFO", "La entrada %d esta disponible para ingresar la clave %s", next_entry, key_value->key);
-	}
-
-	else {
-		messenger_show("ERROR", "No se puede ingresar la clave en la tabla de entradas");
+	if(next_entry < 0) {
+		messenger_show("ERROR", "No se puede encontrar una entrada para insertar la clave");
 
 		return STATUS_ERROR;
 	}
+
+	messenger_show("INFO", "La entrada %d esta disponible para ingresar la clave %s", next_entry, key_value->key);
 
 	operation_result = storage_set(next_entry, key_value->value, key_value->size);
 
@@ -210,9 +209,13 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 
 	entry_table_status_add_kv(key_value,next_entry);
 
-	if(operation_result == 1) {
-		messenger_show("INFO", "Se proceso correctamente el SET de la clave %s en la entrada %d", key_value->key, next_entry);
+	if(operation_result != 1) {
+		messenger_show("ERROR", "No se puede ingresar el valor de la clave %s en la Tabla De Entradas", key_value->key);
+
+		return STATUS_ERROR;
 	}
+
+	messenger_show("INFO", "Se proceso correctamente el SET de la clave %s en la entrada %d", key_value->key, next_entry);
 
 	return STATUS_OK;
 }
@@ -368,7 +371,13 @@ void instance_thread_api(void* args) {
 				operation_result = coordinator_api_notify_set(get_total_entries() - entries_left, status);
 				API_B_CHECK("Fallo en el envio del resultado del SET al Coordinador")
 
-				request_result = INSTANCE_REQUEST_SUCCESS;
+				switch(status) {
+					case STATUS_OK: request_result = INSTANCE_REQUEST_SUCCESS;			break;
+
+					case STATUS_COMPACT: request_result = INSTANCE_COMPACT;				break;
+
+					case STATUS_REPLACED: request_result = INSTANCE_REQUEST_FAILURE;	break;
+				}
 
 				key_value_destroy(key_value);
 
@@ -392,7 +401,7 @@ void instance_thread_api(void* args) {
 				operation_result = coordinator_api_notify_status(PROTOCOL_IC_NOTIFY_STORE, status);
 				API_B_CHECK("Fallo en el envio del resultado del STORE al Coordinador")
 
-				request_result = INSTANCE_REQUEST_SUCCESS;
+				request_result = (status == STATUS_OK) ? INSTANCE_REQUEST_SUCCESS : INSTANCE_REQUEST_FAILURE;
 
 				free(key);
 
@@ -448,7 +457,7 @@ void instance_thread_api(void* args) {
 
 				free(requested_key);
 
-				request_result = INSTANCE_REQUEST_SUCCESS;
+				request_result = (status == STATUS_OK) ? INSTANCE_REQUEST_SUCCESS : INSTANCE_REQUEST_FAILURE;
 
 				break;
 			}
