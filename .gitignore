@@ -5,6 +5,7 @@
 !*.esi
 !esi/scripts/*
 !instancia/tests/final_tests_cfg/test_*.cfg
+!instancia/configs/*
 !Makefile
 !.gitignore
 /.metadata/
