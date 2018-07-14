@@ -132,7 +132,8 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 		SET_STATUS_COMPACT = 2,
 		SET_STATUS_OK = 1,
 		SET_STATUS_REPLACED = 0,
-		SET_STATUS_NO_SPACE = -1
+		SET_STATUS_NO_SPACE = -1,
+		SET_STATUS_ERROR = -2
 	};
 
 	switch (status) {
@@ -157,6 +158,7 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 		request_node_destroy(request);
 		return true;
 	case SET_STATUS_NO_SPACE:
+	case SET_STATUS_ERROR:
 		log_error(logger, "[Instancia %s] No hay espacio disponible!", instance->name);
 		key_table_remove(request->set.key);
 		instance_dispatch_failed_set(instance, request);
