@@ -206,6 +206,9 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 
 	messenger_show("INFO", "Se inserto el valor '%s' en el Storage", key_value->value);
 
+	entry_table_show();
+	storage_show();
+
 	operation_result = entry_table_insert(next_entry, key_value);
 
 	entry_table_status_add_kv(key_value,next_entry);
@@ -553,7 +556,7 @@ void instance_thread_dump(void* args) {
 
 		pthread_mutex_lock(&instance_mutex);
 
-		messenger_show("DEBUG", "Ejecutando Dump en tras %d ms", time_passed);
+		messenger_show("DEBUG", "Ejecutando Dump en tras %d segundos", time_passed);
 
 		t_list* stored_keys = entry_table_get_key_list();
 

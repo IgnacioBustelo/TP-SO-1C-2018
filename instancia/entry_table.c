@@ -187,16 +187,19 @@ int entry_table_next_entry(key_value_t* key_value){
 					e1 = (entry_t*) list_get(entry_table,i);
 					e2 = (entry_t*) list_get(entry_table,i+1);
 
-					in_beetwen_entry_space = (e2->number)-(e1->number+((e1->size%get_entry_size())==0?(e1->size/get_entry_size())+ e1->number:(e1->size/get_entry_size()+1)+ e1->number) );
+					in_beetwen_entry_space = (e2->number)-(((e1->size%get_entry_size())==0?(e1->size/get_entry_size())+ e1->number:(e1->size/get_entry_size()+1)+ e1->number) );
+
+					messenger_show("WARNING", "%d) Necesito %d entradas : e%d key1: %s - inbs: %d - e%d key2: %s", i, entries_needed, e1->number, e1->key, in_beetwen_entry_space, e2->number, e2->key);
 
 					if (in_beetwen_entry_space>=entries_needed)
 					{
-						return i+(e1->number+((e1->size%get_entry_size())==0?(e1->size/get_entry_size())+ e1->number:(e1->size/get_entry_size()+1)+ e1->number) );
+						return (e1->number+((e1->size%get_entry_size())==0?(e1->size/get_entry_size()):(e1->size/get_entry_size()+1)));
 					}
 				}
 				e2 = (entry_t *) list_get(entry_table,list_size(entry_table)-1);
 				if(get_total_entries()- e2->number>=entries_needed && e2->number+entries_needed<get_total_entries())
 				{
+					messenger_show("ERROR", "Se me hace que te vas a morir");
 					return ((e2->size%get_entry_size())==0?(e2->size/get_entry_size())+ e2->number:(e2->size/get_entry_size()+1)+ e2->number) ;
 				}
     		}
