@@ -48,6 +48,8 @@ void _dump(void* key) {
 	void* data = storage_retrieve(entry->number, entry->size);
 
 	dumper_store(key, data, entry->size);
+
+	free(data);
 }
 
 int instance_init(char* process_name, char* logger_route, char* log_level, char* cfg_route) {
@@ -570,7 +572,7 @@ void instance_thread_dump(void* args) {
 			messenger_show("DEBUG", "No hay claves para Dumpear");
 		}
 
-		list_destroy(stored_keys);
+		list_destroy_and_destroy_elements(stored_keys, free);
 
 		messenger_show("DEBUG", "Fin de ejecucion de Dump");
 

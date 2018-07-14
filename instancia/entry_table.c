@@ -43,7 +43,8 @@ bool entry_table_insert(int next_entry, key_value_t* key_value)
 		{
 			key_value_t* kv_old = key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size);
 			entries_left += entry_table_entries_needed(kv_old);
-			list_replace_and_destroy_element(entry_table,next_entry,new_entry, (void*) entry_table_key_value_destroy);
+			//list_replace_and_destroy_element(entry_table,next_entry,new_entry, (void*) entry_table_key_value_destroy);
+			list_replace(entry_table,next_entry,new_entry);
 			entries_left -= entry_table_entries_needed(key_value);
 			key_value_destroy(kv_old);
 		}
