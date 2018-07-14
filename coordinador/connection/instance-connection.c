@@ -126,6 +126,8 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 	pthread_mutex_unlock(&instance->lock);
 
 	instance->used_entries = used_entries;
+	log_info(logger, "[Instancia %s] Cantidad de entradas ocupadas: %d / %d.",
+			instance->name, instance->used_entries, setup.entries_num);
 
 	enum set_status_t {
 		SET_STATUS_COMPACT = 2,

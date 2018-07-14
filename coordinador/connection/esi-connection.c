@@ -12,6 +12,7 @@
 
 #include "../distribution.h"
 #include "../instance-list/instance-request-list.h"
+#include "../key-table/key-table.h"
 #include "instance-connection.h"
 #include "esi-connection.h"
 #include "scheduler-connection.h"
@@ -105,6 +106,7 @@ static bool handle_esi_operation(struct esi_t esi, struct esi_operation_t *opera
 		case KEY_UNBLOCKED:
 			esi_log_info(logger, "Bloqueando la clave...");
 			scheduler_block_key();
+			key_table_create_key(operation->get.key, NULL);
 			esi_send_execution_success(esi.fd);
 			break;
 		case KEY_BLOCKED_BY_EXECUTING_ESI:
