@@ -317,3 +317,48 @@ void entry_table_show() {
 
 	list_destroy(sorted_list);
 }
+
+bool entry_table_has_continous_entries(int entries_needed)
+{
+	int in_beetwen_entry_space=0;
+		int entries_used=list_size(entry_table);
+		entry_t* e1;
+		entry_t* e2;
+	if (entry_table!=NULL )
+	    	{
+	    		if(entries_used==0)
+	    			return 0;
+	    		else
+	    		{
+
+	    			e1 = (entry_t*) list_get(entry_table,0);
+
+	    			if (e1->number>0)
+					{
+						if ((e1->number)>=entries_needed)
+						{
+							true;
+						}
+					}
+					for (int i=0;i+1<entries_used;i++)
+					{
+
+						e1 = (entry_t*) list_get(entry_table,i);
+						e2 = (entry_t*) list_get(entry_table,i+1);
+
+						in_beetwen_entry_space = (e2->number)-(e1->number+((e1->size%get_entry_size())==0?(e1->size/get_entry_size())+ e1->number:(e1->size/get_entry_size()+1)+ e1->number) );
+
+						if (in_beetwen_entry_space>=entries_needed)
+						{
+							return true;
+						}
+					}
+					e2 = (entry_t *) list_get(entry_table,list_size(entry_table)-1);
+					if(get_total_entries()- e2->number>=entries_needed && e2->number+entries_needed<get_total_entries())
+					{
+						return true;;
+					}
+	    		}
+	    		return false;
+	    	}
+}
