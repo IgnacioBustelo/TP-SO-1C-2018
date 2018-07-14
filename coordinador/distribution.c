@@ -71,10 +71,11 @@ static struct instance_t *least_space_used(struct instance_list_t *instance_list
 	struct instance_t *next_instance;
 	synchronized(instance_list->lock) {
 		instance_list_sort(instance_list, sort_by_used_space);
-		next_instance = instance_list_first(instance_list, excluded_instances);
-	}
-	if (next_instance != NULL) {
-		key_table_create_key(key, next_instance);
+		next_instance = instance_list_pop(instance_list, excluded_instances);
+		if (next_instance != NULL) {
+			instance_list_push(instance_list, next_instance);
+			key_table_create_key(key, next_instance);
+		}
 	}
 
 	return next_instance;
