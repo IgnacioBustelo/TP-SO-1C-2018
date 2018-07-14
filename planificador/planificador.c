@@ -322,7 +322,7 @@ int main(void) {
 						we_must_reschedule(&reschedule_flag);
 					}
 
-					log_info(logger,"El ESI %i se encuentra bloqueado esperando la clave %s", obtain_esi_information_by_id(fd)->esi_numeric_name, last_key_inquired);
+					log_info(logger,"\x1b[92mEl ESI %i se encuentra bloqueado esperando la clave %s\x1b[92m", obtain_esi_information_by_id(fd)->esi_numeric_name, last_key_inquired);
 					free(last_key_inquired);
 					break;
 
@@ -385,7 +385,7 @@ int main(void) {
 
 				finished_esi_flag = 0;
 
-				while(scheduler_paused_flag == 1);
+				while(scheduler_paused_flag == 1) {sleep(1);};
 
 				update_waiting_time_of_ready_esis();
 
@@ -914,7 +914,7 @@ void release_resources(int esi_fd, int* update_blocked_esi_queue_flag) {
 
 	list_destroy(keys_unlocked);
 
-	log_info(logger,"Los recursos del ESI %i fueron liberados correctamente", esi_numeric_order);
+	log_info(logger,"\x1b[33mLos recursos del ESI %i fueron liberados correctamente\x1b[33m", esi_numeric_order);
 
 }
 
