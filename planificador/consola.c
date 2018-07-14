@@ -120,7 +120,7 @@ static void list_locked_process(char **args)
 {
 	void _list_locked_process(char* resource) {
 
-		printf("\x1b[97mListar procesos bloqueados por recurso %s\n", resource);
+		printf("\x1b[97mListar procesos bloqueados por recurso %s\n\x1b[0m", resource);
 		show_blocked_process(resource);
 	}
 	_list_locked_process(args[0]);
