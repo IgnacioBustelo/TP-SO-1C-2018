@@ -43,7 +43,7 @@ bool entry_table_insert(int next_entry, key_value_t* key_value)
 		{
 			key_value_t* kv_old = key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size);
 			entries_left += entry_table_entries_needed(kv_old);
-			//list_replace_and_destroy_element(entry_table,next_entry,new_entry, (void*) entry_table_key_value_destroy);
+			//list_replace_and_destroy_element(entry_table,next_entry,new_entry, free);
 			list_replace(entry_table,next_entry,new_entry);
 			entries_left -= entry_table_entries_needed(key_value);
 			key_value_destroy(kv_old);
@@ -189,7 +189,7 @@ int entry_table_next_entry(key_value_t* key_value){
 
 					in_beetwen_entry_space = (e2->number)-(((e1->size%get_entry_size())==0?(e1->size/get_entry_size())+ e1->number:(e1->size/get_entry_size()+1)+ e1->number) );
 
-					messenger_show("WARNING", "%d) Necesito %d entradas : e%d key1: %s - inbs: %d - e%d key2: %s", i, entries_needed, e1->number, e1->key, in_beetwen_entry_space, e2->number, e2->key);
+					//messenger_show("WARNING", "%d) Necesito %d entradas : e%d key1: %s - inbs: %d - e%d key2: %s", i, entries_needed, e1->number, e1->key, in_beetwen_entry_space, e2->number, e2->key);
 
 					if (in_beetwen_entry_space>=entries_needed)
 					{
@@ -199,7 +199,6 @@ int entry_table_next_entry(key_value_t* key_value){
 				e2 = (entry_t *) list_get(entry_table,list_size(entry_table)-1);
 				if(get_total_entries()- e2->number>=entries_needed && e2->number+entries_needed<get_total_entries())
 				{
-					messenger_show("ERROR", "Se me hace que te vas a morir");
 					return ((e2->size%get_entry_size())==0?(e2->size/get_entry_size())+ e2->number:(e2->size/get_entry_size()+1)+ e2->number) ;
 				}
     		}
