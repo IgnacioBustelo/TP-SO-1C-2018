@@ -159,7 +159,7 @@ void* obtain_package_from_line(char* line, size_t* package_size) {
 
             case GET:
 
-            	log_info(logger, "GET\tclave: <%s>", parsed.argumentos.GET.clave);
+            	log_info(logger, "\x1b[97mGET\x1b[97m\tclave: <%s>", parsed.argumentos.GET.clave);
             	operation = PROTOCOL_EC_GET;
             	*package_size = sizeof(operation) + sizeof(size_t) + strlen(parsed.argumentos.GET.clave) + 1;
             	package = create_package(*package_size);
@@ -168,7 +168,7 @@ void* obtain_package_from_line(char* line, size_t* package_size) {
                 break;
             case SET:
 
-            	log_info(logger, "SET\tclave: <%s>\tvalor: <%s>", parsed.argumentos.SET.clave, parsed.argumentos.SET.valor);
+            	log_info(logger, "\x1b[97mSET\x1b[97m\tclave: <%s>\tvalor: <%s>", parsed.argumentos.SET.clave, parsed.argumentos.SET.valor);
             	operation = PROTOCOL_EC_SET;
             	*package_size = sizeof(operation) + sizeof(size_t) +strlen(parsed.argumentos.SET.clave) + 1 + sizeof(size_t) + strlen(parsed.argumentos.SET.valor) + 1;
             	package = create_package(*package_size);
@@ -178,7 +178,7 @@ void* obtain_package_from_line(char* line, size_t* package_size) {
                 break;
             case STORE:
 
-            	log_info(logger, "STORE\tclave: <%s>", parsed.argumentos.STORE.clave);
+            	log_info(logger, "\x1b[97mSTORE\x1b[97m\tclave: <%s>", parsed.argumentos.STORE.clave);
             	operation = PROTOCOL_EC_STORE;
             	*package_size = sizeof(operation) + sizeof(size_t) + strlen(parsed.argumentos.STORE.clave) + 1;
             	package = create_package(*package_size);

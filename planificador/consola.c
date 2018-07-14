@@ -159,7 +159,7 @@ static void key_status(char **args)
 
 		send_key_to_coordinator(key);
 
-		receive_and_print_key_status();
+		// receive_and_print_key_status();
 
 		sem_post(&mutex_coordinador);
 
@@ -424,17 +424,12 @@ void send_key_to_coordinator(char* key) {
 
 void receive_and_print_key_status() {
 
-	protocol_id operation_code;
 	int key_state;
 
-	recv_package(g_coordinator_fd, &operation_code, sizeof(operation_code));
-
-	if(operation_code != PROTOCOL_CP_KEY_STATUS) {
-
-		printf("Algo salió mal en la comunicación con el coordinador\n"); // TODO Ver si hay que hacer algo en esta situación
-	} else {
-
-	recv_package(g_coordinator_fd, &key_state, sizeof(int));
+	if (!recv_package(g_coordinator_fd, &key_state, sizeof(int))) {
+		fprintf(stderr, "Error al recibir el estado de la clave!");
+		return;
+	}
 
 	switch(key_state) {
 
@@ -473,6 +468,5 @@ void receive_and_print_key_status() {
 		break;
 	}
 	}
-  }
 }
 
