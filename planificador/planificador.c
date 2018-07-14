@@ -347,7 +347,7 @@ int main(void) {
 					executing_esi = -1;
 				} else {
 
-					if (update_blocked_esi_queue_flag == 1 || new_esi_flag == 1) {
+					if (update_blocked_esi_queue_flag == 1 || new_esi_flag == 1 || unlock_esi_by_console_flag == 1) {
 
 						if (update_blocked_esi_queue_flag == 1) {
 
@@ -382,6 +382,8 @@ int main(void) {
 				finished_esi_flag = 0;
 
 				while(scheduler_paused_flag == 1);
+
+				update_waiting_time_of_ready_esis();
 
 				if (reschedule_flag == 1 && !list_is_empty(g_ready_queue)){
 
@@ -453,9 +455,9 @@ esi_information* create_esi_information(int esi_id, int esi_numeric_name) {
 	esi_information* esi_inf = malloc(sizeof(esi_information));
 	esi_inf->esi_id = esi_id;
 	esi_inf->esi_numeric_name = esi_numeric_name;
-	esi_inf->last_estimated_burst = (float)setup.initial_estimation;
 	esi_inf->last_real_burst = 0;
 	esi_inf->waited_bursts = 0;
+	esi_inf->last_estimated_burst = (float) setup.initial_estimation;
 	return esi_inf;
 }
 
@@ -548,7 +550,6 @@ void authorize_esi_execution(int esi_fd) {
 
 	} else {
 
-		update_waiting_time_of_ready_esis();
 		update_executing_esi(esi_fd);
 
 		log_info(logger, "Se autorizó la ejecución del ESI %i", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
@@ -706,23 +707,10 @@ int schedule_esis() {
 			esi_information *esi1 = obtain_esi_information_by_id(*esi_fd1);
 			esi_information *esi2 = obtain_esi_information_by_id(*esi_fd2);
 
-			float last_estimated_burst1 = esi1->last_estimated_burst;
-			int last_real_burst1 = esi1->last_real_burst;
+			float response_ratio_1 = next_estimated_burst_hrrn(esi1->waited_bursts, esi1->last_estimated_burst);
+			float response_ratio_2 = next_estimated_burst_hrrn(esi2->waited_bursts, esi2->last_estimated_burst);
 
-			float last_estimated_burst2 = esi2->last_estimated_burst;
-			int last_real_burst2 = esi2->last_real_burst;
-
-			float result1, result2;
-
-			result1 = last_real_burst1 == 0
-								? last_estimated_burst1
-								: next_estimated_burst_hrrn(esi1->waited_bursts, next_estimated_burst_sjf(setup.alpha, last_real_burst1, last_estimated_burst1));
-
-			result2 = last_real_burst2 == 0
-					            ? last_estimated_burst2
-					            : next_estimated_burst_hrrn(esi2->waited_bursts, next_estimated_burst_sjf(setup.alpha, last_real_burst2, last_estimated_burst2));
-
-			return result1 >= result2;
+			return response_ratio_1 >= response_ratio_2;
 
 		}
 
@@ -732,14 +720,9 @@ int schedule_esis() {
 			int *esi_fd = (int *)elem;
 			esi_information *esi = obtain_esi_information_by_id(*esi_fd);
 
-			float last_estimated_burst = esi->last_estimated_burst;
-			int last_real_burst = esi->last_real_burst;
+			float response_ratio = next_estimated_burst_hrrn(esi->waited_bursts, esi->last_estimated_burst);
 
-			float estimation = last_real_burst == 0
-					            ? last_estimated_burst
-					            : next_estimated_burst_hrrn(esi->waited_bursts, next_estimated_burst_sjf(setup.alpha, last_real_burst, last_estimated_burst));
-
-			log_info(logger, "ESI %i tiene una estimación de %f", esi->esi_numeric_name, estimation);
+			log_info(logger, "ESI %i tiene una response ratio de %f", esi->esi_numeric_name, response_ratio);
 		}
 
 		list_iterate(g_ready_queue, show_esi_estimations);
@@ -1163,19 +1146,9 @@ static void update_esi_information_next_estimated_burst(int esi_fd) {
 
 	esi_information* esi_inf = obtain_esi_information_by_id(esi_fd);
 
-	if(setup.scheduling_algorithm == SJFCD || setup.scheduling_algorithm == SJFSD) {
-
-		esi_inf->last_estimated_burst = next_estimated_burst_sjf(setup.alpha, esi_inf->last_real_burst, esi_inf->last_estimated_burst);
-		esi_inf->last_real_burst = 0;
-		esi_inf->waited_bursts = 0;
-	}
-
-	if(setup.scheduling_algorithm == HRRN) {
-
-		esi_inf->last_estimated_burst = next_estimated_burst_hrrn(esi_inf->waited_bursts, next_estimated_burst_sjf(setup.alpha, esi_inf->last_real_burst, esi_inf->last_estimated_burst));
-		esi_inf->last_real_burst = 0;
-		esi_inf->waited_bursts = 0;
-	}
+	esi_inf->last_estimated_burst = next_estimated_burst_sjf(setup.alpha, esi_inf->last_real_burst, esi_inf->last_estimated_burst);
+	esi_inf->last_real_burst = 0;
+	esi_inf->waited_bursts = 0;
 }
 
 static void block_by_console_procedure() {
