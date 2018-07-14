@@ -81,11 +81,12 @@ int executing_esi = -1;
 
 sem_t mutex_coordinador;
 
-int main(void) {
+int main(int argc, char **argv) {
 
 	logger = init_log();
 
-	setup = init_config(logger);
+	char* route = (argc == 1) ? strdup("planificador.cfg") : string_from_format("configs/%s", argv[argc - 1]);
+	setup = init_config(logger, route);
 
 	sem_init(&mutex_coordinador, 0, 1);
 

@@ -16,12 +16,12 @@ t_log* init_log() {
 	return logger;
 }
 
-t_planificador_config init_config(t_log* logger) {
+t_planificador_config init_config(t_log* logger, char* route) {
 
 	t_config* config;
 	t_planificador_config setup;
 
-	config = config_create("planificador.cfg");
+	config = config_create(route);
 	log_info(logger, "Se abrio el archivo de configuracion.");
 
 	check_config(logger, config, "PUERTO");

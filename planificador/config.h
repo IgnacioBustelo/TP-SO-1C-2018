@@ -35,6 +35,6 @@ t_log* init_log();
  * Devuelve una estructura que contiene todos los campos necesarios para el planificador
  */
 
-t_planificador_config init_config(t_log* logger);
+t_planificador_config init_config(t_log* logger, char* route);
 
 #endif
