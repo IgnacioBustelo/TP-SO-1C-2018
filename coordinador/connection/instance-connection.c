@@ -90,7 +90,6 @@ void handle_instance_connection(int fd)
 			break;
 		}
 
-		request_node_destroy(request);
 		synchronized(instance_list->lock) {
 			if (error && fd == instance->fd) {
 				instance_list_remove(instance_list, instance->name);
@@ -141,6 +140,7 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 		log_info(logger, "[Instancia %s] Operacion realizada correctamente.", instance->name);
 		key_table_set_initialized(request->set.key);
 		esi_send_execution_success(request->requesting_esi_fd);
+		request_node_destroy(request);
 		return true;
 	case SET_STATUS_COMPACT:
 		log_info(logger, "[Instancia %s] Se necesita hacer una compactacion.", instance->name);
@@ -148,11 +148,13 @@ static bool instance_handle_set_request(struct instance_t *instance, struct requ
 		log_info(logger, "[Instancia %s] Operacion realizada correctamente.", instance->name);
 		key_table_set_initialized(request->set.key);
 		esi_send_execution_success(request->requesting_esi_fd);
+		request_node_destroy(request);
 		return true;
 	case SET_STATUS_REPLACED:
 		log_error(logger, "[Instancia %s] La clave fue previamente reemplazada!", instance->name);
 		key_table_remove(request->set.key);
 		esi_send_illegal_operation(request->requesting_esi_fd);
+		request_node_destroy(request);
 		return true;
 	case SET_STATUS_NO_SPACE:
 		log_error(logger, "[Instancia %s] No hay espacio disponible!", instance->name);
@@ -177,6 +179,9 @@ static void instance_dispatch_failed_set(struct instance_t *failed_instance, str
 	if (instance == NULL) {
 		log_error(logger, "[ESI %d] No hay Instancias disponibles para ejecutar la operacion!", request->requesting_esi_fd);
 		esi_send_illegal_operation(request->requesting_esi_fd);
+		request_node_destroy(request);
+	} else {
+		request_list_push(instance->requests, request);
 	}
 }
 
@@ -186,6 +191,7 @@ static bool instance_handle_store_request(struct instance_t *instance, struct re
 		log_error(logger, "[Instancia %s] Error al realizar un STORE sobre una clave no inicializada.", instance->name);
 		key_table_remove(request->store.key);
 		esi_send_illegal_operation(request->requesting_esi_fd);
+		request_node_destroy(request);
 		return true;
 	}
 
@@ -197,6 +203,7 @@ static bool instance_handle_store_request(struct instance_t *instance, struct re
 		log_error(logger, "[Instancia %s] Se abortara el ESI en ejecucion!", instance->name);
 		key_table_remove(request->store.key);
 		esi_send_illegal_operation(request->requesting_esi_fd);
+		request_node_destroy(request);
 
 		return false;
 	}
@@ -208,6 +215,7 @@ static bool instance_handle_store_request(struct instance_t *instance, struct re
 		log_error(logger, "[Instancia %s] Se abortara el ESI en ejecucion!", instance->name);
 		key_table_remove(request->store.key);
 		esi_send_illegal_operation(request->requesting_esi_fd);
+		request_node_destroy(request);
 
 		return false;
 	}
@@ -225,16 +233,19 @@ static bool instance_handle_store_request(struct instance_t *instance, struct re
 		/* TODO: Manejar desconexion del planificador. */
 		scheduler_unblock_key(request->store.key);
 		esi_send_execution_success(request->requesting_esi_fd);
+		request_node_destroy(request);
 		return true;
 	case STORE_STATUS_REPLACED:
 		log_error(logger, "[Instancia %s] La clave fue previamente reemplazada!", instance->name);
 		key_table_remove(request->store.key);
 		esi_send_illegal_operation(request->requesting_esi_fd);
+		request_node_destroy(request);
 		return true;
 	default:
 		log_error(logger, "[Instancia %s] Error de comunicacion!", instance->name);
 		key_table_remove(request->store.key);
 		esi_send_illegal_operation(request->requesting_esi_fd);
+		request_node_destroy(request);
 		return false;
 	}
 }
