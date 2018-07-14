@@ -353,8 +353,6 @@ void detect_and_show_all_deadlocks(t_list* locked_keys, t_list* esi_requests, t_
 
 				list_iterate(current_esi_cycle, apply_a_zero);
 
-				list_clean_and_destroy_elements(current_esi_cycle, int_destroyer);
-
 			} else {
 
 				deadlock_number++;
@@ -371,11 +369,13 @@ void detect_and_show_all_deadlocks(t_list* locked_keys, t_list* esi_requests, t_
 				}
 
 				list_iterate(current_esi_cycle, apply_deadlock_id);
-
-				list_clean_and_destroy_elements(current_esi_cycle, int_destroyer);
 			}
+
+			list_clean_and_destroy_elements(current_esi_cycle, int_destroyer);
 	}
 }
+	list_destroy(current_esi_cycle);
+
 	if(deadlock_number == 0) {
 
 		printf("No hay deadlocks en el sistema\n");
@@ -408,7 +408,7 @@ void detect_and_show_all_deadlocks(t_list* locked_keys, t_list* esi_requests, t_
 		list_iterate(all_esis_in_system, is_in_deadlock_i);
 	}
 
-	list_clean_and_destroy_elements(all_esis_in_system, destroy_esi_in_deadlock);
+	list_destroy_and_destroy_elements(all_esis_in_system, destroy_esi_in_deadlock);
 }
 
 void send_key_to_coordinator(char* key) {

@@ -198,7 +198,7 @@ int main(void) {
 
 					list_add(g_esi_bursts, (void*)create_esi_information(new_client_fd, esi_numeric_arrival_order));
 
-					log_info(logger, "\x1b[92mESI %i conectado\x1b[92m\n", esi_numeric_arrival_order);
+					log_info(logger, "\x1b[97mESI %i conectado\x1b[97m\n", esi_numeric_arrival_order);
 
 					new_esi_detected(&new_esi_flag);
 
@@ -342,7 +342,7 @@ int main(void) {
 
 				if(finished_esi_flag == 1) {
 
-					log_info(logger,"\x1b[32mEl ESI %i finalizó la ejecución de su script correctamente\x1b[32m", obtain_esi_information_by_id(fd)->esi_numeric_name);
+					log_info(logger,"\x1b[33mEl ESI %i finalizó la ejecución de su script correctamente\x1b[33m", obtain_esi_information_by_id(fd)->esi_numeric_name);
 					int flag_to_save_the_day = 0;
 					if(update_blocked_esi_queue_flag == 1) flag_to_save_the_day = 1;
 					release_resources(executing_esi, &update_blocked_esi_queue_flag);
@@ -368,7 +368,12 @@ int main(void) {
 
 							list_iterate(g_last_unlocked_by_console_keys, release_key);
 
-							list_clean(g_last_unlocked_by_console_keys);
+							void key_destroyer(void* a_key) {
+
+								free((char*)a_key);
+							}
+
+							list_clean_and_destroy_elements(g_last_unlocked_by_console_keys, key_destroyer);
 						}
 
 						if (new_esi_flag == 1) update_new_esi_queue(&new_esi_flag);
@@ -420,7 +425,12 @@ int main(void) {
 
 				list_iterate(g_last_unlocked_by_console_keys, release_key);
 
-				list_clean(g_last_unlocked_by_console_keys);
+				void key_destroyer(void* a_key) {
+
+					free((char*)a_key);
+				}
+
+				list_clean_and_destroy_elements(g_last_unlocked_by_console_keys, key_destroyer);
 			}
 
 			if (new_esi_flag == 1 && !list_is_empty(g_new_queue)) update_new_esi_queue(&new_esi_flag);
