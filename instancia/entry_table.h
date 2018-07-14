@@ -73,4 +73,6 @@ void 		entry_table_show();
 
 void        _read(void* data);
 
+bool 		entry_table_has_continous_entries(int entries_needed);
+
 #endif
