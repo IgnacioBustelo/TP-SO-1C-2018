@@ -282,6 +282,12 @@ int main(void) {
 
 					sem_post(&mutex_coordinador);
 					break;
+
+				case PROTOCOL_CP_KEY_STATUS:
+					sem_wait(&mutex_coordinador);
+					receive_and_print_key_status();
+					sem_post(&mutex_coordinador);
+					break;
 				}
 
 			} else if (fd == executing_esi) {
@@ -1083,7 +1089,7 @@ static char* receive_inquired_key(int coordinator_fd) {
 	char* key;
 	int result = recv_package_variable(coordinator_fd, (void**)&key);
 
-	if(result == -2 || result == -3) {
+	if (!result) {
 
 		log_error(logger, "Error al recibir la clave de parte del coordinador");
 		kaboom_baby(coordinator_fd);
