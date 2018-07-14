@@ -100,8 +100,6 @@ static void lock_process(char **args)
 		int pfd = obtain_esi_fd_by_esi_pid(atoi(pid));
 
 		list_add(g_new_blocked_by_console_esis, (void*)create_esi_sexpecting_key(pfd, key));
-		free(key);
-		free(pid);
 	}
 	_lock_process(args[0], args[1]);
 }
@@ -144,8 +142,6 @@ static void kill_process(char **args)
 
 			list_add(g_new_killed_esis, (void*)pfd);
 		}
-
-		free(pid);
 	}
 	_kill_process(args[0]);
 }
@@ -176,16 +172,21 @@ static void check_deadlock(char **_)
 
 void show_blocked_process(char* resource) {
 
+	int quantity_of_blocked_esis = 0;
+
 	void show_esi_from_resource(void* resource2){
 
 		if (strcmp(((esi_sexpecting_key*)resource2)->key, resource) == 0) {
 
+			quantity_of_blocked_esis++;
 			esi_information* esi_inf = obtain_esi_information_by_id(((esi_sexpecting_key*)resource2)->esi_fd);
 			printf("El ESI %i se encuentra bloqueado por la clave %s\n", esi_inf->esi_numeric_name, resource);
 		}
 	}
 
 	list_iterate(g_esis_sexpecting_keys, show_esi_from_resource);
+
+	if(quantity_of_blocked_esis == 0) printf("Nadie está bloqueado esperando que se libere la clave %s\n", resource);
 }
 
 void detect_and_show_all_deadlocks(t_list* locked_keys, t_list* esi_requests, t_list* esis_in_system) {
@@ -420,6 +421,8 @@ void send_key_to_coordinator(char* key) {
 	add_content_variable(package, key, strlen(key) + 1);
 	void* package_ = build_package(package);
 	send_serialized_package(g_coordinator_fd, package_, package_size);
+	destroy_package(package);
+	free(package_);
 }
 
 void receive_and_print_key_status() {
@@ -441,6 +444,7 @@ void receive_and_print_key_status() {
 		recv_package_variable(g_coordinator_fd, (void**) &instance_name);
 
 		printf("Instancia: %s\n", instance_name);
+		free(instance_name);
 		break;
 	}
 
@@ -465,6 +469,8 @@ void receive_and_print_key_status() {
 
 		printf("Valor: %s\n", key_value);
 		printf("Instancia actual: %s\n", instance_name);
+		free(instance_name);
+		free(key_value);
 		break;
 	}
 	}
