@@ -900,6 +900,19 @@ void release_resources(int esi_fd, int* update_blocked_esi_queue_flag) {
 	update_blocked_esi_queue(blocked_key->key, update_blocked_esi_queue_flag, true);
 	}
 
+	bool asked_key(void* esi_sexpecting) {
+
+		return ((esi_sexpecting_key*)esi_sexpecting)->esi_fd == esi_fd;
+	}
+
+	void destroy_esi_sexpecting_key(void* esi_sexpecting_key_) {
+
+		free(((esi_sexpecting_key*)esi_sexpecting_key_)->key);
+		free(esi_sexpecting_key_);
+	}
+
+	list_remove_and_destroy_by_condition(g_esis_sexpecting_keys, asked_key, destroy_esi_sexpecting_key);
+
 	remove_fd(esi_fd, &connected_fds);
 
 	void destroy_key_blocker(void* key_blocker_) {
@@ -988,7 +1001,6 @@ void burn_esi_corpses(int executing_esi) {
 	void apply_sock_my_port(void* esi_fd) {
 
 		sock_my_port(*(int*)esi_fd);
-		//release_resources(*(int*)esi_fd, &update_blocked_esi_queue_flag); TODO
 	}
 
 	list_iterate(g_new_killed_esis, apply_sock_my_port);

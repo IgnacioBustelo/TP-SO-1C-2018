@@ -78,14 +78,14 @@ void *init_console(void* _)
 
 static void pause_scheduler(char **_)
 {
-	printf("Pausar planificacion\n");
+	printf("\x1b[97mPausar planificacion\n\x1b[0m");
 
 	scheduler_paused_flag = 1;
 }
 
 static void resume_scheduler(char **_)
 {
-	printf("Continuar planificacion\n");
+	printf("\x1b[97mContinuar planificacion\n\x1b[0m");
 
 	scheduler_paused_flag = 0;
 }
@@ -94,7 +94,7 @@ static void lock_process(char **args)
 {
 	void _lock_process(char *key, char *pid) {
 
-		printf("Bloquear proceso ESI (clave = %s, id = %s)\n", key, pid);
+		printf("\x1b[97mBloquear proceso ESI (clave = %s, id = %s)\n\x1b[0m", key, pid);
 		block_esi_by_console_flag = 1;
 
 		int pfd = obtain_esi_fd_by_esi_pid(atoi(pid));
@@ -107,7 +107,7 @@ static void lock_process(char **args)
 static void unlock_process(char **args)
 {
 	void _unlock_process(char* key) {
-		printf("Desbloquear proceso ESI (clave = %s)\n", key);
+		printf("\x1b[97mDesbloquear proceso ESI (clave = %s)\n\x1b[0m", key);
 		unlock_esi_by_console_flag = 1;
 		char* key_ = strdup(key);
 		list_add(g_last_unlocked_by_console_keys, (void*)key_);
@@ -120,7 +120,7 @@ static void list_locked_process(char **args)
 {
 	void _list_locked_process(char* resource) {
 
-		printf("Listar procesos bloqueados por recurso %s\n", resource);
+		printf("\x1b[97mListar procesos bloqueados por recurso %s\n", resource);
 		show_blocked_process(resource);
 	}
 	_list_locked_process(args[0]);
@@ -129,7 +129,7 @@ static void list_locked_process(char **args)
 static void kill_process(char **args)
 {
 	void _kill_process(char *pid) {
-		printf("Finalizar proceso %s\n", pid);
+		printf("\x1b[97mFinalizar proceso %s\n\x1b[0m", pid);
 		killed_esi_flag = 1;
 
 		int* pfd = malloc(sizeof(int));
@@ -149,7 +149,7 @@ static void kill_process(char **args)
 static void key_status(char **args)
 {
 	void _key_status(char *key) {
-		printf("Informar estado de la clave %s\n", key);
+		printf("\x1b[97mInformar estado de la clave %s\n\x1b[0m", key);
 
 		sem_wait(&mutex_coordinador);
 
@@ -166,7 +166,7 @@ static void key_status(char **args)
 
 static void check_deadlock(char **_)
 {
-	printf("Detectar deadlocks\n");
+	printf("\x1b[97mDetectar deadlocks\n\x1b[0m");
 	detect_and_show_all_deadlocks(g_locked_keys, g_esis_sexpecting_keys, g_esi_bursts);
 }
 
@@ -379,13 +379,13 @@ void detect_and_show_all_deadlocks(t_list* locked_keys, t_list* esi_requests, t_
 
 	if(deadlock_number == 0) {
 
-		printf("No hay deadlocks en el sistema\n");
+		printf("\x1b[103mNo hay deadlocks en el sistema\n\x1b[0m");
 	}
 
 	int i;
 	for(i = 1; i <= deadlock_number; i++) {
 
-		printf("Deadlock %i:\n", i);
+		printf("\x1b[93mDeadlock %i:\n\x1b[0m", i);
 
 		void is_in_deadlock_i(void* esi_in_deadlock_) {
 
