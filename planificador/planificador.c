@@ -329,7 +329,7 @@ int main(int argc, char **argv) {
 
 				case PROTOCOL_EP_I_BROKE_THE_LAW:
 
-					log_info(logger,"\x1b[91mEl ESI %i trató de ejecutar una sentencia invalida\x1b[91m", obtain_esi_information_by_id(fd)->esi_numeric_name);
+					log_info(logger,"\x1b[91mEl ESI %i falló por una causa inesperada\x1b[91m", obtain_esi_information_by_id(fd)->esi_numeric_name);
 					sock_my_port(fd);
 
 					if (!list_is_empty(g_ready_queue)) {

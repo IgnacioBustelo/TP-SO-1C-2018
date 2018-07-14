@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
 
     	case PROTOCOL_CE_ILLEGAL_OPERATION:
     		execution_result_to_scheduler = PROTOCOL_EP_I_BROKE_THE_LAW;
-			log_error(logger, "Traté de ejecutar una operación que no es válida");
+			log_error(logger, "Se ha producido una falla inesperada");
 			free(line);
 			exit_gracefully(EXIT_FAILURE);
     		break;
