@@ -164,7 +164,7 @@ int main(void) {
 
 				struct sockaddr_in client_info;
 				socklen_t addrlen = sizeof client_info;
-				log_info(logger, "Nuevo cliente conectando...");
+				log_info(logger, "\x1b[97mNuevo cliente conectando...\x1b[97m");
 
 				int new_client_fd = accept(listener, (struct sockaddr *) &client_info, &addrlen);
 
@@ -198,7 +198,7 @@ int main(void) {
 
 					list_add(g_esi_bursts, (void*)create_esi_information(new_client_fd, esi_numeric_arrival_order));
 
-					log_info(logger, "ESI %i conectado", esi_numeric_arrival_order);
+					log_info(logger, "\x1b[92mESI %i conectado\x1b[92m\n", esi_numeric_arrival_order);
 
 					new_esi_detected(&new_esi_flag);
 
@@ -298,7 +298,7 @@ int main(void) {
 
 				case PROTOCOL_EP_EXECUTION_SUCCESS:
 
-					log_info(logger,"El ESI %i terminó de ejecutar una sentencia correctamente", obtain_esi_information_by_id(fd)->esi_numeric_name);
+					log_info(logger,"\x1b[32mEl ESI %i terminó de ejecutar una sentencia correctamente\x1b[32m \n", obtain_esi_information_by_id(fd)->esi_numeric_name);
 
 					protocol_id script_end= receive_execution_result(fd);
 					if(script_end == PROTOCOL_EP_FINISHED_SCRIPT) {
@@ -328,10 +328,8 @@ int main(void) {
 
 				case PROTOCOL_EP_I_BROKE_THE_LAW:
 
-					log_info(logger,"El ESI %i trató de ejecutar una sentencia invalida", obtain_esi_information_by_id(fd)->esi_numeric_name);
+					log_info(logger,"\x1b[91mEl ESI %i trató de ejecutar una sentencia invalida\x1b[91m", obtain_esi_information_by_id(fd)->esi_numeric_name);
 					sock_my_port(fd);
-
-					//esi_finished(&finished_esi_flag);
 
 					if (!list_is_empty(g_ready_queue)) {
 
@@ -344,7 +342,7 @@ int main(void) {
 
 				if(finished_esi_flag == 1) {
 
-					log_info(logger,"El ESI %i finalizó la ejecución de su script correctamente", obtain_esi_information_by_id(fd)->esi_numeric_name);
+					log_info(logger,"\x1b[32mEl ESI %i finalizó la ejecución de su script correctamente\x1b[32m", obtain_esi_information_by_id(fd)->esi_numeric_name);
 					int flag_to_save_the_day = 0;
 					if(update_blocked_esi_queue_flag == 1) flag_to_save_the_day = 1;
 					release_resources(executing_esi, &update_blocked_esi_queue_flag);
@@ -400,7 +398,7 @@ int main(void) {
 					authorize_esi_execution(*(int*)g_execution_queue->head->data);
 				}
 
-			} /*else sock_my_port(fd);*/
+			}
 		}
 
 		if(list_is_empty(g_execution_queue) && scheduler_paused_flag != 1) {
@@ -695,7 +693,7 @@ int schedule_esis() {
 							  ? last_estimated_burst
 							  : next_estimated_burst_sjf(setup.alpha, last_real_burst, last_estimated_burst);
 
-	 		log_info(logger, "ESI %i tiene una estimación de %f", esi_info->esi_numeric_name, estimation);
+	 		log_info(logger, "\x1b[93mESI %i tiene una estimación de %f\x1b[93m", esi_info->esi_numeric_name, estimation);
 	 	}
 
 	 	list_iterate(g_ready_queue, show_esi_estimations);
@@ -728,7 +726,7 @@ int schedule_esis() {
 
 			float response_ratio = next_estimated_burst_hrrn(esi->waited_bursts, esi->last_estimated_burst);
 
-			log_info(logger, "ESI %i tiene una response ratio de %f", esi->esi_numeric_name, response_ratio);
+			log_info(logger, "\x1b[93mESI %i tiene un response ratio de %f\x1b[93m", esi->esi_numeric_name, response_ratio);
 		}
 
 		list_iterate(g_ready_queue, show_esi_estimations);
@@ -740,7 +738,7 @@ int schedule_esis() {
 
 	esi_information* esi_inf = obtain_esi_information_by_id(*esi_fd);
 
-	log_info(logger,"El ESI seleccionado para ejecutar es el ESI %i", esi_inf->esi_numeric_name);
+	log_info(logger,"\x1b[36mEl ESI seleccionado para ejecutar es el ESI %i\x1b[36m", esi_inf->esi_numeric_name);
 
 	return *esi_fd;
 }
@@ -948,7 +946,7 @@ void sock_my_port(int esi_fd) {
 	dead_esi = list_find(g_blocked_queue, find_dead_esi);
 	if (dead_esi != NULL) bury_esi(g_blocked_queue);
 
-	release_resources(esi_fd, &update_blocked_esi_queue_flag); //TODO--VER pero en el foro dijeron que no hay que liberar los recursos en el caso de que un esi ripea por x caso
+	release_resources(esi_fd, &update_blocked_esi_queue_flag);
 
 	remove_fd(esi_fd, &connected_fds);
 }
