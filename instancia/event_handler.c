@@ -6,6 +6,8 @@
 #include "../libs/messenger.h"
 #include "event_handler.h"
 
+void(*destroyer)();
+
 void event_handler_init() {
 	instance_is_alive = true;
 
@@ -26,8 +28,20 @@ void event_handler_init() {
 	// TODO: Manejar errores
 }
 
+void event_handler_init_with_finisher(void(*finisher)()) {
+	event_handler_init();
+
+	destroyer = finisher;
+}
+
 void event_handler_action(int signal) {
 	if(signal == SIGINT || signal == SIGTERM) {
+		messenger_show("WARNING", "Se envio la señal %s para desconectar a la Instancia", (signal == SIGINT) ? "SIGINT" : "SIGTERM");
+
 		instance_is_alive = false;
+
+		destroyer();
+
+		exit(EXIT_SUCCESS);
 	}
 }

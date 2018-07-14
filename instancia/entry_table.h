@@ -39,6 +39,8 @@ entry_t*	entry_table_get_entry(char* key);
 
 int			entry_table_next_entry(key_value_t* key_value);
 
+bool		entry_table_has_entries(key_value_t* key_value);
+
 bool 		entry_table_have_entries(key_value_t* key_value);
 
 int     	entry_table_entries_needed(key_value_t * key_value);

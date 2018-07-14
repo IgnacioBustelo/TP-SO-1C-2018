@@ -207,6 +207,23 @@ int entry_table_next_entry(key_value_t* key_value){
     return -1;
 }
 
+bool entry_table_has_entries(key_value_t* key_value) {
+	int _req_entries(int size) {
+		int entries = size/get_entry_size();
+
+		return size % get_entry_size() == 0 ? entries : entries+1;
+	}
+
+	int current_req = _req_entries(key_value->size);
+
+	if(entry_table_has_key(key_value->key, false)) {
+		entry_t* old_entry = entry_table_get_entry(key_value->key);
+
+		current_req -= _req_entries(old_entry->size);
+	}
+
+	return current_req <= entries_left;
+}
 
 bool entry_table_have_entries(key_value_t* key_value)
 {

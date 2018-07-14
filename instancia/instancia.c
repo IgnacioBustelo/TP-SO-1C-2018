@@ -58,7 +58,7 @@ int instance_init(char* process_name, char* logger_route, char* log_level, char*
 	storage_setup_t	setup;
 	t_list*			recoverable_keys;
 
-	event_handler_init();
+	event_handler_init_with_finisher(instance_die);
 
 	messenger_init(logger_route, process_name, log_level);
 
@@ -151,8 +151,7 @@ int	instance_handshake(storage_setup_t* setup, t_list** recoverable_keys) {
 int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 	int operation_result;
 
-	if(!entry_table_have_entries(key_value) && new_value_fits(key_value) ) {
-
+	if(!entry_table_has_entries(key_value) && new_value_fits(key_value) ) {
 		if(!entry_table_status_continuous_entries(replaced_keys)) {
 			messenger_show("INFO", "La Instancia tiene que compactar para ingresar la clave %s", key_value->key);
 
@@ -548,7 +547,7 @@ void instance_thread_dump(void* args) {
 	}
 
 	while(instance_is_alive) {
-		usleep(DUMP_INTERVAL);
+		sleep(DUMP_INTERVAL);
 
 		time_passed += DUMP_INTERVAL;
 
@@ -609,6 +608,8 @@ void instance_show() {
 }
 
 void instance_die() {
+	pthread_mutex_lock(&instance_mutex);
+
 	messenger_show("INFO", "Fin de actividades de la Instancia");
 
 	messenger_show("INFO", "Estado final de la Instancia");
@@ -632,4 +633,6 @@ void instance_die() {
 	messenger_show("INFO", "Volvere y sere millone$");
 
 	messenger_destroy();
+
+	pthread_mutex_unlock(&instance_mutex);
 }
