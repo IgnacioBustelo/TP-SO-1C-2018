@@ -151,7 +151,13 @@ int	instance_handshake(storage_setup_t* setup, t_list** recoverable_keys) {
 int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 	int operation_result;
 
-	if(!entry_table_has_entries(key_value) && new_value_fits(key_value) ) {
+	if(!new_value_fits_with_replaced(key_value)) {
+		messenger_show("ERROR", "La Instancia no tiene entradas atomicas para ejecutar un reemplazo");
+
+		return STATUS_NO_SPACE;
+	}
+
+	if(!entry_table_has_entries(key_value)) {
 		messenger_show("WARNING", "La Instancia debe ejecutar un reemplazo para ingresar el valor de la clave %s", key_value->key);
 
 		operation_result = algorithms_exec(cfg_instancia_get_replacement_algorithm_id(), entry_table, key_value, replaced_keys);
@@ -160,12 +166,6 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 			messenger_show("ERROR", "No se puede ejecutar el algoritmo de reemplazo");
 
 			return STATUS_ERROR;
-		}
-
-		if(!new_value_fits_with_replaced(key_value, replaced_keys)){
-			messenger_show("ERROR", "La Instancia no tiene entradas atomicas para ejecutar un reemplazo");
-
-			return STATUS_NO_SPACE;
 		}
 
 		entry_table_delete_few(replaced_keys);
@@ -179,7 +179,7 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 		free(replaced_keys_csv);
 	}
 
-	if(!entry_table_has_continous_entries(key_value->size)) {
+	if(!entry_table_has_continous_entries(key_value)) {
 		messenger_show("WARNING", "La Instancia tiene que compactar para ingresar la clave %s", key_value->key);
 
 		return STATUS_COMPACT;
@@ -366,10 +366,6 @@ void instance_thread_api(void* args) {
 
 				status = instance_set(key_value, replaced_keys);
 
-				entry_table_show();
-
-				storage_show();
-
 				pthread_mutex_unlock(&instance_mutex);
 
 				operation_result = coordinator_api_notify_set(get_total_entries() - entries_left, status);
@@ -389,10 +385,6 @@ void instance_thread_api(void* args) {
 						compactation_compact();
 
 						status = instance_set(key_value, replaced_keys);
-
-						entry_table_show();
-
-						storage_show();
 
 						pthread_mutex_unlock(&instance_mutex);
 

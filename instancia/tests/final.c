@@ -6,7 +6,10 @@
 #include "../../libs/mocks/printfer.h"
 
 #include "../coordinator_api.h"
+#include "../dumper.h"
+#include "../entry_table.h"
 #include "../instancia.h"
+#include "../storage.h"
 #include "coordinador_mock.h"
 
 sem_t	test_sem, handshake_sem;
@@ -14,48 +17,36 @@ sem_t	test_sem, handshake_sem;
 int		chosen_test, total_entries, entry_size, fd_instancia;
 char*	current_cfg;
 
-static void handshake(t_list* recoverable_keys) {
-	bool is_accepted = true;
+static void set(char* key, char* value) {
+	coordinador_mock_set(fd_instancia, key, value);
 
-	char* received_name;
+	entry_table_show();
 
-	coordinador_mock_handshake_base(fd_instancia, &is_accepted);
-
-	coordinador_mock_handshake_receive_name(fd_instancia, &received_name);
-
-	coordinador_mock_handshake_send_config(fd_instancia, received_name, total_entries, entry_size, recoverable_keys);
-
-	free(received_name);
-
-	sem_wait(&handshake_sem);
-}
-
-static void set(char* key, char* value, bool is_new) {
-	coordinador_mock_set_request(fd_instancia, is_new, key, value);
-
-	coordinador_mock_set_response(fd_instancia);
+	storage_show();
 }
 
 static void store(char* key) {
-	coordinador_mock_store_request(fd_instancia, key);
+	coordinador_mock_store(fd_instancia, key);
 
-	coordinador_mock_store_response(fd_instancia);
+	dumper_show();
 }
 
 static void status(char* key) {
-	coordinador_mock_status_request(fd_instancia, key);
-
-	free(coordinador_mock_status_response(fd_instancia, key));
+	coordinador_mock_status(fd_instancia, key);
 }
 
 static void test_template_full(char* test_message, char* cfg, t_list* recoverable_keys, void(*test)(void)) {
+	coordinador_mock_init();
+
 	current_cfg = cfg;
 
 	messenger_show("INFO", "%s%s%s", COLOR_MAGENTA, test_message, COLOR_RESET);
 
 	sem_post(&test_sem);
 
-	handshake(recoverable_keys);
+	coordinador_mock_handshake(fd_instancia, total_entries, entry_size, recoverable_keys);
+
+	sem_wait(&handshake_sem);
 
 	test();
 
@@ -64,22 +55,24 @@ static void test_template_full(char* test_message, char* cfg, t_list* recoverabl
 	messenger_show("INFO", "%sFin de la prueba: '%s'%s", COLOR_MAGENTA, test_message, COLOR_RESET);
 
 	list_destroy_and_destroy_elements(recoverable_keys, free);
+
+	coordinador_mock_destroy();
 }
 
-static void test_template(char* test_message, char* cfg, void(*test)(void)) {
+static void test_template(char* test_message, void(*test)(void)) {
 	t_list* empty_list = list_create();
 
-	test_template_full(test_message, cfg, empty_list, test);
+	test_template_full(test_message, "test", empty_list, test);
 }
 
 static void test_1() {
-	set("A", "WWW", true);
+	set("A", "WWW");
 
-	set("B", "XXXXX", true);
+	set("B", "XXXXX");
 
-	set("C", "YYYY", true);
+	set("C", "YYYY");
 
-	set("D", "ZZZZZZZZZZZZZZZZ", true);
+	set("D", "ZZZZZZZZZZZZZZZZ");
 
 	store("A");
 
@@ -91,52 +84,64 @@ static void test_1() {
 }
 
 static void test_2() {
-	set("A", "AAAAAAAAAA", true);
+	set("A", "AAAAAAAAAA");
 
-	instance_show();
+	set("B", "BBBBBB");
 
-	set("B", "BBBBBB", true);
+	set("A", "CCCCCCCCCC");
 
-	instance_show();
+	set("A", "DDD");
 
-	set("A", "CCCCCCCCCC", false);
+	set("A", "EEEEEE");
 
-	instance_show();
+	set("C", "F");
 
-	set("A", "DDD", false);
+	set("A", "EEEEEE");
 
-	instance_show();
+	set("A", "GGGGGGGG");
 
-	set("A", "EEEEEE", false);
+	set("A", "HHHHHHHHH");
+}
 
-	instance_show();
+static void test_3() {
+	set("nintendo:consola:nes", "Mario");
 
-	set("C", "F", true);
+	set("nintendo:consola:snes", "SuperMario");
 
-	instance_show();
+	set("nintendo:consola:nintendo64", "Mario64");
 
-	set("A", "EEEEEE", false);
+	set("nintendo:consola:gamecube", "FinalFantasyTactics");
 
-	instance_show();
+	set("nintendo:consola:wii", "MarioGalaxy");
 
-	set("A", "GGGGGGGG", false);
+	set("nintendo:consola:wii", "MarioGalaxy2");
 
-	instance_show();
+	set("nintendo:consola:wiiu", "RIP");
 
-	set("A", "HHHHHHHHH", false);
+	set("nintendo:consola:nintendo64", "MarioKart");
 
-	instance_show();
+	set("sony:consola:ps1", "FF7");
+
+	set("nintendo:consola:nintendo64", "PkmnSnap");
+
+	set("sony:consola:ps2", "GodOfWar");
+
+	set("sony:consola:ps1", "FF8");
+
+	set("sony:consola:ps3", "TLOU");
 }
 
 void client_server_execute_server(int fd_client) {
 	fd_instancia = fd_client;
 
 	switch(chosen_test) {
-		case 1: test_template("Test 1: Prueba simple de SET, STORE, y STATUS", "test_1", test_1);			break;
+		case 1: test_template("Test 1: Prueba simple de SET, STORE, y STATUS", test_1);			break;
 
-		case 2: test_template("Test 2: Prueba de multiples SET sobre la misma clave", "test_2", test_2);	break;
+		case 2: test_template("Test 2: Prueba de multiples SET sobre la misma clave", test_2);	break;
 
-		default: messenger_show("ERROR", "Test desconocido");												break;
+		case 3: test_template("Test 3: Prueba de reemplazo de la catedra", test_3);				break;
+
+		default: messenger_show("ERROR", "Test desconocido");									break;
 	}
 }
 
@@ -165,10 +170,9 @@ int main(int argc, char* argv[]) {
 	server_name = "Coordinador";
 	client_name = "Instancia 1";
 
-	total_entries = 8;
-	entry_size = 4;
-
-	chosen_test = (argc == 2) ? atoi(argv[1]) : 0;
+	chosen_test = (argc > 1) ? atoi(argv[1]) : 1;
+	total_entries = (argc > 2) ? atoi(argv[2]) : 8;
+	entry_size = (argc > 3) ? atoi(argv[3]) : 4;
 
 	client_server_run();
 

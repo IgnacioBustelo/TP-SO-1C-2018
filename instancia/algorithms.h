@@ -30,7 +30,7 @@ int			algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_
 
 int			algorithm_bsu(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys);
 
-bool		new_value_fits_with_replaced(key_value_t* key_value, t_list* replaced_keys);
+bool		new_value_fits_with_replaced(key_value_t* key_value);
 
 bool		new_value_fits(key_value_t* key_value); // Se fija si el tamanio del nuevo key_value entra entre todas las entradas atomicas que hay y los lugares libres dentro de la tabla
 

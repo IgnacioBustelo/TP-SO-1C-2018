@@ -1,3 +1,4 @@
+#include <commons/string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -15,6 +16,18 @@ int _req_entries(int size) {
 	return size % get_entry_size() == 0 ? entries : entries + 1;
 }
 
+int entry_table_diff_entries(key_value_t* key_value) {
+	int current_req = _req_entries(key_value->size);
+
+	if(entry_table_has_key(key_value->key, false)) {
+		entry_t* old_entry = entry_table_get_entry(key_value->key);
+
+		current_req -= _req_entries(old_entry->size);
+	}
+
+	return current_req;
+}
+
 void entry_table_init() {
 	entry_table = list_create();
 	entries_left = get_total_entries();
@@ -22,11 +35,12 @@ void entry_table_init() {
 
 bool entry_table_insert(int next_entry, key_value_t* key_value)
 {
-	entry_t * new_entry=convert_key_value_t_to_entry_t(key_value);
+	entry_t* new_entry=convert_key_value_t_to_entry_t(key_value);
+	entry_t* old_entry = entry_table_get_entry(key_value->key);
 	new_entry->number=next_entry;
 	if(next_entry>=0)
 	{
-		if(entry_table_get_entry_by_entry_number(next_entry)==NULL)
+		if(old_entry==NULL)
 		{
 			if (entry_table_get_entry(key_value->key)!=NULL)
 			{
@@ -44,15 +58,22 @@ bool entry_table_insert(int next_entry, key_value_t* key_value)
 		}
 	else
 	{
-		if(next_entry==(entry_table_get_entry(key_value->key)->number))
+		key_value_t* kv_old = key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size);
+		entries_left += entry_table_entries_needed(kv_old);
+
+		if(next_entry== old_entry->number)
 		{
-			key_value_t* kv_old = key_value_generator(entry_table_get_entry(key_value->key)->key,entry_table_get_entry(key_value->key)->size);
-			entries_left += entry_table_entries_needed(kv_old);
-			//list_replace_and_destroy_element(entry_table,next_entry,new_entry, free);
-			list_replace(entry_table,next_entry,new_entry);
-			entries_left -= entry_table_entries_needed(key_value);
-			key_value_destroy(kv_old);
+			old_entry->size = new_entry->size;
 		}
+		else {
+			old_entry->size = new_entry->size;
+			old_entry->number = new_entry->number;
+			list_sort(entry_table,ascending);
+		}
+
+		entries_left -= entry_table_entries_needed(key_value);
+		key_value_destroy(kv_old);
+		entry_table_key_value_destroy(new_entry);
 	}
 		//free(new_entry); COMO VAS A LIBERAR LO QUE ACABAS DE INSERTAR??????? ESTAS LOCO????
 		return true;
@@ -215,15 +236,7 @@ int entry_table_next_entry(key_value_t* key_value){
 }
 
 bool entry_table_has_entries(key_value_t* key_value) {
-	int current_req = _req_entries(key_value->size);
-
-	if(entry_table_has_key(key_value->key, false)) {
-		entry_t* old_entry = entry_table_get_entry(key_value->key);
-
-		current_req -= _req_entries(old_entry->size);
-	}
-
-	return current_req <= entries_left;
+	return entry_table_diff_entries(key_value) <= entries_left;
 }
 
 bool entry_table_have_entries(key_value_t* key_value)
@@ -293,7 +306,8 @@ void entry_table_delete_few(t_list* keys){
 	for(int i=0;i<list_size(keys);i++)
 		{
 		key_value_t* key_value= key_value_generator(list_get(keys,i),0);
-			entry_table_delete(key_value);
+		entry_table_delete(key_value);
+		key_value_destroy(key_value);
 		}
 }
 
@@ -305,7 +319,7 @@ void entry_table_show() {
 	void _read(void* data) {
 		entry_t* entry = (entry_t*) data;
 
-		messenger_show("INFO", "Entrada %d: Tamano: %d - Clave: %s", entry->number, entry->size, entry->key);
+		messenger_show("INFO", "Entrada: %-2d - Tamano: %-2d - Entradas ocupadas: %-2d - Clave: %-40s", entry->number, entry->size, _req_entries(entry->size), entry->key);
 	}
 
 	t_list* sorted_list = list_duplicate(entry_table);
@@ -317,51 +331,85 @@ void entry_table_show() {
 	list_destroy(sorted_list);
 }
 
-bool entry_table_has_continous_entries(int size)
+bool entry_table_has_continous_entries(key_value_t* key_value)
 {
-	int entries_needed = _req_entries(size);
+	t_list* mock_entry_table = list_duplicate(entry_table);
+
+	if(entry_table_has_key(key_value->key, false)) {
+		bool _equals(entry_t* entry) {
+			return string_equals_ignore_case(key_value->key, entry->key);
+		}
+
+		entry_t* current_entry = list_remove_by_condition(mock_entry_table, (void*) _equals), *following_entry;
+
+		int h = 0;
+		do
+		{
+			following_entry = (entry_t*) list_get(mock_entry_table, h);
+			h++;
+		}
+		while(following_entry->number < current_entry->number && h < list_size(mock_entry_table));
+
+		if(following_entry->number < current_entry->number && get_total_entries() - current_entry->number + _req_entries(key_value->size)) {
+			list_destroy(mock_entry_table);
+			return true;
+		}
+
+		if(current_entry->number + _req_entries(current_entry->size) + entry_table_diff_entries(key_value) < following_entry->number) {
+			list_destroy(mock_entry_table);
+			return true;
+		}
+	}
+
+	int entries_needed = _req_entries(key_value->size);
 	int in_beetwen_entry_space=0;
-		int entries_used=list_size(entry_table);
+		int entries_used=list_size(mock_entry_table);
 		entry_t* e1;
 		entry_t* e2;
 	if (entry_table!=NULL )
 	    	{
-	    		if(entries_used==0)
+	    		if(entries_used==0) {
+	    			list_destroy(mock_entry_table);
 	    			return 1;
+	    		}
 	    		else
 	    		{
 
-	    			e1 = (entry_t*) list_get(entry_table,0);
+	    			e1 = (entry_t*) list_get(mock_entry_table,0);
 
 	    			if (e1->number>0)
 					{
 						if ((e1->number)>=entries_needed)
 						{
+							list_destroy(mock_entry_table);
 							return true;
 						}
 					}
 					for (int i=0;i+1<entries_used;i++)
 					{
-
-						e1 = (entry_t*) list_get(entry_table,i);
-						e2 = (entry_t*) list_get(entry_table,i+1);
+						e1 = (entry_t*) list_get(mock_entry_table,i);
+						e2 = (entry_t*) list_get(mock_entry_table,i+1);
 
 						in_beetwen_entry_space = (e2->number)-(((e1->size%get_entry_size())==0?(e1->size/get_entry_size())+ e1->number:(e1->size/get_entry_size()+1)+ e1->number) );
 
 						if (in_beetwen_entry_space>=entries_needed)
 						{
+							list_destroy(mock_entry_table);
 							return true;
 						}
 					}
-					e2 = (entry_t *) list_get(entry_table,list_size(entry_table)-1);
+					e2 = (entry_t *) list_get(mock_entry_table,list_size(mock_entry_table)-1);
 					if(get_total_entries()- e2->number>entries_needed && e2->number+entries_needed<get_total_entries())
 					{
+						list_destroy(mock_entry_table);
 						return true;
 					}
 	    		}
+	    		list_destroy(mock_entry_table);
 	    		return false;
 	    	}
 	else {
+		list_destroy(mock_entry_table);
 		return false;
 	}
 }

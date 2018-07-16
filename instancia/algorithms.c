@@ -7,9 +7,7 @@
 #include "globals.h"
 
 void status_t_destroy(status_t* status) {
-	if(status->key != NULL) {
-		free(status->key);
-	}
+	free(status->key);
 	free(status);
 }
 
@@ -73,12 +71,13 @@ int algorithm_circular(t_list* entry_table,key_value_t* key_value,t_list* replac
 				status = (status_t*)list_get(entry_table_status,first_entry_of_continous_atomic_and_free_entries);
 				if (status->status==ATOMIC)
 				{
-					list_add(replaced_keys,status->key);
+					list_add(replaced_keys,strdup(status->key));
 				}
 				first_entry_of_continous_atomic_and_free_entries++;
 				continous_atomic_and_free_entries--;
 			}
 
+		list_destroy_and_destroy_elements(entry_table_status, (void*) status_t_destroy);
 		return 1;
 		}
 	}
@@ -170,9 +169,9 @@ bool new_value_fits(key_value_t* key_value)
 	return entries_left+entry_table_atomic_entries_count()>=entry_table_entries_needed(key_value);
 }
 
-bool new_value_fits_with_replaced(key_value_t* key_value, t_list* replaced_keys)
+bool new_value_fits_with_replaced(key_value_t* key_value)
 {
-	return entries_left+entry_table_atomic_entries_count()+list_size(replaced_keys)>=entry_table_entries_needed(key_value);
+	return entry_table_diff_entries(key_value)<=entries_left+entry_table_atomic_entries_count();
 }
 
 t_list* original_entry_table_migration_to_entry_table_status()
@@ -234,6 +233,7 @@ void entry_table_status_init(){
 void entry_table_status_add_kv(key_value_t* key_value,int number){ // TODO:FIJARSE LOGICA DE COMO MODIFICAR SI YA EXISTE
 	entry_table_status_last_referenced_add_all();
 	entry_t * entry=convert_key_value_t_to_entry_t(key_value);
+	entry->number = number;
 	int entry_entries=0;
 	/*
 

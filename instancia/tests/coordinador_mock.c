@@ -1,4 +1,6 @@
+#include <commons/collections/list.h>
 #include <commons/string.h>
+#include <stdbool.h>
 
 #include "../../libs/chunker.h"
 #include "../../libs/messenger.h"
@@ -8,10 +10,70 @@
 #include "../globals.h"
 #include "coordinador_mock.h"
 
+t_list* existing_keys;
+
 static void _chunk_add_key(chunk_t* chunk, void* content) {
 	messenger_show("INFO", "Se debe recuperar la clave %s", (char*) content);
 
 	chunk_add_variable(chunk, (char*) content, string_length((char*) content) + 1);
+}
+
+static bool _has_key(char* key) {
+	bool _exists(char* data) {
+		return string_equals_ignore_case(key, data);
+	}
+
+	return list_any_satisfy(existing_keys, (void*) _exists);
+}
+
+void coordinador_mock_init() {
+	existing_keys = list_create();
+}
+
+void coordinador_mock_set(int fd_client, char* key, char* value) {
+	bool _exists(char* data) {
+		return string_equals_ignore_case(key, data);
+	}
+
+	bool is_new = !_has_key(key);
+
+	coordinador_mock_set_request(fd_client, is_new, key, value);
+
+	int status = coordinador_mock_set_response(fd_client);
+
+	if(status == STATUS_OK && is_new) {
+		list_add(existing_keys, key);
+	}
+
+	else if(status == STATUS_REPLACED) {
+		list_remove_and_destroy_by_condition(existing_keys, (void*)_exists, free);
+	}
+}
+
+void coordinador_mock_store(int fd_client, char* key) {
+	coordinador_mock_store_request(fd_client, key);
+
+	coordinador_mock_store_response(fd_client);
+}
+
+void coordinador_mock_status(int fd_client, char* key) {
+	coordinador_mock_status_request(fd_client, key);
+
+	free(coordinador_mock_status_response(fd_client, key));
+}
+
+void coordinador_mock_handshake(int fd_client, int total_entries, int entry_size, t_list* recoverable_keys) {
+	bool is_accepted = true;
+
+	char* received_name;
+
+	coordinador_mock_handshake_base(fd_client, &is_accepted);
+
+	coordinador_mock_handshake_receive_name(fd_client, &received_name);
+
+	coordinador_mock_handshake_send_config(fd_client, received_name, total_entries, entry_size, recoverable_keys);
+
+	free(received_name);
 }
 
 void coordinador_mock_handshake_base(int fd_client, bool* is_accepted) {
@@ -171,4 +233,8 @@ void coordinador_mock_kill(int fd_client) {
 	chunk_add(chunk, &header, sizeof(header));
 
 	chunk_send_and_destroy(fd_client, chunk);
+}
+
+void coordinador_mock_destroy() {
+	list_destroy(existing_keys);
 }
