@@ -118,7 +118,7 @@ int algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_ke
 			status = (status_t*)list_get(copy_entry_table_status,i);
 			if (status->status==ATOMIC)
 			{
-				list_add(replaced_keys,status->key);
+				list_add(replaced_keys,strdup(status->key));
 				entries_neeeded--;
 			}
 			i++;
@@ -150,7 +150,7 @@ int algorithm_bsu(t_list* entry_table,key_value_t* key_value,t_list* replaced_ke
 			status = (status_t*)list_get(copy_entry_table_status,i);
 			if (status->status==ATOMIC)
 			{
-				list_add(replaced_keys,status->key);
+				list_add(replaced_keys,strdup(status->key));
 				entries_neeeded--;
 			}
 			i++;
