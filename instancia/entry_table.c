@@ -223,7 +223,8 @@ int entry_table_next_entry(key_value_t* key_value){
 					}
 				}
 				e2 = (entry_t *) list_get(entry_table,list_size(entry_table)-1);
-				if(get_total_entries()- e2->number>entries_needed && e2->number+entries_needed<get_total_entries())
+				if(get_total_entries() - (e2->number + _req_entries(e2->number)) > entries_needed)
+				//if(get_total_entries()- e2->number>entries_needed && e2->number+entries_needed<get_total_entries())
 				{
 					return ((e2->size%get_entry_size())==0?(e2->size/get_entry_size())+ e2->number:(e2->size/get_entry_size()+1)+ e2->number) ;
 				}
@@ -399,7 +400,7 @@ bool entry_table_has_continous_entries(key_value_t* key_value)
 						}
 					}
 					e2 = (entry_t *) list_get(mock_entry_table,list_size(mock_entry_table)-1);
-					if(get_total_entries()- e2->number>entries_needed && e2->number+entries_needed<get_total_entries())
+					if(get_total_entries() - (e2->number + _req_entries(e2->number)) > entries_needed)
 					{
 						list_destroy(mock_entry_table);
 						return true;

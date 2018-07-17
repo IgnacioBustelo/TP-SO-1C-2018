@@ -20,9 +20,9 @@ char*	current_cfg;
 static void set(char* key, char* value) {
 	coordinador_mock_set(fd_instancia, key, value);
 
-	entry_table_show();
+	//entry_table_show();
 
-	storage_show();
+	//storage_show();
 }
 
 static void store(char* key) {
@@ -131,6 +131,20 @@ static void test_3() {
 	set("sony:consola:ps3", "TLOU");
 }
 
+static void test_4() {
+	set("opcion1", "fugazzetarellenagrande");
+
+	set("opcion2", "promomuzzarella");
+
+	set("opcion3", "pizzacuatroquesosgrande");
+
+	set("opcion1", "napolitanagrande");
+
+	set("opcion3", "pizzadepalmitos");
+
+	set("opcion4", "pizzadecantimpalo");
+}
+
 void client_server_execute_server(int fd_client) {
 	fd_instancia = fd_client;
 
@@ -140,6 +154,8 @@ void client_server_execute_server(int fd_client) {
 		case 2: test_template("Test 2: Prueba de multiples SET sobre la misma clave", test_2);	break;
 
 		case 3: test_template("Test 3: Prueba de reemplazo de la catedra", test_3);				break;
+
+		case 4: test_template("Test 4: Prueba de compactacion de la catedra", test_4);			break;
 
 		default: messenger_show("ERROR", "Test desconocido");									break;
 	}
