@@ -306,7 +306,7 @@ int	instance_recover(t_list* recoverable_keys) {
 
 	free(recovered_keys_csv);
 
-	list_destroy(recovered_keys);
+	list_destroy_and_destroy_elements(recovered_keys, free);
 
 	list_destroy_and_destroy_elements(replaced_keys, (void*) key_value_destroy);
 
@@ -601,12 +601,17 @@ void instance_thread_dump(void* args) {
 
 void instance_main() {
 	pthread_t api_thread, dump_thread;
+	pthread_attr_t dump_thread_attributes;
+
+	pthread_attr_init(&dump_thread_attributes);
+	pthread_attr_setdetachstate(&dump_thread_attributes, PTHREAD_CREATE_DETACHED);
 
 	pthread_create(&api_thread, NULL, (void*) instance_thread_api, NULL);
-	pthread_create(&dump_thread, NULL, (void*) instance_thread_dump, NULL);
+	pthread_create(&dump_thread, &dump_thread_attributes, (void*) instance_thread_dump, NULL);
 
 	pthread_join(api_thread, NULL);
-	pthread_join(dump_thread, NULL);
+
+	pthread_attr_destroy(&dump_thread_attributes);
 }
 
 void instance_show() {

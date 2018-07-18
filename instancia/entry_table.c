@@ -343,6 +343,11 @@ bool entry_table_has_continous_entries(key_value_t* key_value)
 
 		entry_t* current_entry = list_remove_by_condition(mock_entry_table, (void*) _equals), *following_entry;
 
+		if(list_is_empty(mock_entry_table)) {
+			list_destroy(mock_entry_table);
+			return true;
+		}
+
 		int h = 0;
 		do
 		{
