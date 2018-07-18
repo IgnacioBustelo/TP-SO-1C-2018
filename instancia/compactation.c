@@ -42,5 +42,11 @@ int compactation_compact(){
 		key_value_destroy(key_value);
 	}
 
+	messenger_show("INFO", "Resultado de la Compactacion");
+
+	entry_table_show();
+
+	storage_show();
+
 	return 1;
 }

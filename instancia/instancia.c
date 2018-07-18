@@ -217,6 +217,10 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 
 	messenger_show("INFO", "Se proceso correctamente el SET de la clave %s en la entrada %d", key_value->key, next_entry);
 
+	entry_table_show();
+
+	storage_show();
+
 	return STATUS_OK;
 }
 
