@@ -19,6 +19,9 @@ $(TARGET): $(OBJ)
 debug: CC += -DDEBUG -g
 debug: all
 
+config: configs/$(CONFIG).cfg
+	cp $< coordinador.cfg
+
 clean:
 	$(RM) $(OBJ)
 	$(RM) $(TARGET)
