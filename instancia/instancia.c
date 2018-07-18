@@ -357,9 +357,11 @@ void instance_thread_api(void* args) {
 
 					key_value_destroy(key_value);
 
-					coordinator_api_notify_set(STATUS_REPLACED, get_total_entries() - entries_left);
+					coordinator_api_notify_set(get_total_entries() - entries_left, STATUS_REPLACED);
 
-					request_result = INSTANCE_REQUEST_FAILURE;
+					request_result = INSTANCE_REQUEST_SUCCESS;
+
+					pthread_mutex_unlock(&instance_mutex);
 
 					break;
 				}
@@ -368,7 +370,9 @@ void instance_thread_api(void* args) {
 
 				pthread_mutex_unlock(&instance_mutex);
 
-				operation_result = coordinator_api_notify_set(get_total_entries() - entries_left, status);
+				int entries_used = get_total_entries() - entries_left + ((status == STATUS_COMPACT) ? entry_table_diff_entries(key_value) : 0);
+
+				operation_result = coordinator_api_notify_set(entries_used, status);
 				API_B_CHECK("Fallo en el envio del resultado del SET al Coordinador")
 
 				switch(status) {
@@ -420,7 +424,7 @@ void instance_thread_api(void* args) {
 				operation_result = coordinator_api_notify_status(PROTOCOL_IC_NOTIFY_STORE, status);
 				API_B_CHECK("Fallo en el envio del resultado del STORE al Coordinador")
 
-				request_result = (status == STATUS_OK) ? INSTANCE_REQUEST_SUCCESS : INSTANCE_REQUEST_FAILURE;
+				request_result = INSTANCE_REQUEST_SUCCESS;
 
 				free(key);
 
@@ -476,7 +480,7 @@ void instance_thread_api(void* args) {
 
 				free(requested_key);
 
-				request_result = (status == STATUS_OK) ? INSTANCE_REQUEST_SUCCESS : INSTANCE_REQUEST_FAILURE;
+				request_result = INSTANCE_REQUEST_SUCCESS;
 
 				break;
 			}
@@ -496,6 +500,8 @@ void instance_thread_api(void* args) {
 				messenger_show("INFO", "La Instancia recibio un pedido del Coordinador para desconectarse");
 
 				instance_is_alive = false;
+
+				request_result = INSTANCE_DIE;
 
 				break;
 			}
