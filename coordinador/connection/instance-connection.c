@@ -400,7 +400,7 @@ static void instance_send_compact(struct instance_t *requested_instance)
 		struct instance_t *instance = (struct instance_t *)elem;
 		pthread_mutex_lock(&instance->lock);
 		if (instance != requested_instance && CHECK_SEND(instance->fd, &op_code)) {
-			log_info(logger, "[Instancia] Socket %d: Pedido de compactacion enviada.", instance->fd);
+			log_info(logger, "[Instancia %s] Pedido de compactacion enviada.", instance->name);
 		}
 		pthread_mutex_unlock(&instance->lock);
 	}

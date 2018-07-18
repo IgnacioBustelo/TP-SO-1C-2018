@@ -21,6 +21,7 @@ struct key_table_t {
 static struct key_table_t *key_table;
 
 static struct key_table_data_t *key_table_get(char *key);
+static struct key_table_data_t *key_table_data_create(struct instance_t *instance);
 
 __attribute__((constructor)) void init_key_table(void) {
 	key_table = malloc(sizeof(*key_table));
@@ -36,15 +37,14 @@ __attribute__((destructor)) void destroy_key_table(void) {
 
 void key_table_create_key(char *key, struct instance_t *instance)
 {
-	struct key_table_data_t *data = malloc(sizeof(*data));
-	data->instance = instance;
-	data->initialized = false;
-
 	synchronized(key_table->lock) {
-		if (dictionary_has_key(key_table->table, key)) {
-			dictionary_remove_and_destroy(key_table->table, key, free);
+		struct key_table_data_t *data = key_table_get(key);
+		if (data == NULL) {
+			data = key_table_data_create(instance);
+			dictionary_put(key_table->table, key, data);
+		} else if (instance != NULL) {
+			data->instance = instance;
 		}
-		dictionary_put(key_table->table, key, data);
 	}
 }
 
@@ -115,4 +115,12 @@ char **key_table_get_instance_key_list(struct instance_t *instance, size_t *key_
 	}
 
 	return key_list;
+}
+
+static struct key_table_data_t *key_table_data_create(struct instance_t *instance)
+{
+	struct key_table_data_t *data = malloc(sizeof(*data));
+	data->instance = instance;
+	data->initialized = false;
+	return data;
 }
