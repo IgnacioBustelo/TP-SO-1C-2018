@@ -317,10 +317,14 @@ void entry_table_show() {
 		messenger_show("INFO", "La tabla de entradas esta vacia");
 	}
 
-	void _read(void* data) {
-		entry_t* entry = (entry_t*) data;
+	void _read(entry_t* entry) {
+		bool _get_lru(status_t* status) {
+			return string_equals_ignore_case(status->key, entry->key);
+		}
 
-		messenger_show("INFO", "Entrada: %-2d - Tamano: %-2d - Entradas ocupadas: %-2d - Clave: %-40s", entry->number, entry->size, _req_entries(entry->size), entry->key);
+		status_t* entry_status = (status_t*) list_find(entry_table_status_global, (void*) _get_lru);
+
+		messenger_show("INFO", "Entrada: %-2d - Tamano: %-2d - Entradas ocupadas: %-2d - Ultima referencia: %-2d - Clave: %-40s", entry->number, entry->size, _req_entries(entry->size), entry_status->last_referenced, entry->key);
 	}
 
 	t_list* sorted_list = list_duplicate(entry_table);

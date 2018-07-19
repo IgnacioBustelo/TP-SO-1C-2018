@@ -104,11 +104,11 @@ int instance_init(char* process_name, char* logger_route, char* log_level, char*
 
 	entry_table_init();
 
-	entry_table_status_init(2);
+	entry_table_status_init();
 
 	messenger_show("INFO", "Inicio de la Tabla De Entradas");
 
-	algorithm_circular_set_pointer(6);
+	algorithm_circular_set_pointer(0);
 	
 	instance_recover(recoverable_keys);
 

@@ -175,6 +175,7 @@ int algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_ke
 			}
 			i++;
 		}
+		list_destroy(copy_entry_table_status);
 	return 1;
 	}
 
@@ -227,6 +228,7 @@ int algorithm_bsu(t_list* entry_table,key_value_t* key_value,t_list* replaced_ke
 			}
 			i++;
 		}
+		list_destroy(status_entries_with_same_size);
 	return 1;
 	}
 
