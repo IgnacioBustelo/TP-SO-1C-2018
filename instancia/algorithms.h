@@ -8,7 +8,8 @@
 enum {
 	ATOMIC,
 	NON_ATOMIC,
-	FREE
+	FREE,
+	USED
 } entry_status;
 
 typedef struct{
