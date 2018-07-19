@@ -182,6 +182,12 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 	if(!entry_table_has_continous_entries(key_value)) {
 		messenger_show("WARNING", "La Instancia tiene que compactar para ingresar la clave %s", key_value->key);
 
+		if(entry_table_has_key(key_value->key, false)) {
+			entry_table_delete(key_value);
+
+			entry_table_status_delete_kv(key_value);
+		}
+
 		return STATUS_COMPACT;
 	}
 
@@ -216,10 +222,6 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 	}
 
 	messenger_show("INFO", "Se proceso correctamente el SET de la clave %s en la entrada %d", key_value->key, next_entry);
-
-	entry_table_show();
-
-	storage_show();
 
 	return STATUS_OK;
 }
@@ -376,11 +378,14 @@ void instance_thread_api(void* args) {
 
 				int entries_used = get_total_entries() - entries_left + ((status == STATUS_COMPACT) ? entry_table_diff_entries(key_value) : 0);
 
-				operation_result = coordinator_api_notify_set(entries_used, status);
-				API_B_CHECK("Fallo en el envio del resultado del SET al Coordinador")
-
 				switch(status) {
 					case STATUS_OK: {
+						entry_table_show();
+
+						storage_show();
+
+						operation_result = coordinator_api_notify_set(entries_used, status);
+						API_B_CHECK("Fallo en el envio del resultado del SET al Coordinador")
 
 						request_result = INSTANCE_REQUEST_SUCCESS;
 
@@ -388,6 +393,9 @@ void instance_thread_api(void* args) {
 					}
 
 					case STATUS_COMPACT: {
+						operation_result = coordinator_api_notify_set(entries_used, status);
+						API_B_CHECK("Fallo en el envio del resultado del SET al Coordinador")
+
 						pthread_mutex_lock(&instance_mutex);
 
 						compactation_compact();
@@ -398,12 +406,23 @@ void instance_thread_api(void* args) {
 
 						request_result = INSTANCE_COMPACT;
 
+						messenger_show("INFO", "Resultado de la Compactacion");
+
+						entry_table_show();
+
+						storage_show();
+
 						messenger_show("INFO", "Fin de la compactacion de la Instancia");
 
 						break;
 					}
 
-					default: request_result = INSTANCE_REQUEST_FAILURE;	break;
+					default: {
+						operation_result = coordinator_api_notify_set(entries_used, status);
+						API_B_CHECK("Fallo en el envio del resultado del SET al Coordinador")
+
+						request_result = INSTANCE_REQUEST_FAILURE;	break;
+					}
 				}
 
 				key_value_destroy(key_value);
