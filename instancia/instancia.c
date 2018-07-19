@@ -359,7 +359,7 @@ void instance_thread_api(void* args) {
 				pthread_mutex_lock(&instance_mutex);
 
 				if(!(is_new || entry_table_has_key(key_value->key, is_new))) {
-					messenger_show("WARNING", "La clave solicitada no existe en la Instancia dado que fue reemplazada");
+					messenger_show("WARNING", "La clave [%s] solicitada no existe en la Instancia dado que fue reemplazada", key_value->key);
 
 					key_value_destroy(key_value);
 
