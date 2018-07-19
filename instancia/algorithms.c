@@ -88,6 +88,7 @@ if (!entry_table_have_entries(key_value) && new_value_fits(key_value))
 		status_t* status;
 		int algorithm_circular_pointer_copy = algorithm_circular_pointer;
 		int entries_neeeded = entry_table_entries_needed(key_value) - entries_left;
+		int total_replaced=0;
 		if (algorithm_circular_pointer>=list_size(entry_table_status) || algorithm_circular_pointer==0)
 		{
 			algorithm_circular_pointer=0;
@@ -99,6 +100,7 @@ if (!entry_table_have_entries(key_value) && new_value_fits(key_value))
 						list_add(replaced_keys,strdup(status->key));
 						status->status=USED;
 						entries_neeeded--;
+						total_replaced+=1;
 					}
 					algorithm_circular_pointer++;
 				}
@@ -113,6 +115,7 @@ if (!entry_table_have_entries(key_value) && new_value_fits(key_value))
 					list_add(replaced_keys,strdup(status->key));
 					status->status=USED;
 					entries_neeeded--;
+					total_replaced+=1;
 				}
 				algorithm_circular_pointer++;
 			}
@@ -125,12 +128,13 @@ if (!entry_table_have_entries(key_value) && new_value_fits(key_value))
 					list_add(replaced_keys,strdup(status->key));
 					status->status=USED;
 					entries_neeeded--;
+					total_replaced+=1;
 				}
 				i++;
 			}
 		}
 			//list_destroy(entry_table_status);
-			return 1;
+			return total_replaced;
 }else{
 	return -1;
 }
@@ -216,7 +220,10 @@ int algorithm_bsu(t_list* entry_table,key_value_t* key_value,t_list* replaced_ke
 				}
 				if(list_size(status_entries_with_same_size)>1)
 				{
-					algorithm_circular(status_entries_with_same_size,key_value,replaced_keys);
+					key_value_t* kv = key_value_generator(key_value->key,entries_neeeded*get_entry_size());
+					entries_neeeded-=algorithm_circular(status_entries_with_same_size,kv,replaced_keys);
+					free(kv->key);
+					free(kv);
 				}
 				else
 				{
