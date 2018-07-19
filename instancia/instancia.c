@@ -104,11 +104,11 @@ int instance_init(char* process_name, char* logger_route, char* log_level, char*
 
 	entry_table_init();
 
-	entry_table_status_init();
+	entry_table_status_init(2);
 
 	messenger_show("INFO", "Inicio de la Tabla De Entradas");
 
-	algorithm_circular_set_pointer(0);
+	algorithm_circular_set_pointer(6);
 	
 	instance_recover(recoverable_keys);
 
@@ -160,7 +160,7 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 	if(!entry_table_has_entries(key_value)) {
 		messenger_show("WARNING", "La Instancia debe ejecutar un reemplazo para ingresar el valor de la clave %s", key_value->key);
 
-		operation_result = algorithms_exec(cfg_instancia_get_replacement_algorithm_id(), entry_table, key_value, replaced_keys);
+		operation_result = algorithms_exec(cfg_instancia_get_replacement_algorithm_id(), entry_table_status_global, key_value, replaced_keys);
 
 		if(!operation_result) {
 			messenger_show("ERROR", "No se puede ejecutar el algoritmo de reemplazo");

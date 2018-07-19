@@ -28,61 +28,112 @@ void algorithm_circular_set_pointer(int index){
 }
 
 int algorithm_circular(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys){ //TODO: Creo que hay que reimplementar con la logica de lru
-	if(!entry_table_have_entries(key_value) && new_value_fits(key_value))
+if (!entry_table_have_entries(key_value) && new_value_fits(key_value))
 	{
 
-		int continous_atomic_and_free_entries=0;
-		int first_entry_of_continous_atomic_and_free_entries=-1;
-		t_list* entry_table_status = original_entry_table_migration_to_entry_table_status();
+//		int continous_atomic_and_free_entries=0;
+//		int first_entry_of_continous_atomic_and_free_entries=-1;
+//		t_list* entry_table_status = original_entry_table_migration_to_entry_table_status();
+//		status_t* status;
+//		if (algorithm_circular_pointer>=list_size(entry_table_status))
+//		{
+//
+//			algorithm_circular_pointer=0;
+//		}
+//		while(algorithm_circular_pointer<list_size(entry_table_status) && continous_atomic_and_free_entries!=entry_table_entries_needed(key_value))
+//		{
+//
+//			status = (status_t*)list_get(entry_table_status,algorithm_circular_pointer);
+//			if ((status->status==ATOMIC || status->status==FREE) && first_entry_of_continous_atomic_and_free_entries == -1)
+//			{
+//				first_entry_of_continous_atomic_and_free_entries = algorithm_circular_pointer;
+//				continous_atomic_and_free_entries++;
+//			}
+//			else if ((status->status==ATOMIC || status->status==FREE) && first_entry_of_continous_atomic_and_free_entries != -1)
+//			{
+//				continous_atomic_and_free_entries++;
+//
+//			}
+//			else
+//			{
+//				continous_atomic_and_free_entries=0;
+//				first_entry_of_continous_atomic_and_free_entries=-1;
+//			}
+//			algorithm_circular_pointer++;
+//		}
+//
+//		if (continous_atomic_and_free_entries==entry_table_entries_needed(key_value))
+//		{
+//
+//
+//			while (continous_atomic_and_free_entries>0)
+//			{
+//				status = (status_t*)list_get(entry_table_status,first_entry_of_continous_atomic_and_free_entries);
+//				if (status->status==ATOMIC)
+//				{
+//					list_add(replaced_keys,strdup(status->key));
+//					status->status=USED;
+//
+//				}
+//				first_entry_of_continous_atomic_and_free_entries++;
+//				continous_atomic_and_free_entries--;
+//			}
+//
+//		list_destroy_and_destroy_elements(entry_table_status, (void*) status_t_destroy);
+//		return 1;
+//		}
+//	}
+
+		t_list* entry_table_status = entry_table;
 		status_t* status;
-		if (algorithm_circular_pointer>=list_size(entry_table_status))
+		int algorithm_circular_pointer_copy = algorithm_circular_pointer;
+		int entries_neeeded = entry_table_entries_needed(key_value) - entries_left;
+		if (algorithm_circular_pointer>=list_size(entry_table_status) || algorithm_circular_pointer==0)
 		{
-
 			algorithm_circular_pointer=0;
+				while(algorithm_circular_pointer<list_size(entry_table_status) && entries_neeeded)
+				{
+					status = (status_t*)list_get(entry_table_status,algorithm_circular_pointer);
+					if (status->status==ATOMIC)
+					{
+						list_add(replaced_keys,strdup(status->key));
+						status->status=USED;
+						entries_neeeded--;
+					}
+					algorithm_circular_pointer++;
+				}
 		}
-		while(algorithm_circular_pointer<list_size(entry_table_status) && continous_atomic_and_free_entries!=entry_table_entries_needed(key_value))
+		else
 		{
-
-			status = (status_t*)list_get(entry_table_status,algorithm_circular_pointer);
-			if ((status->status==ATOMIC || status->status==FREE) && first_entry_of_continous_atomic_and_free_entries == -1)
+			while(algorithm_circular_pointer<list_size(entry_table_status) && entries_neeeded)
 			{
-				first_entry_of_continous_atomic_and_free_entries = algorithm_circular_pointer;
-				continous_atomic_and_free_entries++;
-			}
-			else if ((status->status==ATOMIC || status->status==FREE) && first_entry_of_continous_atomic_and_free_entries != -1)
-			{
-				continous_atomic_and_free_entries++;
-
-			}
-			else
-			{
-				continous_atomic_and_free_entries=0;
-				first_entry_of_continous_atomic_and_free_entries=-1;
-			}
-			algorithm_circular_pointer++;
-		}
-
-		if (continous_atomic_and_free_entries==entry_table_entries_needed(key_value))
-		{
-
-
-			while (continous_atomic_and_free_entries>0)
-			{
-				status = (status_t*)list_get(entry_table_status,first_entry_of_continous_atomic_and_free_entries);
+				status = (status_t*)list_get(entry_table_status,algorithm_circular_pointer);
 				if (status->status==ATOMIC)
 				{
 					list_add(replaced_keys,strdup(status->key));
+					status->status=USED;
+					entries_neeeded--;
 				}
-				first_entry_of_continous_atomic_and_free_entries++;
-				continous_atomic_and_free_entries--;
+				algorithm_circular_pointer++;
 			}
-
-		list_destroy_and_destroy_elements(entry_table_status, (void*) status_t_destroy);
-		return 1;
+			int i=0;
+			while(i<algorithm_circular_pointer_copy && entries_neeeded)
+			{
+				status = (status_t*)list_get(entry_table_status,i);
+				if (status->status==ATOMIC)
+				{
+					list_add(replaced_keys,strdup(status->key));
+					status->status=USED;
+					entries_neeeded--;
+				}
+				i++;
+			}
 		}
-	}
-
-	return 0;
+			//list_destroy(entry_table_status);
+			return 1;
+}else{
+	return -1;
+}
 }
 
 
@@ -101,7 +152,7 @@ bool biggest_size(void * a, void *b){
 int algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys){
 	if(!entry_table_have_entries(key_value) && new_value_fits(key_value))
 	{
-		t_list* entry_table_status = entry_table_status_global;
+		t_list* entry_table_status = entry_table;
 		status_t* status;
 
 
@@ -119,11 +170,11 @@ int algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_ke
 			if (status->status==ATOMIC)
 			{
 				list_add(replaced_keys,strdup(status->key));
+				status->status=USED;
 				entries_neeeded--;
 			}
 			i++;
 		}
-	list_destroy(copy_entry_table_status);
 	return 1;
 	}
 
@@ -135,27 +186,47 @@ int algorithm_lru(t_list* entry_table,key_value_t* key_value,t_list* replaced_ke
 int algorithm_bsu(t_list* entry_table,key_value_t* key_value,t_list* replaced_keys){
 	if(!entry_table_have_entries(key_value) && new_value_fits(key_value))
 	{
-		t_list* entry_table_status = entry_table_status_global;
-		status_t* status;
-		t_list * copy_entry_table_status = list_create();
+		t_list* entry_table_status = entry_table;
 
-		list_add_all(copy_entry_table_status,entry_table_status);
-		list_sort(copy_entry_table_status,biggest_size);
+//		t_list * copy_entry_table_status = list_create();
+//		list_add_all(copy_entry_table_status,entry_table_status);
+//		list_sort(copy_entry_table_status,biggest_size);
+		status_t* status;
 
 		int entries_neeeded = entry_table_entries_needed(key_value) - entries_left;
 
+		t_list * status_entries_with_same_size = list_create();
+		status_t* status_same_size;
 		int i=0;
-		while(i<list_size(copy_entry_table_status) && entries_neeeded)
+		while(i<list_size(entry_table_status) && entries_neeeded)
 		{
-			status = (status_t*)list_get(copy_entry_table_status,i);
+			status = (status_t*)list_get(entry_table_status,i);
 			if (status->status==ATOMIC)
 			{
-				list_add(replaced_keys,strdup(status->key));
-				entries_neeeded--;
+				int j=i;
+				while(j<list_size(entry_table_status))
+				{
+					status_same_size = (status_t*)list_get(entry_table_status,j);
+					if(status_same_size->space_used==status->space_used)
+					{
+						list_add(status_entries_with_same_size,status_same_size);
+					}
+					j++;
+				}
+				if(list_size(status_entries_with_same_size)>1)
+				{
+					algorithm_circular(status_entries_with_same_size,key_value,replaced_keys);
+				}
+				else
+				{
+					list_add(replaced_keys,strdup(status->key));
+					status->status=USED;
+					entries_neeeded--;
+				}
+
 			}
 			i++;
 		}
-	list_destroy(copy_entry_table_status);
 	return 1;
 	}
 
