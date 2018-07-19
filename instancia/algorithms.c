@@ -188,9 +188,9 @@ int algorithm_bsu(t_list* entry_table,key_value_t* key_value,t_list* replaced_ke
 	{
 		t_list* entry_table_status = entry_table;
 
-//		t_list * copy_entry_table_status = list_create();
-//		list_add_all(copy_entry_table_status,entry_table_status);
-//		list_sort(copy_entry_table_status,biggest_size);
+		t_list * copy_entry_table_status = list_create();
+		list_add_all(copy_entry_table_status,entry_table_status);
+		list_sort(copy_entry_table_status,biggest_size);
 		status_t* status;
 
 		int entries_neeeded = entry_table_entries_needed(key_value) - entries_left;
@@ -198,15 +198,15 @@ int algorithm_bsu(t_list* entry_table,key_value_t* key_value,t_list* replaced_ke
 		t_list * status_entries_with_same_size = list_create();
 		status_t* status_same_size;
 		int i=0;
-		while(i<list_size(entry_table_status) && entries_neeeded)
+		while(i<list_size(copy_entry_table_status) && entries_neeeded)
 		{
-			status = (status_t*)list_get(entry_table_status,i);
+			status = (status_t*)list_get(copy_entry_table_status,i);
 			if (status->status==ATOMIC)
 			{
 				int j=i;
-				while(j<list_size(entry_table_status))
+				while(j<list_size(copy_entry_table_status))
 				{
-					status_same_size = (status_t*)list_get(entry_table_status,j);
+					status_same_size = (status_t*)list_get(copy_entry_table_status,j);
 					if(status_same_size->space_used==status->space_used)
 					{
 						list_add(status_entries_with_same_size,status_same_size);
