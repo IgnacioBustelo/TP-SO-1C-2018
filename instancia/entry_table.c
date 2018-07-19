@@ -398,6 +398,8 @@ bool entry_table_has_continous_entries(key_value_t* key_value)
 
 						in_beetwen_entry_space = (e2->number)-(((e1->size%get_entry_size())==0?(e1->size/get_entry_size())+ e1->number:(e1->size/get_entry_size()+1)+ e1->number) );
 
+						//messenger_show("WARNING", "Espacio entre medio de %d y %d es %d cuando falta %d", e1->number, e2->number, in_beetwen_entry_space, entries_needed);
+
 						if (in_beetwen_entry_space>=entries_needed)
 						{
 							list_destroy(mock_entry_table);
@@ -405,12 +407,14 @@ bool entry_table_has_continous_entries(key_value_t* key_value)
 						}
 					}
 					e2 = (entry_t *) list_get(mock_entry_table,list_size(mock_entry_table)-1);
-					if(get_total_entries() - (e2->number + _req_entries(e2->number)) > entries_needed)
+					//messenger_show("WARNING", "Total (%d) - Ultimo Hueco (%d) = %d > Necesario: %d", get_total_entries(), (e2->number + _req_entries(e2->number)), get_total_entries() - (e2->number + _req_entries(e2->number)), entries_needed);
+					if(get_total_entries() - (e2->number + _req_entries(e2->number)) >= entries_needed)
 					{
 						list_destroy(mock_entry_table);
 						return true;
 					}
 	    		}
+	    		//messenger_show("WARNING", "No entra");
 	    		list_destroy(mock_entry_table);
 	    		return false;
 	    	}

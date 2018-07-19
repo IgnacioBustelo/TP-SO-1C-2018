@@ -435,6 +435,14 @@ void entry_table_status_print_table(){
 		}
 }
 
+void entry_table_status_show() {
+	void _show(status_t* status) {
+		messenger_show("INFO", "Clave: %d - Ultima Referencia: %d - Tamanio Ocupado: %d", status->key, status->last_referenced, status->space_used);
+	}
+
+	list_iterate(entry_table_status_global, (void*) _show);
+}
+
 void entry_table_status_destroy() {
 	list_destroy_and_destroy_elements(entry_table_status_global, (void*) status_t_destroy);
 }

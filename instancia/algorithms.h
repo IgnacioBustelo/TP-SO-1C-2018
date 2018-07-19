@@ -57,4 +57,6 @@ int			entry_table_status_find_and_get_index(char * key);
 
 void		entry_table_status_destroy();
 
+void		entry_table_status_show();
+
 #endif
