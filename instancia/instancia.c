@@ -40,7 +40,7 @@
 #define API_R_CHECK(MSG)	R_CHECK(API_ERROR, MSG, INSTANCE_API_ERROR)
 #define API_B_CHECK(MSG)	B_CHECK(API_ERROR, MSG, INSTANCE_API_ERROR)
 
-pthread_mutex_t instance_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t instance_mutex = PTHREAD_MUTEX_INITIALIZER, is_alive_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void _dump(void* key) {
 	entry_t* entry = entry_table_get_entry((char*) key);
@@ -158,7 +158,7 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 	}
 
 	if(!entry_table_has_entries(key_value)) {
-		messenger_show("WARNING", "La Instancia debe ejecutar un reemplazo para ingresar el valor de la clave %s", key_value->key);
+		messenger_show("WARNING", "La Instancia debe ejecutar un reemplazo para ingresar el valor %s de la clave %s", key_value->value, key_value->key);
 
 		operation_result = algorithms_exec(cfg_instancia_get_replacement_algorithm_id(), entry_table_status_global, key_value, replaced_keys);
 
@@ -174,7 +174,7 @@ int instance_set(key_value_t* key_value, t_list* replaced_keys) {
 
 		char* replaced_keys_csv = messenger_list_to_string(replaced_keys);
 
-		messenger_show("WARNING", "La clave %s se va a insertar tras reemplazar las claves [%s]", key_value->key, replaced_keys_csv);
+		messenger_show("WARNING", "La clave %s con su valor %s se va a insertar tras reemplazar las claves [%s]", key_value->key, key_value->value, replaced_keys_csv);
 
 		free(replaced_keys_csv);
 	}
@@ -329,7 +329,12 @@ void instance_thread_api(void* args) {
 
 	messenger_show("INFO", "Comienzo de actividades de la Instancia");
 
+	pthread_mutex_lock(&is_alive_mutex);
+
 	while(instance_is_alive) {
+
+		pthread_mutex_unlock(&is_alive_mutex);
+
 		messenger_show("INFO", "Esperando peticion del Coordinador");
 
 		request_coordinador header;
@@ -339,7 +344,11 @@ void instance_thread_api(void* args) {
 		if(operation_result == API_ERROR) {
 			messenger_show("ERROR", "Fallo en la recepcion del pedido del Coordinador");
 
+			pthread_mutex_lock(&is_alive_mutex);
+
 			instance_is_alive = false;
+
+			pthread_mutex_unlock(&is_alive_mutex);
 
 			break;
 		}
@@ -522,7 +531,11 @@ void instance_thread_api(void* args) {
 			case PROTOCOL_CI_KILL: {
 				messenger_show("INFO", "La Instancia recibio un pedido del Coordinador para desconectarse");
 
+				pthread_mutex_lock(&is_alive_mutex);
+
 				instance_is_alive = false;
+
+				pthread_mutex_unlock(&is_alive_mutex);
 
 				request_result = INSTANCE_DIE;
 
@@ -548,7 +561,11 @@ void instance_thread_api(void* args) {
 			case INSTANCE_REQUEST_FAILURE: {
 				messenger_show("ERROR", "Error procesando el pedido %s del Coordinador", C_HEADER(header));
 
+				pthread_mutex_lock(&is_alive_mutex);
+
 				instance_is_alive = false;
+
+				pthread_mutex_unlock(&is_alive_mutex);
 
 				break;
 			}
@@ -562,7 +579,11 @@ void instance_thread_api(void* args) {
 			case INSTANCE_API_ERROR: {
 				messenger_show("INFO", "Hubo un problema en la conexion durante el procesamiento del pedido");
 
+				pthread_mutex_lock(&is_alive_mutex);
+
 				instance_is_alive = false;
+
+				pthread_mutex_unlock(&is_alive_mutex);
 
 				break;
 			}
@@ -570,7 +591,11 @@ void instance_thread_api(void* args) {
 			case INSTANCE_DIE: {
 				messenger_show("INFO", "La Instancia se va a desconectar por pedido del Coordinador");
 
+				pthread_mutex_lock(&is_alive_mutex);
+
 				instance_is_alive = false;
+
+				pthread_mutex_unlock(&is_alive_mutex);
 
 				break;
 			}
@@ -578,12 +603,18 @@ void instance_thread_api(void* args) {
 			default: {
 				messenger_show("INFO", "Se recibio el mensaje '%d' no identificado y se va desconectar la Instancia", request_result);
 
+				pthread_mutex_lock(&is_alive_mutex);
+
 				instance_is_alive = false;
+
+				pthread_mutex_unlock(&is_alive_mutex);
 
 				break;
 			}
 		}
 	}
+
+	pthread_mutex_unlock(&is_alive_mutex);
 }
 
 void instance_thread_dump(void* args) {
@@ -595,7 +626,11 @@ void instance_thread_dump(void* args) {
 		pthread_exit(NULL);
 	}
 
+	pthread_mutex_lock(&is_alive_mutex);
+
 	while(instance_is_alive) {
+		pthread_mutex_unlock(&is_alive_mutex);
+
 		sleep(DUMP_INTERVAL);
 
 		time_passed += DUMP_INTERVAL;
@@ -626,6 +661,8 @@ void instance_thread_dump(void* args) {
 
 		pthread_mutex_unlock(&instance_mutex);
 	}
+
+	pthread_mutex_unlock(&is_alive_mutex);
 }
 
 void instance_main() {

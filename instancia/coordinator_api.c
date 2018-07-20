@@ -31,7 +31,7 @@ int coordinator_api_connect(char* host, int port) {
 		API_CHECK_FULL(fd_coordinador, -1, "Fallo en la conexion con el Coordinador");
 	}
 
-	messenger_show("DEBUG", "Asignacion del socket %d para comunicarse con el Coordinador", fd_coordinador);
+	messenger_show("INFO", "Asignacion del socket %d para comunicarse con el Coordinador", fd_coordinador);
 
 	return API_SUCCESS;
 }
@@ -39,7 +39,7 @@ int coordinator_api_connect(char* host, int port) {
 int	coordinator_api_handshake_base(bool* is_confirmed) {
 	int status;
 
-	messenger_show("DEBUG", "Envio de solicitud de handshake al Coordinador");
+	messenger_show("INFO", "Envio de solicitud de handshake al Coordinador");
 
 	status = send_handshake(fd_coordinador, INSTANCE);
 	API_CHECK_FULL(status, 0, "Fallo enviando el tipo de proceso al Coordinador");
@@ -47,7 +47,7 @@ int	coordinator_api_handshake_base(bool* is_confirmed) {
 	status = receive_confirmation(fd_coordinador, is_confirmed);
 	API_CHECK_FULL(status, 0, "Fallo recibiendo confirmacion del Handshake");
 
-	messenger_show("DEBUG", "Recibo de %s del Coordinador", *is_confirmed ? "confirmacion" : "rechazo");
+	messenger_show("INFO", "Recibo de %s del Coordinador", *is_confirmed ? "confirmacion" : "rechazo");
 
 	return API_SUCCESS;
 }
@@ -59,7 +59,7 @@ int	coordinator_api_handshake_send_name(char* instance_name) {
 
 	chunk_add_variable(chunk, instance_name, string_length(instance_name) + 1);
 
-	messenger_show("DEBUG", "Envio del nombre de la Instancia, que es %s", instance_name);
+	messenger_show("INFO", "Envio del nombre de la Instancia, que es %s", instance_name);
 
 	status = chunk_send_and_destroy(fd_coordinador, chunk);
 	API_R_CHECK("Fallo enviando el nombre de la Instancia");
@@ -79,16 +79,16 @@ int	coordinator_api_handshake_receive_config(storage_setup_t* setup, t_list** re
 	status = chunk_recv_list(fd_coordinador, recoverable_keys, _recv_recoverable_key);
 	API_R_CHECK("Fallo recibiendo la lista de claves a recuperar");
 
-	messenger_show("DEBUG", "Asignacion de %d entradas de tamano %d para el Storage", setup->total_entries, setup->entry_size);
+	messenger_show("INFO", "Asignacion de %d entradas de tamano %d para el Storage", setup->total_entries, setup->entry_size);
 
 	if(list_is_empty(*recoverable_keys)) {
-		messenger_show("DEBUG", "No es necesario recuperar claves");
+		messenger_show("INFO", "No es necesario recuperar claves");
 	}
 
 	else {
 		char* key_list = messenger_list_to_string(*recoverable_keys);
 
-		messenger_show("DEBUG", "Se deben recuperar %d claves: [%s]", list_size(*recoverable_keys), key_list);
+		messenger_show("INFO", "Se deben recuperar %d claves: [%s]", list_size(*recoverable_keys), key_list);
 
 		free(key_list);
 	}
@@ -102,7 +102,7 @@ int coordinator_api_receive_header(request_coordinador*	header) {
 	status = chunk_recv(fd_coordinador, header, sizeof(*header));
 	API_R_CHECK("Fallo recibiendo la peticion del Coordinador");
 
-	messenger_show("DEBUG", "Recibo de header %s", C_HEADER(*header));
+	messenger_show("INFO", "Recibo de header %s", C_HEADER(*header));
 
 	return API_SUCCESS;
 }
@@ -123,7 +123,7 @@ int	coordinator_api_receive_set(bool* is_new, key_value_t** key_value) {
 
 	*key_value = key_value_create(key, value);
 
-	messenger_show("DEBUG", "Recibo de la %sclave %s con valor %s de tamano %d", (*is_new) ? "nueva " : "", (*key_value)->key, (*key_value)->value, (*key_value)->size);
+	messenger_show("INFO", "Recibo de la %sclave %s con valor %s de tamano %d", (*is_new) ? "nueva " : "", (*key_value)->key, (*key_value)->value, (*key_value)->size);
 
 	free(key);
 	free(value);
@@ -137,7 +137,7 @@ int coordinator_api_receive_key(char** key) {
 	status = chunk_recv_variable(fd_coordinador, (void**) key);
 	API_R_CHECK("Fallo recibiendo la clave");
 
-	messenger_show("DEBUG", "Recibo de la clave %s", *key);
+	messenger_show("INFO", "Recibo de la clave %s", *key);
 
 	return API_SUCCESS;
 }
@@ -149,7 +149,7 @@ int coordinator_api_notify_header(request_instancia header) {
 
 	chunk_add(chunk, &header, sizeof(header));
 
-	messenger_show("DEBUG", "Envio del header %s al Coordinador", I_HEADER(header));
+	messenger_show("INFO", "Envio del header %s al Coordinador", I_HEADER(header));
 
 	status = chunk_send_and_destroy(fd_coordinador, chunk);
 	API_R_CHECK("Fallo enviando header");
@@ -165,7 +165,7 @@ int coordinator_api_notify_status(request_instancia header, int op_result) {
 	chunk_add(chunk, &header, sizeof(header));
 	chunk_add(chunk, &op_result, sizeof(op_result));
 
-	messenger_show("DEBUG", "Envio del header %s con el resultado de operacion %s al Coordinador", I_HEADER(header), CI_STATUS(op_result));
+	messenger_show("INFO", "Envio del header %s con el resultado de operacion %s al Coordinador", I_HEADER(header), CI_STATUS(op_result));
 
 	status = chunk_send_and_destroy(fd_coordinador, chunk);
 	API_R_CHECK("Fallo enviando el header con el resultado de la operacion");
@@ -184,7 +184,7 @@ int coordinator_api_notify_set(size_t entries_used, int op_result) {
 	chunk_add(chunk, &op_result, sizeof(op_result));
 	chunk_add(chunk, &entries_used, sizeof(entries_used));
 
-	messenger_show("DEBUG", "Envio del header %s con el resultado de operacion %s y la cantidad de entradas usadas (%d) al Coordinador", I_HEADER(header), CI_STATUS(op_result), entries_used);
+	messenger_show("INFO", "Envio del header %s con el resultado de operacion %s y la cantidad de entradas usadas (%d) al Coordinador", I_HEADER(header), CI_STATUS(op_result), entries_used);
 
 	status = chunk_send_and_destroy(fd_coordinador, chunk);
 	API_R_CHECK("Fallo enviando el header con el resultado de la operacion y la cantidad de entradas usadas");
@@ -203,7 +203,7 @@ int	coordinator_api_notify_key_value(key_value_t* key_value, int op_result) {
 	chunk_add(chunk, &op_result, sizeof(op_result));
 	chunk_add_variable(chunk, key_value->value, key_value->size + 1);
 
-	messenger_show("DEBUG", "Envio del header %s con el resultado de operacion %s y el valor '%s' de la clave '%s'", I_HEADER(header), CI_STATUS(op_result), key_value->value, key_value->key);
+	messenger_show("INFO", "Envio del header %s con el resultado de operacion %s y el valor '%s' de la clave '%s'", I_HEADER(header), CI_STATUS(op_result), key_value->value, key_value->key);
 
 	status = chunk_send_and_destroy(fd_coordinador, chunk);
 	API_R_CHECK("Fallo enviando el header con el estado de la clave y su valor");
@@ -214,7 +214,7 @@ int	coordinator_api_notify_key_value(key_value_t* key_value, int op_result) {
 int coordinator_api_disconnect() {
 	int status;
 
-	messenger_show("DEBUG", "Desconexion de la Instancia");
+	messenger_show("INFO", "Desconexion de la Instancia");
 
 	status = close(fd_coordinador);
 	API_R_CHECK("Fallo cerrando el socket");
