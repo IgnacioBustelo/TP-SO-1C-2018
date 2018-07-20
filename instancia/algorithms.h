@@ -4,6 +4,7 @@
 #include <commons/collections/list.h>
 #include <stdio.h>
 #include "entry_table.h"
+#include "tests/utils.h"
 
 enum {
 	ATOMIC,
