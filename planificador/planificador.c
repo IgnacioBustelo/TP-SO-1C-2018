@@ -564,7 +564,6 @@ void authorize_esi_execution(int esi_fd) {
 		reschedule(&reschedule_flag, &executing_esi);
 
 	} else {
-
 		update_executing_esi(esi_fd);
 
 		log_info(logger, "Se autorizó la ejecución del ESI %i", obtain_esi_information_by_id(esi_fd)->esi_numeric_name);
@@ -676,11 +675,11 @@ int schedule_esis() {
 
 			result1 = last_real_burst1 == 0
 					? last_estimated_burst1
-					: next_estimated_burst_sjf(setup.alpha, last_real_burst1, last_estimated_burst1);
+					: last_estimated_burst1 - last_real_burst1;
 
 			result2 = last_real_burst2 == 0
 					? last_estimated_burst2
-					: next_estimated_burst_sjf(setup.alpha, last_real_burst2, last_estimated_burst2);
+					: last_estimated_burst2 - last_real_burst2;
 
 			if(result1 == result2 && *esi_fd2 == executing_esi) {
 
@@ -702,7 +701,7 @@ int schedule_esis() {
 
 	 		float estimation = last_real_burst == 0
 							  ? last_estimated_burst
-							  : next_estimated_burst_sjf(setup.alpha, last_real_burst, last_estimated_burst);
+							  : last_estimated_burst - last_real_burst;
 
 	 		log_info(logger, "\x1b[93mESI %i tiene una estimación de %f\x1b[93m", esi_info->esi_numeric_name, estimation);
 	 	}
@@ -852,11 +851,6 @@ void reschedule(int* reschedule_flag, int* old_executing_esi) {
 
 	int esi_fd_to_execute = schedule_esis();
 	move_esi_from_and_to_queue(g_ready_queue, g_execution_queue, esi_fd_to_execute);
-
-	if(esi_fd_to_execute != *old_executing_esi) {
-
-		set_last_real_burst_to_zero(esi_fd_to_execute);
-	}
 
 	set_waiting_time_to_zero(esi_fd_to_execute);
 
